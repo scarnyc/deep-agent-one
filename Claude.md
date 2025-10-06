@@ -668,6 +668,7 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - [x] Implement `backend/deep_agent/agents/reasoning_router.py` - return "medium" for all queries
 - [x] Verify tests pass - router returns expected effort (11 tests)
 - [x] Commit: `feat(phase-0): implement basic reasoning router`
+- [x] **Bug Fix:** Issue #5 - Fixed .env.example verbosity mismatch (commit `82ae04a`)
 
 ### **Layer 3: LangGraph DeepAgents Setup**
 
@@ -860,3 +861,4 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 
 ---
 - if CodeRabbit extension is not triggered. Review PRs and identify issues in the comments
+- periodically review claude.md by removing stale context. make sure it's < 40k chars to prevent performance impacts
