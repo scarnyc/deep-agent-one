@@ -651,6 +651,112 @@ Add comprehensive research capabilities via LangChain's Open Deep Research frame
 
 ---
 
+## Technical Debt & Known Issues
+
+**Last Updated:** 2025-10-06
+
+This section tracks code quality issues that are non-blocking but should be addressed in future refactoring.
+
+### Issue 1: Unused `Optional` import in `logging.py`
+**File:** `backend/deep_agent/core/logging.py:5`
+**Severity:** Minor - Code Cleanliness
+**Status:** ⏳ Open
+
+**Current:**
+```python
+from typing import Any, Optional
+```
+
+**Fix:**
+```python
+from typing import Any
+```
+
+**Impact:** No functional impact, just cleaner imports.
+
+---
+
+### Issue 2: Unused `Optional` import in `errors.py`
+**File:** `backend/deep_agent/core/errors.py:2`
+**Severity:** Minor - Code Cleanliness
+**Status:** ⏳ Open
+
+**Current:**
+```python
+from typing import Any, Optional
+```
+
+**Fix:**
+```python
+from typing import Any
+```
+
+**Impact:** No functional impact, just cleaner imports.
+
+---
+
+### Issue 3: Missing `Literal` type hint for `log_format`
+**File:** `backend/deep_agent/core/logging.py:29`
+**Severity:** Suggestion - Type Safety
+**Status:** ⏳ Open
+
+**Current:**
+```python
+def setup_logging(
+    log_level: LogLevel = LogLevel.INFO,
+    log_format: str = "json",
+) -> None:
+```
+
+**Suggested:**
+```python
+from typing import Literal
+
+def setup_logging(
+    log_level: LogLevel = LogLevel.INFO,
+    log_format: Literal["json", "standard"] = "json",
+) -> None:
+```
+
+**Impact:** Better type checking - invalid values caught by mypy/IDEs.
+
+---
+
+### Issue 4: Handler accumulation in repeated calls
+**File:** `backend/deep_agent/core/logging.py:41-91`
+**Severity:** Potential Issue - Test Reliability
+**Status:** ⏳ Open
+
+**Problem:** Handlers only cleared for `"standard"` format. Multiple calls to `setup_logging()` with `"json"` format may accumulate handlers.
+
+**Current:**
+```python
+# Configure standard library logging
+logging.basicConfig(...)
+
+# ... processors ...
+
+# Configure formatter for standard format
+if log_format == "standard":
+    # ... formatter ...
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()  # Only for standard!
+```
+
+**Suggested Fix:**
+```python
+# Clear handlers for both formats
+root_logger = logging.getLogger()
+root_logger.handlers.clear()
+
+# Configure standard library logging
+logging.basicConfig(...)
+```
+
+**Impact:** Prevents duplicate log output in test suites. Not blocking - all tests pass (19/19).
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -876,3 +982,246 @@ git commit -m "security(phase-X): address TheAuditor findings"
 Remember: **Evaluation-driven, test-driven, phase-driven, commit-driven, security-first.**
 
 Build incrementally, commit constantly, test thoroughly, scan for security issues, measure continuously, deploy confidently.
+
+**Before writing any code:** Add todos to this file. Update todos accordingly, checking them off as you complete tasks. Only use one subagent when instructed. Plan subagent delegation for optimal task distribution.
+
+---
+
+## 📋 Phase 0 Implementation TODO List
+
+### **Layer 1: Foundation (Configuration & Core Infrastructure)**
+
+#### Configuration System
+- [x] Create `backend/deep_agent/config/__init__.py`
+- [x] Write test: `tests/unit/test_config.py` - test settings load from .env
+- [x] Implement `backend/deep_agent/config/settings.py` - Pydantic Settings class
+- [x] Verify tests pass - settings validation works
+- [x] Commit: `feat(phase-0): implement pydantic settings configuration`
+
+#### Structured Logging
+- [ ] Create `backend/deep_agent/core/__init__.py`
+- [ ] Write test: `tests/unit/test_logging.py` - test log format and levels
+- [ ] Implement `backend/deep_agent/core/logging.py` - structlog setup with JSON
+- [ ] Verify tests pass - logging outputs correctly
+- [ ] Commit: `feat(phase-0): add structlog for structured logging`
+
+#### Error Handling
+- [ ] Write test: `tests/unit/test_errors.py` - test custom exceptions
+- [ ] Implement `backend/deep_agent/core/errors.py` - custom exception classes
+- [ ] Verify tests pass - exceptions raised properly
+- [ ] Commit: `feat(phase-0): implement custom error handling`
+
+### **Layer 2: GPT-5 Integration**
+
+#### GPT-5 Pydantic Models
+- [ ] Create `backend/deep_agent/models/__init__.py`
+- [ ] Write test: `tests/unit/test_models/test_gpt5.py` - test model serialization
+- [ ] Implement `backend/deep_agent/models/gpt5.py` - GPT5Config, ReasoningEffort, etc.
+- [ ] Verify tests pass - models validate correctly
+- [ ] Commit: `feat(phase-0): add GPT-5 pydantic models`
+
+#### GPT-5 Service
+- [ ] Create `backend/deep_agent/services/__init__.py`
+- [ ] Write test: `tests/unit/test_services/test_gpt5_service.py` - mock OpenAI, test streaming
+- [ ] Implement `backend/deep_agent/services/gpt5_service.py` - OpenAI client with streaming
+- [ ] Verify tests pass - streaming works, errors handled
+- [ ] Commit: `feat(phase-0): implement GPT-5 service with streaming`
+
+#### Basic Reasoning Router
+- [ ] Create `backend/deep_agent/agents/__init__.py`
+- [ ] Write test: `tests/unit/test_agents/test_reasoning_router.py` - test basic routing
+- [ ] Implement `backend/deep_agent/agents/reasoning_router.py` - return "medium" for all queries
+- [ ] Verify tests pass - router returns expected effort
+- [ ] Commit: `feat(phase-0): add basic reasoning router (medium effort default)`
+
+### **Layer 3: LangGraph DeepAgents Setup**
+
+#### Checkpointer Configuration
+- [ ] Write test: `tests/unit/test_agents/test_checkpointer.py` - test persistence
+- [ ] Implement `backend/deep_agent/agents/checkpointer.py` - SqliteSaver setup
+- [ ] Verify tests pass - state persists correctly
+- [ ] Commit: `feat(phase-0): configure sqlite checkpointer for agent state`
+
+#### DeepAgents Initialization
+- [ ] Write test: `tests/unit/test_agents/test_deep_agent.py` - test agent init, tools loaded
+- [ ] Implement `backend/deep_agent/agents/deep_agent.py` - initialize DeepAgents with file tools, HITL
+- [ ] Verify tests pass - agent starts, tools available
+- [ ] Commit: `feat(phase-0): initialize DeepAgents with file tools and HITL`
+
+#### Agent Service
+- [ ] Write test: `tests/integration/test_agent_workflows/test_basic_workflow.py` - full agent run
+- [ ] Implement `backend/deep_agent/services/agent_service.py` - orchestration layer
+- [ ] Verify tests pass - agent executes workflow end-to-end
+- [ ] Commit: `feat(phase-0): add agent service for orchestration`
+
+### **Layer 4: MCP Integration (Web Search)**
+
+#### Perplexity MCP Client
+- [ ] Create `backend/deep_agent/integrations/__init__.py`
+- [ ] Create `backend/deep_agent/integrations/mcp_clients/__init__.py`
+- [ ] Write test: `tests/integration/test_mcp_integration/test_perplexity.py` - mock MCP responses
+- [ ] Implement `backend/deep_agent/integrations/mcp_clients/perplexity.py` - MCP client
+- [ ] Verify tests pass - MCP calls work
+- [ ] Commit: `feat(phase-0): integrate perplexity MCP for web search`
+
+#### Web Search Tool
+- [ ] Create `backend/deep_agent/tools/__init__.py`
+- [ ] Write test: `tests/unit/test_tools/test_web_search.py` - test tool signature, errors
+- [ ] Implement `backend/deep_agent/tools/web_search.py` - agent tool using Perplexity
+- [ ] Verify tests pass - tool callable by agent
+- [ ] Commit: `feat(phase-0): add web search tool using perplexity MCP`
+
+### **Layer 5: LangSmith Integration (Observability)**
+
+#### LangSmith Tracing
+- [ ] Write test: `tests/unit/test_integrations/test_langsmith.py` - verify trace metadata
+- [ ] Implement `backend/deep_agent/integrations/langsmith.py` - configure tracing
+- [ ] Verify tests pass - traces created
+- [ ] Commit: `feat(phase-0): integrate LangSmith for agent tracing`
+
+### **Layer 6: FastAPI Backend (API Layer)**
+
+#### API Models
+- [ ] Write test: `tests/unit/test_models/test_chat.py` - validate schemas
+- [ ] Implement `backend/deep_agent/models/chat.py` - chat request/response models
+- [ ] Implement `backend/deep_agent/models/agents.py` - agent management models
+- [ ] Implement `backend/deep_agent/models/common.py` - shared models
+- [ ] Verify tests pass - schemas validate
+- [ ] Commit: `feat(phase-0): add API pydantic models`
+
+#### FastAPI App Setup
+- [ ] Create `backend/deep_agent/api/__init__.py`
+- [ ] Create `backend/deep_agent/api/v1/__init__.py`
+- [ ] Write test: `tests/integration/test_api_endpoints/test_main.py` - verify app starts
+- [ ] Implement `backend/deep_agent/main.py` - FastAPI app with CORS, rate limiting, logging
+- [ ] Verify tests pass - app serves requests
+- [ ] Commit: `feat(phase-0): initialize FastAPI app with middleware`
+
+#### Chat Endpoints
+- [ ] Write test: `tests/integration/test_api_endpoints/test_chat.py` - test REST + SSE
+- [ ] Implement `backend/deep_agent/api/v1/chat.py` - POST /chat, POST /chat/stream
+- [ ] Verify tests pass - endpoints return responses, streaming works
+- [ ] Commit: `feat(phase-0): add chat endpoints with SSE streaming`
+
+#### WebSocket for AG-UI
+- [ ] Write test: `tests/integration/test_api_endpoints/test_websocket.py` - test WS connection
+- [ ] Implement `backend/deep_agent/api/v1/websocket.py` - WebSocket endpoint for events
+- [ ] Verify tests pass - WS connects, events stream
+- [ ] Commit: `feat(phase-0): add websocket endpoint for AG-UI event streaming`
+
+#### Agent Management Endpoints
+- [ ] Write test: `tests/integration/test_api_endpoints/test_agents.py` - test HITL workflows
+- [ ] Implement `backend/deep_agent/api/v1/agents.py` - GET /agents/{run_id}, POST /approve, /respond
+- [ ] Verify tests pass - HITL approval works
+- [ ] Commit: `feat(phase-0): add agent management endpoints with HITL support`
+
+### **Layer 7: Frontend (AG-UI Protocol)**
+
+#### Next.js Setup
+- [ ] Create `frontend/next.config.js` - Next.js configuration
+- [ ] Create `frontend/tailwind.config.js` - Tailwind CSS config
+- [ ] Create `frontend/postcss.config.js` - PostCSS config
+- [ ] Create `frontend/tsconfig.json` - TypeScript config
+- [ ] Create `frontend/app/layout.tsx` - root layout
+- [ ] Create `frontend/app/page.tsx` - home page
+- [ ] Verify: `npm run dev` starts successfully
+- [ ] Commit: `feat(phase-0): configure Next.js with Tailwind and TypeScript`
+
+#### AG-UI SDK Setup
+- [ ] Create `frontend/lib/ag-ui.ts` - AG-UI SDK configuration
+- [ ] Verify: AG-UI types available
+- [ ] Commit: `feat(phase-0): integrate AG-UI SDK`
+
+#### WebSocket Hook
+- [ ] Write test: `tests/ui/test_websocket_connection.py` - Playwright test WS connection
+- [ ] Create `frontend/hooks/useWebSocket.ts` - React hook for backend WS
+- [ ] Verify tests pass - connection establishes
+- [ ] Commit: `feat(phase-0): add useWebSocket hook for backend connection`
+
+#### Agent State Management
+- [ ] Write test: `tests/ui/test_agent_state.py` - verify state updates
+- [ ] Create `frontend/hooks/useAgentState.ts` - Zustand store for agent state
+- [ ] Create `frontend/types/agent.ts` - TypeScript types
+- [ ] Create `frontend/types/ag-ui.ts` - AG-UI event types
+- [ ] Verify tests pass - state updates on events
+- [ ] Commit: `feat(phase-0): add zustand store for agent state management`
+
+#### Chat Interface
+- [ ] Write test: `tests/ui/test_chat_interface.py` - type message, send, verify display
+- [ ] Create `frontend/app/chat/page.tsx` - chat page
+- [ ] Create `frontend/app/chat/components/ChatInterface.tsx` - main chat component
+- [ ] Create `frontend/components/ui/` - shadcn/ui base components (Button, Input, Card, etc.)
+- [ ] Verify tests pass - can send messages
+- [ ] Commit: `feat(phase-0): implement chat interface`
+
+#### Streaming Message Component
+- [ ] Write test: `tests/ui/test_streaming_message.py` - verify token-by-token rendering
+- [ ] Create `frontend/app/chat/components/StreamingMessage.tsx` - streaming text display
+- [ ] Verify tests pass - text streams in real-time
+- [ ] Commit: `feat(phase-0): add streaming message component`
+
+#### Tool Call Display
+- [ ] Write test: `tests/ui/test_tool_display.py` - toggle expand/collapse
+- [ ] Create `frontend/components/ag-ui/ToolCallDisplay.tsx` - tool transparency panel
+- [ ] Verify tests pass - can inspect tool args/results
+- [ ] Commit: `feat(phase-0): add tool call transparency display`
+
+#### HITL Approval UI
+- [ ] Write test: `tests/ui/test_hitl_approval.py` - click approve, verify backend call
+- [ ] Create `frontend/app/chat/components/HITLApproval.tsx` - approval interface
+- [ ] Verify tests pass - approval sends to backend
+- [ ] Commit: `feat(phase-0): implement HITL approval interface`
+
+#### Progress Indicators
+- [ ] Write test: `tests/ui/test_progress_tracker.py` - verify updates on StepStarted
+- [ ] Create `frontend/components/ag-ui/ProgressTracker.tsx` - subtask list display
+- [ ] Create `frontend/components/ag-ui/AgentStatus.tsx` - agent state indicator
+- [ ] Verify tests pass - progress updates in real-time
+- [ ] Commit: `feat(phase-0): add progress tracking UI`
+
+### **Layer 8: Testing & Quality**
+
+#### E2E Test Suite
+- [ ] Create `tests/e2e/test_complete_workflows/test_basic_chat.py` - user sends query, gets response
+- [ ] Create `tests/e2e/test_complete_workflows/test_hitl_workflow.py` - full HITL approval flow
+- [ ] Create `tests/e2e/test_complete_workflows/test_tool_usage.py` - agent uses file tools
+- [ ] Verify all E2E tests pass
+- [ ] Commit: `test(phase-0): add E2E tests for complete workflows`
+
+#### Test Reporting
+- [ ] Update `scripts/test.sh` - ensure all report generation works
+- [ ] Run full test suite: `./scripts/test.sh`
+- [ ] Verify reports generated: HTML, coverage, JSON, Playwright
+- [ ] Verify coverage ≥80%
+- [ ] Commit: `test(phase-0): configure comprehensive test reporting`
+
+#### Security Scanning
+- [ ] Run TheAuditor: `./scripts/security_scan.sh`
+- [ ] Review findings in `.pf/readthis/`
+- [ ] Fix any critical/high vulnerabilities found
+- [ ] Re-run scan to verify fixes
+- [ ] Commit: `security(phase-0): run TheAuditor scan and address findings`
+
+### **Final Phase 0 Steps**
+
+#### Documentation
+- [ ] Create `docs/development/setup.md` - local setup guide
+- [ ] Create `docs/api/endpoints.md` - API endpoint documentation
+- [ ] Create `docs/development/testing.md` - testing guide
+- [ ] Commit: `docs(phase-0): add setup and API documentation`
+
+#### Success Criteria Validation
+- [ ] Review all Phase 0 success criteria in this file
+- [ ] Verify all checkboxes can be checked
+- [ ] Run full test suite one final time
+- [ ] Verify all metrics met (latency <2s, coverage ≥80%, etc.)
+- [ ] Commit: `chore(phase-0): validate all success criteria met`
+
+#### Phase 0 Completion
+- [ ] Tag release: `git tag v0.1.0-phase0`
+- [ ] Push to remote: `git push origin phase-0-mvp --tags`
+- [ ] Create summary report of Phase 0 accomplishments
+- [ ] Commit: `chore(phase-0): complete Phase 0 MVP`
+
+---
+- if CodeRabbit extension is not triggered. Review PRs and identify issues in the comments
