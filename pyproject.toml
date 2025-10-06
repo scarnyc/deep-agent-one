@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "deep_agent", from = "backend"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 # Core FastAPI
 fastapi = "^0.115.0"
 uvicorn = {extras = ["standard"], version = "^0.32.0"}
@@ -126,8 +126,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --strict-markers"
-# addopts = "-ra -q --strict-markers --cov=backend/deep_agent --cov-report=term-missing --cov-report=html"  # Enable after installing pytest-cov
+addopts = "-ra -q --strict-markers --cov=backend/deep_agent --cov-report=term-missing --cov-report=html"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]

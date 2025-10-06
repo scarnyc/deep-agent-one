@@ -31,7 +31,6 @@
     "lucide-react": "^0.460.0"
   },
   "devDependencies": {
-    "@modelcontextprotocol/server-playwright": "latest",
     "@playwright/test": "^1.48.0",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
