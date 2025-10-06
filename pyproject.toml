@@ -20,7 +20,7 @@ langchain = "^0.3.0"
 langchain-openai = "^0.2.0"
 langgraph = "^0.2.0"
 langsmith = "^0.2.0"
-deepagents = "^0.1.0"
+# deepagents = {git = "https://github.com/langchain-ai/deepagents.git", branch = "main"}  # Install manually later
 
 # Database
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.0"}
@@ -126,7 +126,8 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --strict-markers --cov=backend/deep_agent --cov-report=term-missing --cov-report=html"
+addopts = "-ra -q --strict-markers"
+# addopts = "-ra -q --strict-markers --cov=backend/deep_agent --cov-report=term-missing --cov-report=html"  # Enable after installing pytest-cov
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
