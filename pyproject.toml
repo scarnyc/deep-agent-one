@@ -135,6 +135,7 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["backend/deep_agent"]
+data_file = "reports/.coverage"
 omit = [
     "*/tests/*",
     "*/conftest.py",
