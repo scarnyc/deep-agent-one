@@ -7,6 +7,12 @@ from pydantic import ValidationError
 from backend.deep_agent.config.settings import Settings, get_settings
 
 
+@pytest.fixture(autouse=True)
+def clear_settings_cache() -> None:
+    """Clear the settings cache before each test."""
+    get_settings.cache_clear()
+
+
 class TestSettings:
     """Test Settings class."""
 
