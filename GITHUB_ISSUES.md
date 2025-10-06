@@ -138,7 +138,7 @@ logging.basicConfig(
 
 ---
 
-## Issue 5: `.env.example` Verbosity Values Mismatch
+## Issue 5: `.env.example` Verbosity Values Mismatch ✅ RESOLVED
 
 **Labels:** `bug`, `configuration`, `phase-0`, `high-priority`
 
@@ -165,6 +165,8 @@ GPT5_DEFAULT_VERBOSITY=medium        # low, medium, high
 - `backend/deep_agent/models/gpt5.py:20-29` (Verbosity enum definition)
 
 **Found in:** Layer 2 Code Review (2025-10-06)
+
+**Resolution:** Fixed in commit [pending] - Updated `.env.example:9` to use `medium` with correct comment `# low, medium, high`
 
 ---
 
