@@ -148,176 +148,25 @@ Create `.mcp/` directory with configuration files for each MCP server (see READM
 
 ---
 
-## 🏗️ Architectural Decisions (High-Level)
+## 🏗️ Architectural Decisions
 
-All 33 architectural decisions have been made. See README.md for folder structure details.
+All 33 architectural decisions have been documented. Key decisions include:
 
-### Phase 0 Critical Decisions
+**Technology Stack:**
+- Backend: FastAPI + Python 3.10+
+- Frontend: Next.js + AG-UI Protocol
+- Database: PostgreSQL + pgvector (Replit)
+- LLM: OpenAI GPT-5 with variable reasoning
+- Agent Framework: LangGraph DeepAgents
 
-**1. Folder Structure & Organization**
-- **✅ Decision:** Backend (FastAPI/Python) + Frontend (Next.js/React) separation with feature-based organization
-- **Rationale:** Clear separation of concerns, production-ready structure
-- **See:** README.md for complete folder structure
+**Development Standards:**
+- Testing: pytest with 80%+ coverage requirement
+- Code Quality: Ruff (linting/formatting) + mypy (type checking)
+- CI/CD: GitHub Actions with parallel jobs
+- Security: TheAuditor + pre-commit hooks
+- Monitoring: LangSmith for agent tracing
 
-**2. Checkpointer Configuration**
-- **✅ Decision:** SqliteSaver for Phase 0, PostgresSaver for Phase 1+
-- **Rationale:** Simple for MVP, scalable for production
-- **Implementation:** `CheckpointerManager` class handles environment-specific checkpointers
-
-**3. Database Schema & Setup**
-- **✅ Decision:** Alembic + SQLAlchemy 2.0 with async support
-- **Rationale:** Industry standard, excellent pgvector integration, Replit compatible
-- **Implementation:** Schema includes Users, Conversations, Memories (vector embeddings), Messages, Provenance, Sessions
-
-**4. Environment Variables**
-- **✅ Decision:** Comprehensive .env.example with GPT-5 reasoning configuration
-- **Rationale:** Clear documentation of all required settings per environment
-- **Implementation:** See `.env.example` in repository
-
-**5. Dependency Management**
-- **✅ Decision:** Poetry for Python, npm for Node.js
-- **Rationale:** Best lock files, native Replit support, modern pyproject.toml standard
-- **Implementation:** `pyproject.toml` + `package.json`
-
-**6. Error Handling & Logging**
-- **✅ Decision:** structlog with JSON formatting, custom exception classes, FastAPI global handlers
-- **Rationale:** Production-ready structured logging, machine-parseable, excellent for debugging
-- **Implementation:** `ErrorCode` enum, `DeepAgentError` base class, environment-specific log formats
-
-**7. API Design & WebSocket Strategy**
-- **✅ Decision:** WebSocket for AG-UI events, `/api/v1/` versioning, feature-based routers
-- **Rationale:** AG-UI requires WebSocket, clear API versioning, organized by domain
-- **Implementation:** FastAPI routers for agents, chat, reasoning, WebSocket streaming
-
-**8. Test Organization & Patterns**
-- **✅ Decision:** `test_*.py` naming, hierarchical conftest.py, factory pattern mocks
-- **Rationale:** Pytest standard, shared fixtures at appropriate scope, reusable mocks
-- **Implementation:** Unit/Integration/E2E/UI test directories with dedicated fixtures
-
-**9. Git Hooks & Pre-commit**
-- **✅ Decision:** pre-commit framework with ruff, mypy, detect-secrets
-- **Rationale:** Automated quality checks, prevent common issues before commit
-- **Implementation:** `.pre-commit-config.yaml` with comprehensive hooks
-
-**10. CI/CD Pipeline**
-- **✅ Decision:** GitHub Actions with parallel jobs (lint, test, security, deploy)
-- **Rationale:** Native GitHub integration, parallel execution, Replit deployment support
-- **Implementation:** `.github/workflows/` with test, security, deploy workflows
-
-**11. Frontend Architecture**
-- **✅ Decision:** Next.js App Router + shadcn/ui + Tailwind CSS + Zustand
-- **Rationale:** Modern React patterns, AG-UI compatibility, excellent DX
-- **Implementation:** App router for SSR, shadcn/ui for components, Zustand for state
-
-**12. Monitoring & Observability**
-- **✅ Decision:** LangSmith for traces, built-in logging for Phase 0, add Sentry Phase 1
-- **Rationale:** LangSmith essential for agent debugging, structured logs sufficient for MVP
-- **Implementation:** LangSmith integration in all agent operations
-
-**13. Opik Setup**
-- **✅ Decision:** Opik SDK integrated with agent prompts from day one
-- **Rationale:** Auto-prompt optimization critical for cost reduction goal
-- **Implementation:** Opik decorators on agent system prompts and tool prompts
-
-**14. Secrets Management**
-- **✅ Decision:** Local (.env files) + Replit Secrets + GitHub Secrets
-- **Rationale:** Environment-specific secret storage with proper isolation
-- **Implementation:** `get_secret()` abstraction layer in `core/secrets.py`
-
-**15. Rate Limiting**
-- **✅ Decision:** slowapi library, per-IP + per-user, in-memory Phase 0, Redis Phase 2
-- **Rationale:** FastAPI-native, flexible strategy, simple for MVP
-- **Implementation:** `@limiter.limit()` decorators on routes
-
-**16. CORS & Security Headers**
-- **✅ Decision:** Environment-specific CORS whitelist + comprehensive security headers
-- **Rationale:** Secure by default, defense-in-depth approach
-- **Implementation:** CORS middleware + `SecurityHeadersMiddleware`
-
-**17. Docker & Replit Compatibility**
-- **✅ Decision:** Replit Nix for deployment, optional Docker for local dev
-- **Rationale:** Replit-native approach preferred, Docker available if needed
-- **Implementation:** `.replit` + `replit.nix` configuration
-
-**18. Linting, Formatting & Code Quality**
-- **✅ Decision:** Ruff (linting + formatting) + mypy (type checking)
-- **Rationale:** 10-100x faster than alternatives, single tool, excellent VSCode integration
-- **Implementation:** `pyproject.toml` configuration, pre-commit hooks
-
-**19. IDE Configuration**
-- **✅ Decision:** VSCode/Cursor settings + recommended extensions
-- **Rationale:** Consistent development experience across team
-- **Implementation:** `.vscode/settings.json`, `.vscode/extensions.json`
-
-**20. Local Development Workflow**
-- **✅ Decision:** Scripts in `scripts/` directory, single command startup
-- **Rationale:** Simple developer experience, consistent across environments
-- **Implementation:** `scripts/dev.sh` for starting all services
-
-**21. Debugging Strategies**
-- **✅ Decision:** LangSmith visual debugging + VSCode launch configurations
-- **Rationale:** LangGraph-specific debugging crucial for agent development
-- **Implementation:** `.vscode/launch.json` with agent debug configs
-
-**22. LLM Output Testing**
-- **✅ Decision:** LangSmith evals + custom assertion patterns
-- **Rationale:** Handle non-deterministic outputs, track quality regressions
-- **Implementation:** Eval suite in `tests/evals/` with LangSmith integration
-
-**23. Load Testing**
-- **✅ Decision:** k6 for load testing, scenarios aligned with Replit tier limits
-- **Rationale:** Modern, scriptable, excellent reporting
-- **Implementation:** Load test scenarios in `tests/load/`
-
-**24. Playwright Test Organization**
-- **✅ Decision:** Page Object Model + data-testid selectors
-- **Rationale:** Maintainable UI tests, resilient to UI changes
-- **Implementation:** `tests/ui/` with page objects
-
-**25. Cost Tracking & Optimization**
-- **✅ Decision:** Per-request token tracking + custom cost dashboard
-- **Rationale:** Core project goal is cost reduction, need visibility
-- **Implementation:** `CostTracker` service, dashboard in frontend
-
-**26. Caching Strategy**
-- **✅ Decision:** Redis for Phase 2 (LLM responses, DB queries, API responses)
-- **Rationale:** Distributed cache essential for multi-instance production
-- **Implementation:** Cache layer with TTL configuration
-
-**27. Performance Budgets**
-- **✅ Decision:** <2s simple query latency, <500ms DB queries, 80% test coverage
-- **Rationale:** User experience requirements drive technical constraints
-- **Implementation:** Performance monitoring + alerts
-
-**28. Architecture Decision Records (ADRs)**
-- **✅ Decision:** ADR template in `docs/adr/` for major decisions
-- **Rationale:** Document architectural choices with context and rationale
-- **Implementation:** ADR template + numbering system
-
-**29. API Documentation**
-- **✅ Decision:** Google-style docstrings + enhanced OpenAPI with examples
-- **Rationale:** FastAPI auto-generates docs, enhance with rich examples
-- **Implementation:** Docstring standards + OpenAPI customization
-
-**30. Operations Manual (Runbook)**
-- **✅ Decision:** Runbook in `docs/operations/` with deployment, rollback, troubleshooting
-- **Rationale:** Production readiness requires operational documentation
-- **Implementation:** Step-by-step procedures for common operations
-
-**31. Custom Tool Development**
-- **✅ Decision:** Tool template + error handling patterns + testing template
-- **Rationale:** Consistent tool interface, reliable error handling
-- **Implementation:** Tool base class + development guide
-
-**32. Sub-Agent Communication**
-- **✅ Decision:** Context-passing patterns + error handling + async calls
-- **Rationale:** DeepAgents supports sub-agents, need clear communication patterns
-- **Implementation:** Sub-agent usage guidelines + examples
-
-**33. Agent State Management**
-- **✅ Decision:** State persistence via checkpointer + cleanup strategies + size limits
-- **Rationale:** Manage agent state across interactions and sessions
-- **Implementation:** `StateManager` with pruning and migration support
+**See:** `README.md` for complete folder structure and detailed architectural decision records.
 
 ---
 
@@ -461,159 +310,30 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 
 ## Phase 1: Enhance MVP (Productionization)
 
-### Objective
-Add production-grade features: advanced reasoning, memory, authentication, enhanced UI.
+**Objective:** Production-grade features - advanced reasoning, memory, authentication, enhanced UI.
 
-### Core Enhancements
+**Core Enhancements:**
+1. Variable Reasoning Effort (trigger phrases, complexity analysis, cost optimization)
+2. Memory System (PostgreSQL pgvector, semantic search, context retrieval)
+3. Authentication & IAM (OAuth 2.0, rotating credentials, least-privilege)
+4. Provenance Store (source tracking, citations, confidence scores)
+5. Enhanced AG-UI (reasoning indicators, state events, provenance display)
 
-#### 1. Variable Reasoning Effort (GPT-5)
-**Trigger Phrases:** "think harder", "deep dive", "analyze carefully"
-
-**Implementation:**
-- Reasoning Router analyzes query complexity
-- Adjusts GPT-5 parameters (minimal/low/medium/high)
-- UI displays thinking animation
-- Cost optimization via intelligent routing
-
-#### 2. Memory System (PostgreSQL Vector DB)
-**Platform:** Replit-hosted PostgreSQL with pgvector
-
-**Features:**
-- Persistent conversation memory
-- Vector embeddings for semantic search (OpenAI embeddings, 1536 dimensions)
-- Context retrieval across sessions
-- Memory management and pruning
-
-#### 3. Authentication & IAM
-**Security Principles:**
-- Least-privilege access
-- Rotating credentials (24-48h)
-- Ephemeral tokens
-- OAuth 2.0 authentication
-
-#### 4. Provenance Store
-**Track:**
-- Source URLs and citations
-- Document references
-- Confidence scores
-- Inline attribution
-
-#### 5. Enhanced AG-UI Features
-- Variable reasoning indicators
-- State management events (StateSnapshot/StateDelta)
-- Provenance & citations display
-- Authentication UI with credential status
-
-### Success Criteria - Phase 1
-
-**Must Pass All:**
-
-1. **Variable Reasoning** ✓
-   - [ ] Trigger phrases detected accurately
-   - [ ] Reasoning mode adjusts GPT-5 behavior
-   - [ ] Processing time estimates within 20% accuracy
-
-2. **Memory System** ✓
-   - [ ] PostgreSQL vector DB operational
-   - [ ] Conversations persist across sessions
-   - [ ] Semantic search retrieval <500ms
-
-3. **Authentication** ✓
-   - [ ] OAuth 2.0 login functional
-   - [ ] Token rotation automated
-   - [ ] Credential expiration warnings work
-
-4. **Provenance** ✓
-   - [ ] All sources tracked and stored
-   - [ ] Citations display inline
-   - [ ] Confidence scores calculated
-
-5. **Testing** ✓
-   - [ ] 80%+ coverage maintained
-   - [ ] All integration tests pass
-   - [ ] Constant commits maintained
-
-**Quantitative Metrics:**
-- Memory retrieval accuracy: >90%
-- Auth token refresh success: >99%
-- Deep reasoning engagement: >5% of queries
-- Provenance coverage: 100% of external sources
+**Key Metrics:** Memory retrieval >90%, auth token refresh >99%, deep reasoning >5% queries, provenance 100% sources
 
 ---
 
 ## Phase 2: Implement Deep Research
 
-### Objective
-Add comprehensive research capabilities via LangChain's Open Deep Research framework.
+**Objective:** Comprehensive research capabilities via LangChain's Open Deep Research framework.
 
-### Core Components
+**Core Components:**
+1. Deep Research Framework (multi-step planning, source gathering, synthesis, reporting)
+2. Custom MCP Servers (fastmcp for research tools, data aggregation, multi-source querying)
+3. Infrastructure Hardening (Cloudflare WAF, load balancing, database scaling)
+4. Security Testing (TheAuditor penetration testing, prompt injection defenses)
 
-#### 1. Deep Research Framework
-**Repository:** https://github.com/langchain-ai/open_deep_research
-
-**Capabilities:**
-- Multi-step research planning
-- Source gathering and analysis
-- Information synthesis
-- Comprehensive reporting
-
-#### 2. MCP Server Creation (fastmcp)
-**Build custom MCPs for:**
-- Research-specific tools
-- Data aggregation
-- Multi-source querying
-
-#### 3. Infrastructure Hardening
-**WAF:** Cloudflare (DDoS protection, bot mitigation)
-**Load Balancing:** Distribute traffic, auto-scaling
-**Database Scaling:** Read replicas, connection pooling
-
-#### 4. Security Testing (TheAuditor)
-**AI Security Penetration Test:**
-- Prompt injection attacks
-- Data exfiltration attempts
-- Authorization bypass testing
-- Rate limit validation
-
-### Research-Specific AG-UI Events
-- Multi-step research visualization
-- Research results display (collapsible sections, source grouping)
-- MCP integration display
-
-### Success Criteria - Phase 2
-
-**Must Pass All:**
-
-1. **Deep Research Integration** ✓
-   - [ ] Framework installed and operational
-   - [ ] Multi-step research plans generated
-   - [ ] Information synthesis produces coherent reports
-
-2. **MCP Servers** ✓
-   - [ ] Custom fastmcp servers deployed
-   - [ ] Research tools accessible
-
-3. **Infrastructure** ✓
-   - [ ] Cloudflare WAF active
-   - [ ] Load balancer operational
-   - [ ] Database replicas configured
-
-4. **Security (TheAuditor)** ✓
-   - [ ] **Auditor scan completed with PASS status**
-   - [ ] Critical vulnerabilities remediated
-   - [ ] Prompt injection defenses validated
-
-5. **Testing** ✓
-   - [ ] 80%+ coverage maintained
-   - [ ] E2E research flow tests pass
-   - [ ] Load testing validates scalability
-
-**Quantitative Metrics:**
-- Research completion time: <10 min for complex queries
-- Source gathering: ≥10 sources per task
-- Infrastructure uptime: >99.5%
-- Security scan: Zero critical vulnerabilities
-- Load test: Handle 100 concurrent users
+**Key Metrics:** Research <10min, ≥10 sources/task, uptime >99.5%, zero critical vulnerabilities, 100 concurrent users
 
 ---
 
@@ -655,105 +375,18 @@ Add comprehensive research capabilities via LangChain's Open Deep Research frame
 
 **Last Updated:** 2025-10-06
 
-This section tracks code quality issues that are non-blocking but should be addressed in future refactoring.
+All code quality issues and technical debt items are tracked in `GITHUB_ISSUES.md`.
 
-### Issue 1: Unused `Optional` import in `logging.py`
-**File:** `backend/deep_agent/core/logging.py:5`
-**Severity:** Minor - Code Cleanliness
-**Status:** ⏳ Open
+**Current Issues:** 8 total
+- Issues 1-4: Initial code review (cleanup, type safety, logging improvements)
+- Issues 5-8: Layer 2 code review (config mismatch, enhancements, tooling)
 
-**Current:**
-```python
-from typing import Any, Optional
-```
+**Priority Breakdown:**
+- HIGH: 1 issue (.env.example verbosity mismatch)
+- MEDIUM: 1 issue (ReasoningRouter configuration - Phase 1)
+- LOW: 6 issues (cleanup, enhancements, tooling)
 
-**Fix:**
-```python
-from typing import Any
-```
-
-**Impact:** No functional impact, just cleaner imports.
-
----
-
-### Issue 2: Unused `Optional` import in `errors.py`
-**File:** `backend/deep_agent/core/errors.py:2`
-**Severity:** Minor - Code Cleanliness
-**Status:** ⏳ Open
-
-**Current:**
-```python
-from typing import Any, Optional
-```
-
-**Fix:**
-```python
-from typing import Any
-```
-
-**Impact:** No functional impact, just cleaner imports.
-
----
-
-### Issue 3: Missing `Literal` type hint for `log_format`
-**File:** `backend/deep_agent/core/logging.py:29`
-**Severity:** Suggestion - Type Safety
-**Status:** ⏳ Open
-
-**Current:**
-```python
-def setup_logging(
-    log_level: LogLevel = LogLevel.INFO,
-    log_format: str = "json",
-) -> None:
-```
-
-**Suggested:**
-```python
-from typing import Literal
-
-def setup_logging(
-    log_level: LogLevel = LogLevel.INFO,
-    log_format: Literal["json", "standard"] = "json",
-) -> None:
-```
-
-**Impact:** Better type checking - invalid values caught by mypy/IDEs.
-
----
-
-### Issue 4: Handler accumulation in repeated calls
-**File:** `backend/deep_agent/core/logging.py:41-91`
-**Severity:** Potential Issue - Test Reliability
-**Status:** ⏳ Open
-
-**Problem:** Handlers only cleared for `"standard"` format. Multiple calls to `setup_logging()` with `"json"` format may accumulate handlers.
-
-**Current:**
-```python
-# Configure standard library logging
-logging.basicConfig(...)
-
-# ... processors ...
-
-# Configure formatter for standard format
-if log_format == "standard":
-    # ... formatter ...
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()  # Only for standard!
-```
-
-**Suggested Fix:**
-```python
-# Clear handlers for both formats
-root_logger = logging.getLogger()
-root_logger.handlers.clear()
-
-# Configure standard library logging
-logging.basicConfig(...)
-```
-
-**Impact:** Prevents duplicate log output in test suites. Not blocking - all tests pass (19/19).
+**See:** `GITHUB_ISSUES.md` for detailed descriptions, code examples, fixes, and impact assessments.
 
 ---
 
