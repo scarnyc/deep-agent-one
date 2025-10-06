@@ -999,17 +999,17 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - [x] Commit: `feat(phase-0): implement pydantic settings configuration`
 
 #### Structured Logging
-- [ ] Create `backend/deep_agent/core/__init__.py`
-- [ ] Write test: `tests/unit/test_logging.py` - test log format and levels
-- [ ] Implement `backend/deep_agent/core/logging.py` - structlog setup with JSON
-- [ ] Verify tests pass - logging outputs correctly
-- [ ] Commit: `feat(phase-0): add structlog for structured logging`
+- [x] Create `backend/deep_agent/core/__init__.py`
+- [x] Write test: `tests/unit/test_logging.py` - test log format and levels
+- [x] Implement `backend/deep_agent/core/logging.py` - structlog setup with JSON
+- [x] Verify tests pass - logging outputs correctly
+- [x] Commit: `feat(phase-0): add structlog for structured logging`
 
 #### Error Handling
-- [ ] Write test: `tests/unit/test_errors.py` - test custom exceptions
-- [ ] Implement `backend/deep_agent/core/errors.py` - custom exception classes
-- [ ] Verify tests pass - exceptions raised properly
-- [ ] Commit: `feat(phase-0): implement custom error handling`
+- [x] Write test: `tests/unit/test_errors.py` - test custom exceptions
+- [x] Implement `backend/deep_agent/core/errors.py` - custom exception classes
+- [x] Verify tests pass - exceptions raised properly
+- [x] Commit: `feat(phase-0): implement custom error handling`
 
 ### **Layer 2: GPT-5 Integration**
 
