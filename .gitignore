@@ -1,0 +1,127 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv
+.env.local
+.env.*.local
+
+# Environment Variables
+.env
+.env.dev
+.env.staging
+.env.prod
+
+# IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Testing
+reports/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# TheAuditor
+.pf/
+
+# MCP (if containing secrets)
+.mcp/*.local.json
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Replit
+.replit.nix
+.config/
+.breakpoints
+.upm/
+
+# Secrets & Keys
+*.pem
+*.key
+secrets/
+credentials.json
+
+# Alembic
+alembic/versions/*.pyc
+
+# Temporary files
+tmp/
+temp/
+*.tmp

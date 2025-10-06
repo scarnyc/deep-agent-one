@@ -1,0 +1,24 @@
+run = "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000 --reload"
+entrypoint = "backend/deep_agent/main.py"
+modules = ["python-3.10", "nodejs-18"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000"]
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[env]
+PYTHON_LD_LIBRARY_PATH = "/nix/store/*-python3-*/lib"
+PYTHONBIN = "/home/runner/${REPL_SLUG}/.pythonlibs/bin/python3.10"
+POETRY_CACHE_DIR = "/home/runner/${REPL_SLUG}/.cache/pypoetry"
+ENV = "dev"
