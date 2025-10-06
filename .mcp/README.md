@@ -2,18 +2,9 @@
 
 This directory contains configuration files for Model Context Protocol (MCP) servers used by Deep Agent AGI.
 
-## Available MCP Servers
+**Note:** Playwright is NOT an MCP server - it's used for UI testing only (via `@playwright/test`). See `tests/ui/` directory for Playwright test setup.
 
-### Playwright MCP
-- **File:** `playwright.json`
-- **Purpose:** Automated UI testing for the agent interface
-- **Command:** `npx @modelcontextprotocol/server-playwright`
-- **Setup:**
-  ```bash
-  npm install -g @modelcontextprotocol/server-playwright
-  npx playwright install
-  npx playwright install-deps
-  ```
+## Available MCP Servers
 
 ### Perplexity MCP
 - **File:** `perplexity.json`

@@ -12,8 +12,7 @@
     "test:ui:headed": "playwright test --headed",
     "test:ui:debug": "playwright test --debug",
     "playwright:install": "playwright install",
-    "playwright:install-deps": "playwright install-deps",
-    "mcp:playwright": "npx @modelcontextprotocol/server-playwright"
+    "playwright:install-deps": "playwright install-deps"
   },
   "dependencies": {
     "next": "^15.0.0",
