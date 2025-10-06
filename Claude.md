@@ -1013,26 +1013,28 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 
 ### **Layer 2: GPT-5 Integration**
 
-#### GPT-5 Pydantic Models
-- [ ] Create `backend/deep_agent/models/__init__.py`
-- [ ] Write test: `tests/unit/test_models/test_gpt5.py` - test model serialization
-- [ ] Implement `backend/deep_agent/models/gpt5.py` - GPT5Config, ReasoningEffort, etc.
-- [ ] Verify tests pass - models validate correctly
-- [ ] Commit: `feat(phase-0): add GPT-5 pydantic models`
+**⚠️ Refactoring Note:** This layer was refactored to use LangChain's `ChatOpenAI` instead of raw OpenAI API for DeepAgents compatibility. See commits: `6c1c28f`, `6525029`, `361dcd2`
 
-#### GPT-5 Service
-- [ ] Create `backend/deep_agent/services/__init__.py`
-- [ ] Write test: `tests/unit/test_services/test_gpt5_service.py` - mock OpenAI, test streaming
-- [ ] Implement `backend/deep_agent/services/gpt5_service.py` - OpenAI client with streaming
-- [ ] Verify tests pass - streaming works, errors handled
-- [ ] Commit: `feat(phase-0): implement GPT-5 service with streaming`
+#### GPT-5 Pydantic Models
+- [x] Create `backend/deep_agent/models/__init__.py`
+- [x] Write test: `tests/unit/test_models/test_gpt5.py` - test model serialization
+- [x] Implement `backend/deep_agent/models/gpt5.py` - GPT5Config, ReasoningEffort, Verbosity
+- [x] Verify tests pass - models validate correctly (13 tests)
+- [x] Commit: `refactor(phase-0): simplify GPT-5 models for LangChain compatibility`
+
+#### LLM Factory (LangChain ChatOpenAI)
+- [x] Create `backend/deep_agent/services/__init__.py`
+- [x] Write test: `tests/unit/test_services/test_llm_factory.py` - test ChatOpenAI creation
+- [x] Implement `backend/deep_agent/services/llm_factory.py` - create_gpt5_llm() factory
+- [x] Verify tests pass - ChatOpenAI instances created correctly (12 tests)
+- [x] Commit: `feat(phase-0): implement LLM factory for LangChain ChatOpenAI`
 
 #### Basic Reasoning Router
-- [ ] Create `backend/deep_agent/agents/__init__.py`
-- [ ] Write test: `tests/unit/test_agents/test_reasoning_router.py` - test basic routing
-- [ ] Implement `backend/deep_agent/agents/reasoning_router.py` - return "medium" for all queries
-- [ ] Verify tests pass - router returns expected effort
-- [ ] Commit: `feat(phase-0): add basic reasoning router (medium effort default)`
+- [x] Create `backend/deep_agent/agents/__init__.py`
+- [x] Write test: `tests/unit/test_agents/test_reasoning_router.py` - test basic routing
+- [x] Implement `backend/deep_agent/agents/reasoning_router.py` - return "medium" for all queries
+- [x] Verify tests pass - router returns expected effort (11 tests)
+- [x] Commit: `feat(phase-0): implement basic reasoning router`
 
 ### **Layer 3: LangGraph DeepAgents Setup**
 
