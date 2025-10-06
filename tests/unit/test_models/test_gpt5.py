@@ -4,8 +4,6 @@ from pydantic import ValidationError
 
 from backend.deep_agent.models.gpt5 import (
     GPT5Config,
-    GPT5Request,
-    GPT5Response,
     ReasoningEffort,
     Verbosity,
 )
@@ -34,9 +32,15 @@ class TestVerbosity:
 
     def test_verbosity_values(self) -> None:
         """Test all verbosity enum values."""
-        assert Verbosity.STANDARD == "standard"
-        assert Verbosity.VERBOSE == "verbose"
-        assert Verbosity.CONCISE == "concise"
+        assert Verbosity.LOW == "low"
+        assert Verbosity.MEDIUM == "medium"
+        assert Verbosity.HIGH == "high"
+
+    def test_verbosity_from_string(self) -> None:
+        """Test creating Verbosity from string."""
+        assert Verbosity("low") == Verbosity.LOW
+        assert Verbosity("medium") == Verbosity.MEDIUM
+        assert Verbosity("high") == Verbosity.HIGH
 
 
 class TestGPT5Config:
@@ -47,27 +51,24 @@ class TestGPT5Config:
         config = GPT5Config()
         assert config.model_name == "gpt-5"
         assert config.reasoning_effort == ReasoningEffort.MEDIUM
-        assert config.verbosity == Verbosity.STANDARD
+        assert config.verbosity == Verbosity.MEDIUM
         assert config.max_tokens == 4096
         assert config.temperature == 0.7
-        assert config.stream is True
 
     def test_custom_config(self) -> None:
         """Test GPT5Config with custom values."""
         config = GPT5Config(
-            model_name="gpt-5-turbo",
+            model_name="gpt-5-mini",
             reasoning_effort=ReasoningEffort.HIGH,
-            verbosity=Verbosity.VERBOSE,
+            verbosity=Verbosity.LOW,
             max_tokens=8192,
             temperature=0.9,
-            stream=False,
         )
-        assert config.model_name == "gpt-5-turbo"
+        assert config.model_name == "gpt-5-mini"
         assert config.reasoning_effort == ReasoningEffort.HIGH
-        assert config.verbosity == Verbosity.VERBOSE
+        assert config.verbosity == Verbosity.LOW
         assert config.max_tokens == 8192
         assert config.temperature == 0.9
-        assert config.stream is False
 
     def test_config_validation_temperature(self) -> None:
         """Test temperature validation."""
@@ -98,122 +99,56 @@ class TestGPT5Config:
         """Test GPT5Config serialization to dict."""
         config = GPT5Config(
             reasoning_effort=ReasoningEffort.HIGH,
-            verbosity=Verbosity.CONCISE,
+            verbosity=Verbosity.LOW,
         )
         data = config.model_dump()
 
         assert data["model_name"] == "gpt-5"
         assert data["reasoning_effort"] == "high"
-        assert data["verbosity"] == "concise"
+        assert data["verbosity"] == "low"
         assert data["max_tokens"] == 4096
         assert data["temperature"] == 0.7
-        assert data["stream"] is True
 
     def test_config_deserialization(self) -> None:
         """Test GPT5Config deserialization from dict."""
         data = {
-            "model_name": "gpt-5",
-            "reasoning_effort": "low",
-            "verbosity": "verbose",
+            "model_name": "gpt-5-nano",
+            "reasoning_effort": "minimal",
+            "verbosity": "high",
             "max_tokens": 2048,
             "temperature": 0.5,
-            "stream": False,
         }
         config = GPT5Config(**data)
 
-        assert config.model_name == "gpt-5"
-        assert config.reasoning_effort == ReasoningEffort.LOW
-        assert config.verbosity == Verbosity.VERBOSE
+        assert config.model_name == "gpt-5-nano"
+        assert config.reasoning_effort == ReasoningEffort.MINIMAL
+        assert config.verbosity == Verbosity.HIGH
         assert config.max_tokens == 2048
         assert config.temperature == 0.5
-        assert config.stream is False
 
+    def test_model_name_options(self) -> None:
+        """Test different GPT-5 model name options."""
+        # Test all valid model names
+        models = ["gpt-5", "gpt-5-mini", "gpt-5-nano"]
+        for model in models:
+            config = GPT5Config(model_name=model)
+            assert config.model_name == model
 
-class TestGPT5Request:
-    """Test GPT5Request model."""
+    def test_all_reasoning_efforts(self) -> None:
+        """Test all reasoning effort levels."""
+        efforts = [
+            ReasoningEffort.MINIMAL,
+            ReasoningEffort.LOW,
+            ReasoningEffort.MEDIUM,
+            ReasoningEffort.HIGH,
+        ]
+        for effort in efforts:
+            config = GPT5Config(reasoning_effort=effort)
+            assert config.reasoning_effort == effort
 
-    def test_simple_request(self) -> None:
-        """Test simple GPT5Request."""
-        request = GPT5Request(
-            messages=[{"role": "user", "content": "Hello"}],
-        )
-        assert len(request.messages) == 1
-        assert request.messages[0]["role"] == "user"
-        assert request.messages[0]["content"] == "Hello"
-        assert request.config.reasoning_effort == ReasoningEffort.MEDIUM
-        assert request.config.stream is True
-
-    def test_request_with_custom_config(self) -> None:
-        """Test GPT5Request with custom config."""
-        config = GPT5Config(
-            reasoning_effort=ReasoningEffort.HIGH,
-            temperature=0.9,
-        )
-        request = GPT5Request(
-            messages=[{"role": "user", "content": "Complex question"}],
-            config=config,
-        )
-        assert request.config.reasoning_effort == ReasoningEffort.HIGH
-        assert request.config.temperature == 0.9
-
-    def test_request_with_system_message(self) -> None:
-        """Test GPT5Request with system and user messages."""
-        request = GPT5Request(
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "What is 2+2?"},
-            ],
-        )
-        assert len(request.messages) == 2
-        assert request.messages[0]["role"] == "system"
-        assert request.messages[1]["role"] == "user"
-
-    def test_request_validation_empty_messages(self) -> None:
-        """Test that empty messages raises validation error."""
-        with pytest.raises(ValidationError):
-            GPT5Request(messages=[])
-
-
-class TestGPT5Response:
-    """Test GPT5Response model."""
-
-    def test_simple_response(self) -> None:
-        """Test simple GPT5Response."""
-        response = GPT5Response(
-            content="Hello! How can I help?",
-            reasoning_effort=ReasoningEffort.MEDIUM,
-            tokens_used=15,
-            model="gpt-5",
-        )
-        assert response.content == "Hello! How can I help?"
-        assert response.reasoning_effort == ReasoningEffort.MEDIUM
-        assert response.tokens_used == 15
-        assert response.model == "gpt-5"
-        assert response.finish_reason == "stop"
-
-    def test_response_with_finish_reason(self) -> None:
-        """Test GPT5Response with custom finish reason."""
-        response = GPT5Response(
-            content="Partial response...",
-            reasoning_effort=ReasoningEffort.LOW,
-            tokens_used=100,
-            model="gpt-5",
-            finish_reason="length",
-        )
-        assert response.finish_reason == "length"
-
-    def test_response_serialization(self) -> None:
-        """Test GPT5Response serialization."""
-        response = GPT5Response(
-            content="Test response",
-            reasoning_effort=ReasoningEffort.HIGH,
-            tokens_used=25,
-            model="gpt-5",
-        )
-        data = response.model_dump()
-
-        assert data["content"] == "Test response"
-        assert data["reasoning_effort"] == "high"
-        assert data["tokens_used"] == 25
-        assert data["model"] == "gpt-5"
-        assert data["finish_reason"] == "stop"
+    def test_all_verbosity_levels(self) -> None:
+        """Test all verbosity levels."""
+        levels = [Verbosity.LOW, Verbosity.MEDIUM, Verbosity.HIGH]
+        for level in levels:
+            config = GPT5Config(verbosity=level)
+            assert config.verbosity == level
