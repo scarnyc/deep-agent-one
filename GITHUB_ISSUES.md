@@ -166,7 +166,7 @@ GPT5_DEFAULT_VERBOSITY=medium        # low, medium, high
 
 **Found in:** Layer 2 Code Review (2025-10-06)
 
-**Resolution:** Fixed in commit [pending] - Updated `.env.example:9` to use `medium` with correct comment `# low, medium, high`
+**Resolution:** Fixed in commit 82ae04a - Updated `.env.example:9` to use `medium` with correct comment `# low, medium, high`
 
 ---
 
