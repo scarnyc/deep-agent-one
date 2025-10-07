@@ -797,18 +797,22 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 
 #### Web Search Tool
 - [x] Create `backend/deep_agent/tools/__init__.py`
-- [ ] Write test: `tests/unit/test_tools/test_web_search.py` - test tool signature, errors
-- [ ] Implement `backend/deep_agent/tools/web_search.py` - agent tool using Perplexity
-- [ ] Verify tests pass - tool callable by agent
-- [ ] Commit: `feat(phase-0): add web search tool using perplexity MCP`
+- [x] Write test: `tests/unit/test_tools/test_web_search.py` - 15 tests with TDD
+- [x] Implement `backend/deep_agent/tools/web_search.py` - LangChain tool using Perplexity
+- [x] Verify tests pass - tool callable by agent (15/15 tests, 100% coverage)
+- [x] Integrate with DeepAgent (added to create_deep_agent tools list)
+- [x] Commit: `test(phase-0): add Web Search Tool tests (15 tests, TDD)` (commit `1b36824`)
+- [x] Commit: `feat(phase-0): implement Web Search Tool using Perplexity MCP client` (commit `4f56c7a`)
+- [x] Commit: `feat(phase-0): integrate Web Search Tool with DeepAgent` (commit `a7e3f12`)
+- [x] **Code Review:** testing-expert 9.0/10, code-review-expert 9.5/10 (Issues #16-18 logged)
 
 ### **Layer 5: LangSmith Integration (Observability)**
 
 #### LangSmith Tracing
-- [ ] Write test: `tests/unit/test_integrations/test_langsmith.py` - verify trace metadata
-- [ ] Implement `backend/deep_agent/integrations/langsmith.py` - configure tracing
-- [ ] Verify tests pass - traces created
-- [ ] Commit: `feat(phase-0): integrate LangSmith for agent tracing`
+- [x] Write test: `tests/unit/test_integrations/test_langsmith.py` - verify trace metadata
+- [x] Implement `backend/deep_agent/integrations/langsmith.py` - configure tracing
+- [x] Verify tests pass - traces created
+- [x] Commit: `feat(phase-0): integrate LangSmith for agent tracing`
 
 ### **Layer 6: FastAPI Backend (API Layer)**
 
