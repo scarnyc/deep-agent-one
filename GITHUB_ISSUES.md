@@ -369,3 +369,46 @@ class AgentService:
 - Need to configure retry parameters carefully (avoid retry storms)
 
 **Found in:** Layer 3 Code Review (2025-10-07)
+
+**Status:** PARTIALLY IMPLEMENTED - Retry logic implemented in Perplexity MCP client (commit dd3185f), but NOT yet in AgentService. Will implement in AgentService as part of Layer 6 (FastAPI backend).
+
+---
+
+## Issue 11: Perplexity MCP Client Security Review Findings ✅ RESOLVED
+
+**Labels:** `security`, `high-priority`, `phase-0`
+
+**Title:** Fix security issues in Perplexity MCP client
+
+**Description:**
+Code review by code-review-expert identified 2 HIGH and 3 MEDIUM priority security issues in initial Perplexity MCP client implementation.
+
+**File:** `backend/deep_agent/integrations/mcp_clients/perplexity.py`
+
+**Issues Found:**
+- **HIGH-1:** Missing rate limiting on expensive search operations
+- **HIGH-2:** API key exposure risk in logs
+- **MEDIUM-1:** No retry logic for transient failures
+- **MEDIUM-2:** Missing input sanitization for query parameter
+- **MEDIUM-3:** No timeout enforcement in _call_mcp()
+
+**Resolution:** Fixed in commit dd3185f
+
+**Security Features Implemented:**
+1. **Rate Limiting:** 10 requests per 60 seconds (configurable)
+2. **API Key Masking:** Only first 8 characters logged
+3. **Retry Logic:** 3 attempts with exponential backoff (2-10s)
+4. **Query Sanitization:** Removes dangerous characters, limits length to 500 chars
+5. **Timeout Enforcement:** asyncio.timeout() wrapper in _call_mcp()
+
+**Tests Added:** 4 new security tests (18 total tests)
+- `test_search_enforces_rate_limit()`
+- `test_rate_limit_window_resets()`
+- `test_search_sanitizes_special_characters()`
+- `test_search_truncates_long_queries()`
+
+**Coverage:** 89.89% (up from 85.39%)
+
+**Found in:** Layer 4 Code Review (2025-10-07)
+
+---
