@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from langchain_openai import ChatOpenAI
 from langgraph.graph.state import CompiledStateGraph
 
 from deepagents import create_deep_agent
@@ -11,6 +10,7 @@ from backend.deep_agent.agents.checkpointer import CheckpointerManager
 from backend.deep_agent.agents.prompts import get_agent_instructions
 from backend.deep_agent.config.settings import Settings, get_settings
 from backend.deep_agent.core.logging import get_logger
+from backend.deep_agent.integrations.langsmith import setup_langsmith
 from backend.deep_agent.models.gpt5 import GPT5Config, ReasoningEffort, Verbosity
 from backend.deep_agent.services.llm_factory import create_gpt5_llm
 from backend.deep_agent.tools.web_search import web_search
@@ -66,6 +66,10 @@ async def create_agent(
     # Get settings
     if settings is None:
         settings = get_settings()
+
+    # Configure LangSmith tracing for observability
+    # Must be called before agent/LLM creation for automatic tracing
+    setup_langsmith(settings)
 
     logger.info(
         "Creating DeepAgent",
