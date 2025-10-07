@@ -764,35 +764,39 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 ### **Layer 3: LangGraph DeepAgents Setup**
 
 #### Checkpointer Configuration
-- [ ] Write test: `tests/unit/test_agents/test_checkpointer.py` - test persistence
-- [ ] Implement `backend/deep_agent/agents/checkpointer.py` - SqliteSaver setup
-- [ ] Verify tests pass - state persists correctly
-- [ ] Commit: `feat(phase-0): configure sqlite checkpointer for agent state`
+- [x] Write test: `tests/unit/test_agents/test_checkpointer.py` - test persistence
+- [x] Implement `backend/deep_agent/agents/checkpointer.py` - AsyncSqliteSaver setup
+- [x] Verify tests pass - state persists correctly
+- [x] Commit: `feat(phase-0): implement AsyncSqliteSaver checkpointer manager` (commit `5c367ec`)
 
 #### DeepAgents Initialization
-- [ ] Write test: `tests/unit/test_agents/test_deep_agent.py` - test agent init, tools loaded
-- [ ] Implement `backend/deep_agent/agents/deep_agent.py` - initialize DeepAgents with file tools, HITL
-- [ ] Verify tests pass - agent starts, tools available
-- [ ] Commit: `feat(phase-0): initialize DeepAgents with file tools and HITL`
+- [x] Write test: `tests/unit/test_agents/test_deep_agent.py` - test agent init, tools loaded
+- [x] Implement `backend/deep_agent/agents/deep_agent.py` - initialize DeepAgents with file tools, HITL
+- [x] Implement `backend/deep_agent/agents/prompts.py` - system prompts module
+- [x] Verify tests pass - agent starts, tools available
+- [x] Commit: `feat(phase-0): complete DeepAgents integration with LangGraph` (commit `7c51da7`)
 
 #### Agent Service
-- [ ] Write test: `tests/integration/test_agent_workflows/test_basic_workflow.py` - full agent run
-- [ ] Implement `backend/deep_agent/services/agent_service.py` - orchestration layer
-- [ ] Verify tests pass - agent executes workflow end-to-end
-- [ ] Commit: `feat(phase-0): add agent service for orchestration`
+- [x] Write test: `tests/integration/test_agent_workflows/test_basic_workflow.py` - full agent run
+- [x] Implement `backend/deep_agent/services/agent_service.py` - orchestration layer
+- [x] Verify tests pass - agent executes workflow end-to-end
+- [x] Commit: `feat(phase-0): implement prompts module and agent service orchestration layer` (commit `3eb107b`)
+- [x] **Code Review Fix:** Addressed agent_service findings (commit `20aa5ad`)
 
 ### **Layer 4: MCP Integration (Web Search)**
 
 #### Perplexity MCP Client
-- [ ] Create `backend/deep_agent/integrations/__init__.py`
-- [ ] Create `backend/deep_agent/integrations/mcp_clients/__init__.py`
-- [ ] Write test: `tests/integration/test_mcp_integration/test_perplexity.py` - mock MCP responses
-- [ ] Implement `backend/deep_agent/integrations/mcp_clients/perplexity.py` - MCP client
-- [ ] Verify tests pass - MCP calls work
-- [ ] Commit: `feat(phase-0): integrate perplexity MCP for web search`
+- [x] Create `backend/deep_agent/integrations/__init__.py`
+- [x] Create `backend/deep_agent/integrations/mcp_clients/__init__.py`
+- [x] Write test: `tests/integration/test_mcp_integration/test_perplexity.py` - 18 tests with TDD
+- [x] Implement `backend/deep_agent/integrations/mcp_clients/perplexity.py` - MCP client with security features
+- [x] Verify tests pass - MCP calls work (18/18 tests, 89.89% coverage)
+- [x] Commit: `test(phase-0): add Perplexity MCP client integration tests` (commit `647498c`)
+- [x] Commit: `feat(phase-0): implement Perplexity MCP client with security features` (commit `dd3185f`)
+- [x] **Security Review:** Addressed HIGH/MEDIUM findings (Issue #11, commit `9eb0a89`)
 
 #### Web Search Tool
-- [ ] Create `backend/deep_agent/tools/__init__.py`
+- [x] Create `backend/deep_agent/tools/__init__.py`
 - [ ] Write test: `tests/unit/test_tools/test_web_search.py` - test tool signature, errors
 - [ ] Implement `backend/deep_agent/tools/web_search.py` - agent tool using Perplexity
 - [ ] Verify tests pass - tool callable by agent
