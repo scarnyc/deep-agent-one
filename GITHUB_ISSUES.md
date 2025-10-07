@@ -722,3 +722,137 @@ Note:
 **Found in:** Web Search Tool Code Review (2025-10-07)
 
 ---
+
+## Issue 19: Extract API key masking logic to shared utility function
+
+**Labels:** `refactoring`, `security`, `medium-priority`, `phase-0`
+
+**Title:** Create shared utility for API key masking to reduce code duplication
+
+**Description:**
+Both PerplexityClient and LangSmith integration implement API key masking with slightly different logic. The LangSmith version (lines 70-78) is more robust, handling edge cases for short keys. This logic should be extracted to a shared utility function to ensure consistent security practices across all integrations.
+
+**Files:**
+- `backend/deep_agent/integrations/mcp_clients/perplexity.py:78` (simpler masking)
+- `backend/deep_agent/integrations/langsmith.py:70-78` (robust masking with edge cases)
+
+**Current Duplication:**
+
+**PerplexityClient (simpler):**
+```python
+# Mask API key for logging (security: HIGH-2 fix)
+masked_key = f"{self.api_key[:8]}...{self.api_key[-4:]}"
+```
+
+**LangSmith (robust with edge cases):**
+```python
+# Mask API key for logging (show prefix only)
+# Format: lsv2_abc...xyz for keys >12 chars, else partial masking
+api_key_len = len(api_key)
+if api_key_len > 12:
+    masked_key = f"{api_key[:8]}...{api_key[-4:]}"
+elif api_key_len > 8:
+    masked_key = f"{api_key[:4]}...***"
+else:
+    masked_key = "***"
+```
+
+**Recommended Solution:**
+
+Create `backend/deep_agent/core/security.py`:
+```python
+def mask_api_key(api_key: str, prefix_len: int = 8, suffix_len: int = 4) -> str:
+    """
+    Mask an API key for safe logging.
+
+    Shows prefix and suffix of key, masks the middle. Handles edge cases
+    for short keys to avoid exposing too much information.
+
+    Args:
+        api_key: The API key to mask
+        prefix_len: Number of characters to show at start (default: 8)
+        suffix_len: Number of characters to show at end (default: 4)
+
+    Returns:
+        Masked API key string (e.g., "sk-abc12...xyz9" or "***" for short keys)
+
+    Examples:
+        >>> mask_api_key("sk-proj-1234567890abcdefghij")
+        "sk-proj-1...ghij"
+
+        >>> mask_api_key("short")
+        "***"
+    """
+    api_key_len = len(api_key)
+    min_len = prefix_len + suffix_len
+
+    if api_key_len > min_len:
+        return f"{api_key[:prefix_len]}...{api_key[-suffix_len:]}"
+    elif api_key_len > prefix_len:
+        return f"{api_key[:prefix_len]}...***"
+    else:
+        return "***"
+```
+
+Then update both integrations:
+```python
+from backend.deep_agent.core.security import mask_api_key
+
+# PerplexityClient
+masked_key = mask_api_key(self.api_key)
+
+# LangSmith
+masked_key = mask_api_key(api_key)
+```
+
+**Impact:** MEDIUM - Improves security consistency and reduces duplication. Not blocking for Phase 0 as current implementations work correctly.
+
+**Benefits:**
+- Single source of truth for API key masking
+- Consistent security behavior across all integrations
+- Easier to audit and test security logic
+- Reduces code duplication (DRY principle)
+
+**Testing:**
+- Add `tests/unit/test_core/test_security.py` with edge case tests
+- Update existing tests in PerplexityClient and LangSmith to use utility
+
+**Found in:** LangSmith Integration Code Review (2025-10-07)
+
+---
+
+## Issue 20: LangSmith setup docstring incorrectly states function raises on missing API key
+
+**Labels:** `documentation`, `low-priority`, `phase-0`
+
+**Title:** Correct setup_langsmith() docstring to clarify it only validates API key
+
+**Description:**
+The `setup_langsmith()` docstring (line 29) says "Raises: ValueError: If LANGSMITH_API_KEY is not configured." This is slightly misleading - the function validates the API key but doesn't verify authentication with LangSmith. The actual API call (when tracing happens) will fail if the key is invalid.
+
+**File:** `backend/deep_agent/integrations/langsmith.py:29`
+
+**Current Docstring:**
+```python
+    Raises:
+        ValueError: If LANGSMITH_API_KEY is not configured.
+```
+
+**Suggested Improvement:**
+```python
+    Raises:
+        ValueError: If LANGSMITH_API_KEY is missing or empty. Note that this
+            only validates the key exists - authentication with LangSmith API
+            is verified when actual tracing occurs (lazy validation).
+```
+
+**Impact:** VERY LOW - Minor documentation clarity improvement. Current docstring is accurate but could be more explicit.
+
+**Benefits:**
+- Clearer expectations about when authentication actually occurs
+- Helps developers understand lazy validation pattern
+- Reduces confusion about when API errors might appear
+
+**Found in:** LangSmith Integration Code Review (2025-10-07)
+
+---
