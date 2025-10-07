@@ -412,3 +412,133 @@ Code review by code-review-expert identified 2 HIGH and 3 MEDIUM priority securi
 **Found in:** Layer 4 Code Review (2025-10-07)
 
 ---
+
+## Issue 12: Thread safety in Perplexity MCP client rate limiting
+
+**Labels:** `enhancement`, `reliability`, `medium-priority`, `phase-1`
+
+**Title:** Add thread-safe locking to Perplexity MCP client rate limiting
+
+**Description:**
+Post-commit review by code-review-expert identified thread safety issue in Perplexity MCP client's in-memory rate limiting. In multi-threaded environments (e.g., concurrent FastAPI requests), `self._request_timestamps` list is not thread-safe. Multiple simultaneous requests could corrupt the list or bypass rate limiting.
+
+**File:** `backend/deep_agent/integrations/mcp_clients/perplexity.py:73-76`
+
+**Current Code:**
+```python
+# Rate limiting state (in-memory for Phase 0, Redis for Phase 1+)
+self._request_timestamps: list[float] = []
+self._rate_limit_window = RATE_LIMIT_WINDOW
+self._rate_limit_max = RATE_LIMIT_MAX_REQUESTS
+```
+
+**Recommended Fix:**
+```python
+import threading
+
+def __init__(self, settings: Settings | None = None) -> None:
+    # ... existing code ...
+
+    # Rate limiting state
+    # NOTE: In-memory implementation for Phase 0. Not suitable for distributed systems.
+    # For production (Phase 1+), migrate to Redis with sliding window rate limiting.
+    self._request_timestamps: list[float] = []
+    self._rate_limit_lock = threading.Lock()  # Thread safety for concurrent requests
+    self._rate_limit_window = RATE_LIMIT_WINDOW
+    self._rate_limit_max = RATE_LIMIT_MAX_REQUESTS
+
+def _check_rate_limit(self, query: str) -> None:
+    with self._rate_limit_lock:  # Protect list operations
+        now = time.time()
+        # ... rest of implementation
+```
+
+**Impact:** MEDIUM - Acceptable for Phase 0 single-instance deployment, but should be fixed before production multi-instance deployment.
+
+**Phase 1 Solution:** Migrate to Redis-based rate limiting with distributed locking.
+
+**Found in:** Layer 4 Post-Commit Review (2025-10-07, commit dd3185f)
+
+---
+
+## Issue 13: API key masking edge case for short keys
+
+**Labels:** `security`, `edge-case`, `low-priority`, `phase-1`
+
+**Title:** Improve API key masking for keys shorter than 12 characters
+
+**Description:**
+Post-commit review by code-review-expert identified edge case in API key masking logic. If API key is shorter than 12 characters (8 prefix + 4 suffix), the slicing `self.api_key[-4:]` could expose more than intended.
+
+**File:** `backend/deep_agent/integrations/mcp_clients/perplexity.py:78`
+
+**Current Code:**
+```python
+# Mask API key for logging (security: HIGH-2 fix)
+masked_key = f"{self.api_key[:8]}...{self.api_key[-4:]}"
+```
+
+**Recommended Fix:**
+```python
+# Mask API key for logging (security: HIGH-2 fix)
+# Format: first 8 chars + "..." + last 4 chars for keys >12 chars
+api_key_len = len(self.api_key)
+if api_key_len > 12:
+    masked_key = f"{self.api_key[:8]}...{self.api_key[-4:]}"
+elif api_key_len > 8:
+    masked_key = f"{self.api_key[:8]}...***"
+else:
+    masked_key = f"{self.api_key[:4]}...***"  # Very short keys
+
+logger.info(
+    "Perplexity MCP client initialized",
+    api_key_masked=masked_key,  # Use the masked variable
+    timeout=self.timeout,
+    rate_limit=f"{self._rate_limit_max}/{self._rate_limit_window}s",
+)
+```
+
+**Impact:** LOW - Perplexity API keys are typically 40+ characters. Edge case only affects unusually short keys.
+
+**Found in:** Layer 4 Post-Commit Review (2025-10-07, commit dd3185f)
+
+---
+
+## Issue 14: Optional test coverage improvement for Perplexity client
+
+**Labels:** `testing`, `enhancement`, `nice-to-have`
+
+**Title:** Add test for empty results formatting to reach 90%+ coverage
+
+**Description:**
+Post-commit review by testing-expert identified optional coverage improvement. Line 347 (`format_results_for_agent()` empty results path) is not covered by tests. Coverage is currently 89.89%, adding this test would reach 90.91%.
+
+**File:** `backend/deep_agent/integrations/mcp_clients/perplexity.py:347`
+**Test File:** `tests/integration/test_mcp_integration/test_perplexity.py`
+
+**Missing Test:**
+```python
+async def test_format_results_handles_empty_results(
+    self,
+    mock_settings: Settings,
+) -> None:
+    """Test formatting empty results returns helpful message."""
+    from backend.deep_agent.integrations.mcp_clients.perplexity import (
+        PerplexityClient,
+    )
+
+    client = PerplexityClient(settings=mock_settings)
+    empty_results = {"results": [], "query": "test query", "sources": 0}
+
+    # Act
+    formatted = client.format_results_for_agent(empty_results)
+
+    # Assert
+    assert 'No results found for "test query"' in formatted
+```
+
+**Impact:** VERY LOW - Current 89.89% coverage exceeds 80% requirement. This is an optional quality improvement.
+
+**Found in:** Layer 4 Post-Commit Review (2025-10-07, commit 647498c)
+
+---
