@@ -479,69 +479,95 @@ Use semantic commit messages:
 
 **Example:** `feat(phase-0): implement DeepAgents file system tools with HITL`
 
-### Post-Commit Review Workflow (MANDATORY)
+### Pre-Commit Review Workflow (MANDATORY)
 
-**IMPORTANT:** After EVERY commit, run both code-review-expert and testing-expert agents to verify code quality.
+**IMPORTANT:** Before EVERY commit, run both code-review-expert and testing-expert agents to verify code quality. Do NOT commit code until agents approve.
 
 **Why This Matters:**
-- Catches regressions immediately after commit
-- Ensures git history contains only reviewed, high-quality code
-- Prevents drift between implementation and review
-- Creates audit trail for all committed code
+- Prevents committing broken or problematic code
+- Ensures git history contains ONLY reviewed, high-quality code
+- No fixup commits needed (cleaner history)
+- Standard code quality gate pattern
+- All issues (critical AND non-critical) tracked before merge
 
 **Workflow:**
 
-1. **Make commit** following semantic commit message convention
-2. **Run testing-expert** (if commit includes tests):
+1. **Write code/tests** following TDD principles
+2. **Run testing-expert** (if tests were written):
    ```bash
-   # Review test quality for most recent commit
-   # Agent will verify: AAA pattern, coverage, edge cases, mocking quality
+   # Before committing tests, verify:
+   # - AAA pattern followed
+   # - Coverage ≥80%
+   # - Edge cases covered
+   # - Proper mocking
+   # Agent will identify issues and suggest improvements
    ```
-3. **Run code-review-expert** (for all commits):
+3. **Run code-review-expert** (for all code):
    ```bash
-   # Review implementation quality for most recent commit
-   # Agent will verify: type hints, security, error handling, integration
+   # Before committing implementation, verify:
+   # - Type hints present
+   # - Security best practices
+   # - Error handling comprehensive
+   # - Integration patterns correct
+   # Agent will identify issues and suggest improvements
    ```
-4. **Review agent findings:**
-   - **If APPROVED:** Continue to next task
-   - **If CHANGES REQUESTED:** Create fixup commit, go back to step 1
-   - **If REJECTED:** Revert commit, fix issues, create new commit, go back to step 1
+4. **Review agent findings and track ALL issues:**
+   - **CRITICAL/HIGH issues:** MUST fix before commit (blocking)
+   - **MEDIUM issues:** Fix before commit OR document in GITHUB_ISSUES.md if deferring
+   - **LOW/non-critical issues:** Log ALL to GITHUB_ISSUES.md for future work
+   - **Agent MUST log non-critical issues** to GITHUB_ISSUES.md per line 930
 
-5. **Track issues** in GITHUB_ISSUES.md:
-   - Document any HIGH/MEDIUM issues found
-   - Add resolution status (RESOLVED, PARTIAL, DEFERRED)
-   - Reference commit hashes for traceability
+5. **Fix issues or document deferral:**
+   - **If APPROVED:** Proceed to step 6 (commit)
+   - **If CHANGES REQUESTED:** Fix issues, go back to step 2 (re-review)
+   - **If REJECTED:** Major rework needed, go back to step 1
 
-**Example Post-Commit Review Session:**
+6. **Only after approval: Make commit** following semantic commit convention
+
+**Example Pre-Commit Review Session:**
 
 ```bash
-# 1. Made 3 commits for Perplexity MCP client
-git log --oneline -3
-# 647498c test(phase-0): add Perplexity MCP client integration tests
-# dd3185f feat(phase-0): implement Perplexity MCP client with security features
-# 9eb0a89 docs(phase-0): document Perplexity MCP security fixes
+# 1. Write tests for new feature (Web Search Tool)
+# [Implement tests/integration/test_tools/test_web_search.py]
 
-# 2. Run testing-expert on test commit
+# 2. Run testing-expert BEFORE committing tests
 # [Use Task tool with testing-expert subagent]
-# Result: APPROVED (9.5/10) - 1 optional improvement noted
+# Result: CHANGES REQUESTED - Missing edge case tests for empty query
+# Action: Add missing tests, re-run testing-expert
+# Result: APPROVED (9/10) - Optional: Add performance test (logged to GITHUB_ISSUES.md)
 
-# 3. Run code-review-expert on implementation commit
+# 3. Write implementation (Web Search Tool)
+# [Implement backend/deep_agent/tools/web_search.py]
+
+# 4. Run code-review-expert BEFORE committing implementation
 # [Use Task tool with code-review-expert subagent]
-# Result: APPROVED WITH MINOR RECOMMENDATIONS (9.2/10) - 2 MEDIUM issues noted
+# Result: APPROVED WITH MINOR RECOMMENDATIONS (8.5/10)
+# - HIGH: None
+# - MEDIUM: None
+# - LOW: Could add more detailed docstring examples (logged to GITHUB_ISSUES.md)
 
-# 4. Run code-review-expert on documentation commit
-# [Use Task tool with code-review-expert subagent]
-# Result: APPROVED (exemplary) - 100% accurate documentation
-
-# 5. Track findings
+# 5. Track all non-critical issues
 git add GITHUB_ISSUES.md
-git commit -m "docs(phase-0): track post-commit review findings"
+# (Document LOW priority items from both reviews)
 
-# 6. Continue with next task
+# 6. NOW commit (only after approval)
+git add tests/integration/test_tools/test_web_search.py
+git commit -m "test(phase-0): add Web Search Tool tests (12 tests, TDD)"
+
+git add backend/deep_agent/tools/web_search.py
+git commit -m "feat(phase-0): implement Web Search Tool using Perplexity MCP client"
+
+# 7. Continue with next task
 ```
 
-**Time Investment:** 10-15 minutes per commit for review + issue tracking
-**Return:** High-quality git history, early bug detection, continuous quality assurance
+**Key Differences from Post-Commit:**
+- ❌ NO fixup commits needed (code already reviewed)
+- ✅ Git history contains ONLY approved code
+- ✅ Faster progression (no going back after commit)
+- ⚠️ Slightly slower initial workflow (10-15 min wait before commit)
+
+**Time Investment:** 10-15 minutes per feature for review + issue tracking
+**Return:** Clean git history, zero unreviewed code in main branch, comprehensive issue tracking
 
 ---
 
@@ -927,3 +953,4 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 ---
 - if CodeRabbit extension is not triggered. Review PRs and identify issues in the comments
 - periodically review claude.md by removing stale context. make sure it's < 40k chars to prevent performance impacts
+- run the code-review-expert and testing-expert agents before every commit. Make sure we ask both agents to log non-critical issues into the github_issues.md for tracking
