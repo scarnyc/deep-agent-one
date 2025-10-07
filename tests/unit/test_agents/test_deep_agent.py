@@ -30,6 +30,7 @@ from backend.deep_agent.agents.checkpointer import CheckpointerManager
 def mock_settings(tmp_path: Path) -> Settings:
     """Fixture providing mocked Settings with temp paths."""
     settings = Mock(spec=Settings)
+    settings.ENV = "local"  # Required for prompts module
     settings.OPENAI_API_KEY = "sk-test-key-12345"
     settings.GPT5_MODEL_NAME = "gpt-5"
     settings.GPT5_DEFAULT_REASONING_EFFORT = "medium"
@@ -130,6 +131,7 @@ class TestCreateAgentBasics:
 
         # Mock get_settings to return a valid settings object
         test_settings = Mock(spec=Settings)
+        test_settings.ENV = "local"  # Required for prompts module
         test_settings.OPENAI_API_KEY = "sk-test-key"
         test_settings.GPT5_MODEL_NAME = "gpt-5"
         test_settings.GPT5_DEFAULT_REASONING_EFFORT = "medium"

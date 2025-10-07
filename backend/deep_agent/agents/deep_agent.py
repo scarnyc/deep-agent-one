@@ -8,6 +8,7 @@ from langgraph.graph.state import CompiledStateGraph
 from deepagents import create_deep_agent
 
 from backend.deep_agent.agents.checkpointer import CheckpointerManager
+from backend.deep_agent.agents.prompts import get_agent_instructions
 from backend.deep_agent.config.settings import Settings, get_settings
 from backend.deep_agent.core.logging import get_logger
 from backend.deep_agent.models.gpt5 import GPT5Config, ReasoningEffort, Verbosity
@@ -105,26 +106,8 @@ async def create_agent(
             )
             raise
 
-        # System instructions for the agent
-        instructions = """You are a helpful AI assistant powered by DeepAgents.
-
-You have access to file system tools (ls, read_file, write_file, edit_file)
-and planning tools (write_todos) to help users with their tasks.
-
-Key capabilities:
-- File system operations
-- Code generation and analysis
-- Task planning and tracking
-- Multi-step reasoning
-- Sub-agent delegation (when available)
-
-When performing actions that could affect the user's system:
-1. Explain what you're about to do
-2. Wait for approval if HITL is enabled
-3. Execute the action carefully
-4. Report results clearly
-
-Always be helpful, accurate, and transparent about your actions."""
+        # Get environment-specific system instructions
+        instructions = get_agent_instructions(settings=settings)
 
         # Create DeepAgent using official API
         try:
