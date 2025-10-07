@@ -65,6 +65,10 @@ class Settings(BaseSettings):
     POSTGRES_DB: Optional[str] = None
     ENABLE_PGVECTOR: bool = True
 
+    # Checkpointer Configuration (LangGraph State Persistence)
+    CHECKPOINT_DB_PATH: str = "data/checkpoints.db"
+    CHECKPOINT_CLEANUP_DAYS: int = 30
+
     # Redis Cache (Phase 2)
     REDIS_URL: Optional[str] = None
     REDIS_PASSWORD: Optional[str] = None
