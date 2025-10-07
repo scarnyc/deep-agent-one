@@ -542,3 +542,51 @@ async def test_format_results_handles_empty_results(
 **Found in:** Layer 4 Post-Commit Review (2025-10-07, commit 647498c)
 
 ---
+
+## Issue 15: Workflow contradiction - POST-COMMIT vs PRE-COMMIT ✅ RESOLVED
+
+**Labels:** `documentation`, `critical`, `phase-0`
+
+**Title:** Resolve contradiction between POST-COMMIT and PRE-COMMIT review workflows
+
+**Description:**
+Claude.md contained contradictory instructions about when to run code-review-expert and testing-expert agents:
+
+**Location 1 (Lines 482-545 in commit 509ea7c):**
+- Workflow: POST-COMMIT (review AFTER committing)
+- Process: Commit → Review → Fix if needed (with fixup commits)
+
+**Location 2 (Line 930):**
+- Workflow: PRE-COMMIT (review BEFORE committing)
+- Requirement: "run the code-review-expert and testing-expert agents before every commit"
+
+**Impact:** CRITICAL - Developers would receive conflicting instructions about when to run reviews.
+
+**Resolution:** Fixed in commit 08a2668
+
+**Decision:** Adopted PRE-COMMIT workflow (matches line 930)
+
+**Rationale:**
+1. User's explicit instruction at line 930 takes precedence
+2. Cleaner git history (no fixup commits needed)
+3. Never commit unreviewed code
+4. Standard code quality gate pattern
+5. All issues (including non-critical) logged to GITHUB_ISSUES.md
+
+**New Workflow:**
+1. Write code/tests following TDD
+2. Run testing-expert (if tests written)
+3. Run code-review-expert (for all code)
+4. Review findings and track ALL issues (HIGH/MEDIUM/LOW) in GITHUB_ISSUES.md
+5. Fix blocking issues or document deferral
+6. **ONLY AFTER APPROVAL:** Make commit
+
+**Trade-off Accepted:**
+- Slightly slower initial workflow (10-15 min wait before commit)
+- BUT: Results in cleaner git history with zero unreviewed code
+
+**Note:** Previous commits (647498c, dd3185f, 9eb0a89) were reviewed POST-COMMIT before this workflow correction. All future commits will follow PRE-COMMIT workflow.
+
+**Found in:** Workflow Review (2025-10-07)
+
+---
