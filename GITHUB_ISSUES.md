@@ -282,3 +282,90 @@ mypy = "^1.13.0"
 - Can be integrated into pre-commit hooks
 
 **Found in:** Layer 2 Code Review (2025-10-06)
+
+---
+
+## Issue 9: Modernize type hints in prompts.py to use Python 3.10+ union syntax
+
+**Labels:** `technical-debt`, `enhancement`, `low-priority`
+
+**Title:** Modernize type hints from `Optional[X]` to `X | None` in prompts.py
+
+**Description:**
+The `prompts.py` module uses older `Optional[X]` syntax instead of modern Python 3.10+ `X | None` union syntax. Since the project requires Python 3.10+, we should use the modern syntax for consistency.
+
+**File:** `backend/deep_agent/agents/prompts.py:82-83`
+
+**Current Code:**
+```python
+def get_agent_instructions(
+    env: Optional[str] = None,
+    settings: Optional[Settings] = None,
+) -> str:
+```
+
+**Expected:**
+```python
+def get_agent_instructions(
+    env: str | None = None,
+    settings: Settings | None = None,
+) -> str:
+```
+
+**Impact:** LOW - Pure style improvement. No functional change. Improves consistency with Python 3.10+ idioms.
+
+**Found in:** Layer 3 Code Review (2025-10-07)
+
+---
+
+## Issue 10: Add retry logic with exponential backoff to agent_service.py
+
+**Labels:** `enhancement`, `reliability`, `medium-priority`
+
+**Title:** Implement retry logic for LLM API calls in AgentService
+
+**Description:**
+Per Phase 0 requirements ("Retry logic with exponential backoff"), the `AgentService` should implement retry logic for transient LLM API failures. Currently, single failures cause immediate exceptions without retry attempts.
+
+**Files:**
+- `backend/deep_agent/services/agent_service.py:141, 215`
+- Would add new dependency: `tenacity`
+
+**Recommended Implementation:**
+```python
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
+
+class AgentService:
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry_if_exception_type=(LLMError, ConnectionError, TimeoutError),
+    )
+    async def _invoke_with_retry(
+        self,
+        agent: CompiledStateGraph,
+        input_data: dict[str, Any],
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Invoke agent with retry logic for transient failures."""
+        return await agent.ainvoke(input_data, config)
+```
+
+**Impact:** MEDIUM - Improves reliability for production deployments. Transient network/API failures won't immediately fail user requests.
+
+**Benefits:**
+- Better user experience (temporary failures auto-recover)
+- Reduced error rate in production
+- Aligns with Phase 0 infrastructure requirements
+
+**Trade-offs:**
+- Adds dependency on `tenacity` library
+- Slightly increased latency on retried requests
+- Need to configure retry parameters carefully (avoid retry storms)
+
+**Found in:** Layer 3 Code Review (2025-10-07)

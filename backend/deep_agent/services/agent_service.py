@@ -5,6 +5,7 @@ Provides high-level API for creating and interacting with DeepAgents,
 managing state persistence, and handling streaming responses.
 """
 
+import asyncio
 from typing import Any, AsyncGenerator, Optional
 
 from langgraph.graph.state import CompiledStateGraph
@@ -42,6 +43,7 @@ class AgentService:
         """
         self.settings = settings if settings is not None else get_settings()
         self.agent: Optional[CompiledStateGraph] = None
+        self._agent_lock = asyncio.Lock()  # Thread-safe lazy initialization
 
         logger.info(
             "AgentService initialized",
@@ -52,7 +54,11 @@ class AgentService:
 
     async def _ensure_agent(self) -> CompiledStateGraph:
         """
-        Ensure agent is created (lazy initialization).
+        Ensure agent is created (lazy initialization with thread safety).
+
+        Agent instances are created once and reused for all subsequent
+        invocations within the same service instance. Uses async lock to
+        prevent race conditions during concurrent invocations.
 
         Returns:
             Compiled agent graph ready for invocation.
@@ -61,7 +67,16 @@ class AgentService:
             ValueError: If agent creation fails due to invalid configuration.
             RuntimeError: If agent compilation fails.
         """
-        if self.agent is None:
+        # Fast path: check without lock first
+        if self.agent is not None:
+            return self.agent
+
+        # Acquire lock for agent creation
+        async with self._agent_lock:
+            # Double-check after acquiring lock (another task may have created it)
+            if self.agent is not None:
+                return self.agent
+
             logger.debug("Creating agent (lazy initialization)")
 
             # Determine subagents parameter
