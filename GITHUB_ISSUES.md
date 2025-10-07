@@ -590,3 +590,135 @@ Claude.md contained contradictory instructions about when to run code-review-exp
 **Found in:** Workflow Review (2025-10-07)
 
 ---
+
+## Issue 16: PerplexityClient logs unused masked_key variable
+
+**Labels:** `security`, `logging`, `medium-priority`, `phase-0`
+
+**Title:** Use masked_key variable in PerplexityClient logging instead of raw prefix
+
+**Description:**
+The PerplexityClient computes a `masked_key` variable (line 78) but doesn't use it in the logger.info() call (line 82). Instead, it logs `api_key_prefix=self.api_key[:8]`. This is inconsistent and the masked format (`sk-abc...xyz`) is more standard for API key logging.
+
+**File:** `backend/deep_agent/integrations/mcp_clients/perplexity.py:78-85`
+
+**Current Code:**
+```python
+# Mask API key for logging (security: HIGH-2 fix)
+masked_key = f"{self.api_key[:8]}...{self.api_key[-4:]}"
+
+logger.info(
+    "Perplexity MCP client initialized",
+    api_key_prefix=self.api_key[:8],  # Should use masked_key
+    timeout=self.timeout,
+    rate_limit=f"{self._rate_limit_max}/{self._rate_limit_window}s",
+)
+```
+
+**Expected:**
+```python
+# Mask API key for logging (security: HIGH-2 fix)
+masked_key = f"{self.api_key[:8]}...{self.api_key[-4:]}"
+
+logger.info(
+    "Perplexity MCP client initialized",
+    api_key_masked=masked_key,  # Use the masked variable
+    timeout=self.timeout,
+    rate_limit=f"{self._rate_limit_max}/{self._rate_limit_window}s",
+)
+```
+
+**Impact:** MEDIUM - Minor security improvement. Current approach works but masked format is more standard and informative.
+
+**Benefits:**
+- Uses computed variable (avoids waste)
+- Standard API key masking format (prefix...suffix)
+- More informative than prefix-only
+- Consistent with security best practices
+
+**Found in:** Web Search Tool Code Review (2025-10-07)
+
+---
+
+## Issue 17: Add debug logging for web_search tool result
+
+**Labels:** `enhancement`, `logging`, `low-priority`, `phase-0`
+
+**Title:** Add debug log statement before returning results in web_search tool
+
+**Description:**
+The web_search tool logs search initiation and completion (via PerplexityClient), but doesn't log the final result summary before returning to the agent. Adding a debug log would help troubleshoot agent behavior.
+
+**File:** `backend/deep_agent/tools/web_search.py:74`
+
+**Current Code:**
+```python
+# Format results for agent consumption
+formatted_results = client.format_results_for_agent(results)
+
+return formatted_results
+```
+
+**Suggested:**
+```python
+# Format results for agent consumption
+formatted_results = client.format_results_for_agent(results)
+
+logger.debug(
+    "Returning formatted results to agent",
+    result_length=len(formatted_results),
+    query=query,
+)
+
+return formatted_results
+```
+
+**Impact:** VERY LOW - Optional debug enhancement. Current logging via PerplexityClient is sufficient.
+
+**Benefits:**
+- Easier debugging of tool output
+- Trace result size before agent consumption
+- Consistent debug-level granularity
+
+**Found in:** Web Search Tool Code Review (2025-10-07)
+
+---
+
+## Issue 18: Enhance web_search docstring with failure mode details
+
+**Labels:** `documentation`, `enhancement`, `low-priority`, `phase-0`
+
+**Title:** Add retry and rate limit failure details to web_search tool docstring
+
+**Description:**
+The web_search tool docstring mentions rate limiting and timeout, but doesn't explain that the tool automatically retries on failures or what happens when rate limits are exceeded. Agents could benefit from understanding failure modes.
+
+**File:** `backend/deep_agent/tools/web_search.py:44-47`
+
+**Current Code:**
+```python
+Note:
+    - Queries are automatically sanitized for security
+    - Rate limiting: 10 requests per minute
+    - Timeout: 30 seconds (configurable)
+```
+
+**Suggested:**
+```python
+Note:
+    - Queries are automatically sanitized for security
+    - Rate limiting: 10 requests per minute (raises error if exceeded)
+    - Timeout: 30 seconds (configurable)
+    - Retries automatically on transient failures (3 attempts with exponential backoff)
+```
+
+**Impact:** VERY LOW - Documentation improvement. Helps agents understand when searches might fail.
+
+**Benefits:**
+- Agent awareness of retry behavior
+- Clearer error expectations
+- Better agent decision-making on failures
+
+**Found in:** Web Search Tool Code Review (2025-10-07)
+
+---
