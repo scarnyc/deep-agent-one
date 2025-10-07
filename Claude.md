@@ -479,6 +479,70 @@ Use semantic commit messages:
 
 **Example:** `feat(phase-0): implement DeepAgents file system tools with HITL`
 
+### Post-Commit Review Workflow (MANDATORY)
+
+**IMPORTANT:** After EVERY commit, run both code-review-expert and testing-expert agents to verify code quality.
+
+**Why This Matters:**
+- Catches regressions immediately after commit
+- Ensures git history contains only reviewed, high-quality code
+- Prevents drift between implementation and review
+- Creates audit trail for all committed code
+
+**Workflow:**
+
+1. **Make commit** following semantic commit message convention
+2. **Run testing-expert** (if commit includes tests):
+   ```bash
+   # Review test quality for most recent commit
+   # Agent will verify: AAA pattern, coverage, edge cases, mocking quality
+   ```
+3. **Run code-review-expert** (for all commits):
+   ```bash
+   # Review implementation quality for most recent commit
+   # Agent will verify: type hints, security, error handling, integration
+   ```
+4. **Review agent findings:**
+   - **If APPROVED:** Continue to next task
+   - **If CHANGES REQUESTED:** Create fixup commit, go back to step 1
+   - **If REJECTED:** Revert commit, fix issues, create new commit, go back to step 1
+
+5. **Track issues** in GITHUB_ISSUES.md:
+   - Document any HIGH/MEDIUM issues found
+   - Add resolution status (RESOLVED, PARTIAL, DEFERRED)
+   - Reference commit hashes for traceability
+
+**Example Post-Commit Review Session:**
+
+```bash
+# 1. Made 3 commits for Perplexity MCP client
+git log --oneline -3
+# 647498c test(phase-0): add Perplexity MCP client integration tests
+# dd3185f feat(phase-0): implement Perplexity MCP client with security features
+# 9eb0a89 docs(phase-0): document Perplexity MCP security fixes
+
+# 2. Run testing-expert on test commit
+# [Use Task tool with testing-expert subagent]
+# Result: APPROVED (9.5/10) - 1 optional improvement noted
+
+# 3. Run code-review-expert on implementation commit
+# [Use Task tool with code-review-expert subagent]
+# Result: APPROVED WITH MINOR RECOMMENDATIONS (9.2/10) - 2 MEDIUM issues noted
+
+# 4. Run code-review-expert on documentation commit
+# [Use Task tool with code-review-expert subagent]
+# Result: APPROVED (exemplary) - 100% accurate documentation
+
+# 5. Track findings
+git add GITHUB_ISSUES.md
+git commit -m "docs(phase-0): track post-commit review findings"
+
+# 6. Continue with next task
+```
+
+**Time Investment:** 10-15 minutes per commit for review + issue tracking
+**Return:** High-quality git history, early bug detection, continuous quality assurance
+
 ---
 
 ## Success Validation Checklist
