@@ -13,6 +13,7 @@ from backend.deep_agent.config.settings import Settings, get_settings
 from backend.deep_agent.core.logging import get_logger
 from backend.deep_agent.models.gpt5 import GPT5Config, ReasoningEffort, Verbosity
 from backend.deep_agent.services.llm_factory import create_gpt5_llm
+from backend.deep_agent.tools.web_search import web_search
 
 logger = get_logger(__name__)
 
@@ -54,6 +55,9 @@ async def create_agent(
         - write_file: Create new files
         - edit_file: Modify existing files
         - write_todos: Planning and todo management
+
+    Custom Tools:
+        - web_search: Search the web using Perplexity MCP
 
     HITL Support:
         Human-in-the-loop approval is built into DeepAgents.
@@ -113,7 +117,7 @@ async def create_agent(
         try:
             compiled_graph = create_deep_agent(
                 model=llm,
-                tools=[],  # DeepAgents includes built-in tools automatically
+                tools=[web_search],  # Custom tools in addition to built-in tools
                 instructions=instructions,
                 subagents=subagents,
                 checkpointer=checkpointer,
