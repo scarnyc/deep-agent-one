@@ -426,6 +426,7 @@ All code quality issues and technical debt items are tracked in `GITHUB_ISSUES.m
 - API abuse prevention
 - Data exfiltration attempts
 - Automated security scans on every major release
+- Pen Test
 
 ### Test Reporting
 **Automated reports generated after every test run:**
