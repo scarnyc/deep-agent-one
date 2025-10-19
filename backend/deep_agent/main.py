@@ -214,17 +214,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         exc: RequestValidationError,
     ) -> JSONResponse:
         """Handle Pydantic validation errors."""
+        # Convert errors to JSON-serializable format
+        errors = []
+        for error in exc.errors():
+            # Extract the error dict and convert non-serializable values
+            error_dict = {
+                "type": error["type"],
+                "loc": error["loc"],
+                "msg": error["msg"],
+                "input": error.get("input"),
+            }
+
+            # Handle ctx (context) which may contain ValueError objects
+            if "ctx" in error:
+                ctx = error["ctx"]
+                if isinstance(ctx, dict):
+                    # Convert ValueError/Exception objects to strings
+                    error_dict["ctx"] = {
+                        k: str(v) if isinstance(v, Exception) else v for k, v in ctx.items()
+                    }
+
+            errors.append(error_dict)
+
         logger.warning(
             "Validation error",
             request_id=getattr(request.state, "request_id", None),
-            errors=exc.errors(),
+            errors=errors,
         )
 
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
                 "detail": "Validation error",
-                "errors": exc.errors(),
+                "errors": errors,
             },
         )
 
@@ -268,9 +290,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """
         return {"status": "healthy"}
 
-    # TODO: Include API routers when implemented
-    # from backend.deep_agent.api.v1 import chat, agents, websocket
-    # app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
+    # Include API routers
+    from backend.deep_agent.api.v1 import chat
+
+    app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
+
+    # TODO: Include remaining routers when implemented
+    # from backend.deep_agent.api.v1 import agents, websocket
     # app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
     # app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])
 

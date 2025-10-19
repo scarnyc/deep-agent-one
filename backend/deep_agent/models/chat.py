@@ -1,4 +1,5 @@
 """Chat API Pydantic models for request/response validation."""
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
@@ -121,6 +122,59 @@ class ChatRequest(BaseModel):
             raise ValueError("Value cannot be empty or whitespace-only")
 
         return stripped
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def validate_metadata_size_and_depth(cls, v: Any) -> dict[str, Any] | None:
+        """
+        Validate metadata dict is not too large or deeply nested.
+
+        Security constraints:
+        - Maximum serialized size: 10KB (prevents DoS via large payloads)
+        - Maximum nesting depth: 5 levels (prevents RecursionError)
+
+        Args:
+            v: Metadata value to validate
+
+        Returns:
+            Validated metadata dict or None if no metadata provided
+
+        Raises:
+            ValueError: If metadata exceeds size/depth limits
+        """
+        if v is None:
+            return None
+
+        if not isinstance(v, dict):
+            raise ValueError("Metadata must be a dictionary")
+
+        # Validate serialization size (prevents huge payloads)
+        try:
+            serialized = json.dumps(v)
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Metadata must be JSON-serializable: {e}") from e
+
+        max_size_bytes = 10000  # 10KB limit
+        if len(serialized) > max_size_bytes:
+            raise ValueError(
+                f"Metadata payload too large ({len(serialized)} bytes, max {max_size_bytes} bytes)"
+            )
+
+        # Validate nesting depth (prevents RecursionError)
+        def check_depth(obj: Any, current_depth: int = 0, max_depth: int = 5) -> None:
+            """Recursively check nesting depth of dict/list structures."""
+            if current_depth > max_depth:
+                raise ValueError(f"Metadata nesting too deep (max {max_depth} levels)")
+
+            if isinstance(obj, dict):
+                for value in obj.values():
+                    check_depth(value, current_depth + 1, max_depth)
+            elif isinstance(obj, list):
+                for item in obj:
+                    check_depth(item, current_depth + 1, max_depth)
+
+        check_depth(v)
+        return v
 
     model_config = {
         "json_schema_extra": {
