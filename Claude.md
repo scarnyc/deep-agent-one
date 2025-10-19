@@ -817,38 +817,54 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 ### **Layer 6: FastAPI Backend (API Layer)**
 
 #### API Models
-- [ ] Write test: `tests/unit/test_models/test_chat.py` - validate schemas
-- [ ] Implement `backend/deep_agent/models/chat.py` - chat request/response models
-- [ ] Implement `backend/deep_agent/models/agents.py` - agent management models
-- [ ] Implement `backend/deep_agent/models/common.py` - shared models
-- [ ] Verify tests pass - schemas validate
-- [ ] Commit: `feat(phase-0): add API pydantic models`
+- [x] Write test: `tests/unit/test_models/test_chat.py` - validate schemas (61 tests)
+- [x] Implement `backend/deep_agent/models/chat.py` - chat request/response models
+- [x] Write test: `tests/unit/test_models/test_agents.py` - validate agent schemas (57 tests)
+- [x] Implement `backend/deep_agent/models/agents.py` - agent management models
+- [x] Implement `backend/deep_agent/models/common.py` - shared models
+- [x] Verify tests pass - schemas validate (118 tests total)
+- [x] Commit: `test(phase-0): add comprehensive chat API model tests (61 tests, TDD)` (commit `515833e`)
+- [x] Commit: `feat(phase-0): implement chat API pydantic models (TDD Green)` (commit `9f43ddd`)
+- [x] Commit: `test(phase-0): add agent management model tests (57 tests, TDD)` (commit `8de0341`)
+- [x] Commit: `feat(phase-0): implement agent management pydantic models (TDD Green)` (commit `48234b6`)
 
 #### FastAPI App Setup
-- [ ] Create `backend/deep_agent/api/__init__.py`
-- [ ] Create `backend/deep_agent/api/v1/__init__.py`
-- [ ] Write test: `tests/integration/test_api_endpoints/test_main.py` - verify app starts
-- [ ] Implement `backend/deep_agent/main.py` - FastAPI app with CORS, rate limiting, logging
-- [ ] Verify tests pass - app serves requests
-- [ ] Commit: `feat(phase-0): initialize FastAPI app with middleware`
+- [x] Create `backend/deep_agent/api/__init__.py`
+- [x] Create `backend/deep_agent/api/v1/__init__.py`
+- [x] Write test: `tests/integration/test_api_endpoints/test_main.py` - verify app starts (13 tests)
+- [x] Implement `backend/deep_agent/main.py` - FastAPI app with CORS, rate limiting, logging
+- [x] Verify tests pass - app serves requests (13/13 tests pass)
+- [x] Commit: `test(phase-0): add FastAPI app initialization tests (13 tests, TDD)` (commit `92dbc75`)
 
 #### Chat Endpoints
-- [ ] Write test: `tests/integration/test_api_endpoints/test_chat.py` - test REST + SSE
-- [ ] Implement `backend/deep_agent/api/v1/chat.py` - POST /chat, POST /chat/stream
-- [ ] Verify tests pass - endpoints return responses, streaming works
-- [ ] Commit: `feat(phase-0): add chat endpoints with SSE streaming`
+- [x] Write test: `tests/integration/test_api_endpoints/test_chat.py` - test REST endpoint (14 tests)
+- [x] Implement `backend/deep_agent/api/v1/chat.py` - POST /chat with rate limiting, security
+- [x] Verify tests pass - endpoint returns responses (14/14 tests pass)
+- [x] Commit: `test(phase-0): add chat endpoint integration tests (14 tests, TDD)` (commit `a5d2a49`)
+- [x] Commit: `feat(phase-0): implement POST /api/v1/chat with rate limiting and security features` (commit `8c88d1c`)
+- [x] Write test: `tests/integration/test_api_endpoints/test_chat_stream.py` - test SSE streaming (11 tests)
+- [x] Verify streaming tests pass - SSE works correctly (11/11 tests pass)
+- [x] Commit: `test(phase-0): add chat streaming endpoint tests (11 tests, TDD)` (commit `922af7f`)
 
 #### WebSocket for AG-UI
-- [ ] Write test: `tests/integration/test_api_endpoints/test_websocket.py` - test WS connection
-- [ ] Implement `backend/deep_agent/api/v1/websocket.py` - WebSocket endpoint for events
-- [ ] Verify tests pass - WS connects, events stream
-- [ ] Commit: `feat(phase-0): add websocket endpoint for AG-UI event streaming`
+- [x] Write test: `tests/integration/test_api_endpoints/test_websocket.py` - test WS connection
+- [x] Implement `backend/deep_agent/api/v1/websocket.py` - WebSocket endpoint for events
+- [x] Verify tests pass - WS connects, events stream
+- [x] Commit: `feat(phase-0): implement WebSocket endpoint for AG-UI events` (commit `70d924b`)
+- [x] **Code Quality Fix:** Fixed bare except clauses and modernized type hints (commit `7dce407`)
+- [x] **Issues Resolved:** Issues #32 (bare except), #33 (typing.Dict), #34 (test bare except)
 
 #### Agent Management Endpoints
-- [ ] Write test: `tests/integration/test_api_endpoints/test_agents.py` - test HITL workflows
-- [ ] Implement `backend/deep_agent/api/v1/agents.py` - GET /agents/{run_id}, POST /approve, /respond
-- [ ] Verify tests pass - HITL approval works
-- [ ] Commit: `feat(phase-0): add agent management endpoints with HITL support`
+- [x] Write test: `tests/integration/test_api_endpoints/test_agents.py` - test HITL workflows (14 tests, TDD)
+- [x] Extend `backend/deep_agent/services/agent_service.py` - add get_state() and update_state() methods
+- [x] Implement `backend/deep_agent/api/v1/agents.py` - GET /agents/{thread_id}, POST /approve, /respond
+- [x] Register agents router in `backend/deep_agent/main.py`
+- [x] Verify tests pass - HITL approval works (14/14 tests pass in 1.69s, 86.96% coverage)
+- [x] Run code reviews - testing-expert 9.0/10, code-review-expert 8.5/10
+- [x] Fix HIGH issue - added rate limiting decorators (@limiter.limit)
+- [x] Fix MEDIUM issues - timestamp fallback, status code consistency (422 for validation)
+- [x] Fix LOW issue - extracted "human" to HITL_NODE_NAME constant
+- [x] Commit: `feat(phase-0): implement agent management endpoints for HITL workflows` (commit `abbfa9c`)
 
 ### **Layer 7: Frontend (AG-UI Protocol)**
 
