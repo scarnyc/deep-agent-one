@@ -1033,3 +1033,130 @@ started_at: datetime = Field(
 **Found in:** Agent Models Code Review (2025-10-07)
 
 ---
+
+## Issue 23: Duplicate CORS origin parsing logic in main.py and settings.py
+
+**Labels:** `refactoring`, `technical-debt`, `medium-priority`, `phase-1`
+
+**Title:** Use `Settings.cors_origins_list` property instead of inline parsing in main.py
+
+**Description:**
+The CORS origin parsing logic (`settings.CORS_ORIGINS.split(",")`) is duplicated between `main.py` (lines 114-116) and the `Settings.cors_origins_list` property in `settings.py`. This violates the DRY principle and creates potential for inconsistency if the parsing logic needs enhancement (e.g., URL validation).
+
+**Files:**
+- `backend/deep_agent/main.py:114-116`
+- `backend/deep_agent/config/settings.py:143-145` (has cors_origins_list property)
+
+**Current Code (main.py):**
+```python
+allowed_origins = [
+    origin.strip() for origin in settings.CORS_ORIGINS.split(",")
+]
+```
+
+**Expected:**
+```python
+allowed_origins = settings.cors_origins_list  # Use the property
+```
+
+**Impact:** MEDIUM - Code duplication. Should be fixed in Phase 1 refactoring. Not blocking for Phase 0 as current implementation works correctly.
+
+**Benefits:**
+- Single source of truth for origin parsing
+- Easier to enhance (e.g., add URL validation)
+- Better maintainability
+- Reduces duplication
+
+**Found in:** FastAPI App Code Review (2025-10-07)
+
+---
+
+## Issue 24: Logging initialization should occur in lifespan startup
+
+**Labels:** `enhancement`, `reliability`, `medium-priority`, `phase-1`
+
+**Title:** Initialize structlog configuration in FastAPI lifespan startup
+
+**Description:**
+Logging configuration should be initialized during application startup (in the lifespan context manager) rather than relying on lazy initialization. This ensures consistent logging format/level from the very first log message and respects `LOG_LEVEL` and `LOG_FORMAT` settings.
+
+**File:** `backend/deep_agent/main.py:59-66`
+
+**Impact:** MEDIUM - Logging currently works via lazy initialization, but explicit startup configuration ensures consistency.
+
+**Benefits:**
+- Ensures consistent logging format from first log message
+- Respects `LOG_LEVEL` and `LOG_FORMAT` settings explicitly
+- Makes logging configuration visible in startup flow
+
+**Found in:** FastAPI App Code Review (2025-10-07)
+
+---
+
+## Issue 25: Add request timeout middleware
+
+**Labels:** `enhancement`, `reliability`, `medium-priority`, `phase-1`, `infrastructure`
+
+**Title:** Implement request timeout enforcement middleware
+
+**Description:**
+Phase 0 requirements specify "Request timeout: 300 seconds" as an infrastructure feature. FastAPI doesn't enforce request timeouts by default. While the `REQUEST_TIMEOUT` setting exists (300s), it's not actively enforced. Long-running requests could tie up resources.
+
+**Impact:** MEDIUM - Not critical for Phase 0 single-instance dev environment, but should be implemented for Phase 1 production deployment.
+
+**Settings Already Defined:** `REQUEST_TIMEOUT: int = 300` in settings.py
+
+**Found in:** FastAPI App Code Review (2025-10-07)
+
+---
+
+## Issue 26: Enhance health endpoint with dependency status checks
+
+**Labels:** `enhancement`, `observability`, `low-priority`, `phase-1`
+
+**Title:** Add dependency health checks to `/health` endpoint
+
+**Description:**
+The current health endpoint only returns `{"status": "healthy"}` without checking dependencies like database connectivity, LLM API availability, or MCP server status. Enhanced health checks would improve observability and enable better monitoring/alerting.
+
+**File:** `backend/deep_agent/main.py:261-268`
+
+**Impact:** LOW - Basic health check is sufficient for Phase 0. Enhanced checks recommended for Phase 1 production deployment.
+
+**Found in:** FastAPI App Code Review (2025-10-07)
+
+---
+
+## Issue 27: TODO comment should reference Layer 6 implementation phase
+
+**Labels:** `documentation`, `low-priority`, `phase-0`
+
+**Title:** Update TODO comment to reference Layer 6 in development roadmap
+
+**Description:**
+The TODO comment for API router inclusion doesn't reference the specific development phase/layer where routers will be implemented.
+
+**File:** `backend/deep_agent/main.py:271-275`
+
+**Impact:** VERY LOW - Documentation clarity improvement.
+
+**Found in:** FastAPI App Code Review (2025-10-07)
+
+---
+
+## Issue 28: Version string hardcoded in FastAPI app creation
+
+**Labels:** `technical-debt`, `enhancement`, `low-priority`, `phase-1`
+
+**Title:** Load app version from pyproject.toml or settings instead of hardcoding
+
+**Description:**
+The FastAPI app version is hardcoded as `"0.1.0"` instead of being loaded from a single source of truth.
+
+**File:** `backend/deep_agent/main.py:107`
+
+**Impact:** LOW - Minor quality improvement. Hardcoded version is acceptable for Phase 0.
+
+**Found in:** FastAPI App Code Review (2025-10-07)
+
+---
