@@ -1344,3 +1344,149 @@ async for event in service.stream(
 **Found in:** Streaming Endpoint Code Review (2025-10-19)
 
 ---
+
+## Issue 32: Fix bare except clause in WebSocket endpoint ✅ RESOLVED
+
+**Labels:** `bug`, `code-quality`, `medium-priority`, `phase-0`
+
+**Title:** Replace bare except with specific exception types in websocket.py
+
+**Description:**
+The WebSocket endpoint uses a bare `except:` clause which catches all exceptions including system-level ones like KeyboardInterrupt and SystemExit. This can prevent graceful shutdown and hide real bugs.
+
+**File:** `backend/deep_agent/api/v1/websocket.py:264`
+
+**Current Code:**
+```python
+try:
+    await websocket.close()
+except:
+    pass  # Connection may already be closed
+```
+
+**Expected:**
+```python
+try:
+    await websocket.close()
+except (WebSocketDisconnect, RuntimeError):
+    pass  # Connection may already be closed
+```
+
+**Impact:** MEDIUM - Could prevent graceful shutdown, mask real errors, break async task cancellation.
+
+**Why This Matters:**
+- Bare `except:` catches KeyboardInterrupt (Ctrl+C) → prevents user from stopping app
+- Catches SystemExit → prevents application from exiting cleanly
+- Catches asyncio.CancelledError → breaks async task cancellation
+- Hides real bugs that should be surfaced
+
+**Linter:** Ruff (E722) - "Do not use bare `except`"
+
+**Found in:** WebSocket Endpoint Linting Review (2025-10-19)
+
+---
+
+## Issue 33: Modernize typing.Dict to dict in WebSocket endpoint ✅ RESOLVED
+
+**Labels:** `technical-debt`, `code-quality`, `low-priority`, `phase-0`
+
+**Title:** Replace deprecated typing.Dict with built-in dict type
+
+**Description:**
+The WebSocket endpoint uses `typing.Dict` which is deprecated in Python 3.9+ per PEP 585. Python 3.10+ (our target) uses the built-in `dict` type directly for type annotations.
+
+**Files:**
+- `backend/deep_agent/api/v1/websocket.py:9` (import statement)
+- `backend/deep_agent/api/v1/websocket.py:45` (type annotation)
+
+**Current Code:**
+```python
+# Line 9
+from typing import Any, Dict
+
+# Line 45
+metadata: Dict[str, Any] | None = Field(...)
+```
+
+**Expected:**
+```python
+# Line 9
+from typing import Any
+
+# Line 45
+metadata: dict[str, Any] | None = Field(...)
+```
+
+**Impact:** LOW - Pure style/modernization issue. No functional impact.
+
+**Benefits:**
+- Follows Python 3.10+ best practices (PEP 585)
+- Consistent with modern Python idioms
+- Simpler syntax (no import needed)
+- Aligns with rest of codebase
+
+**Linter:** Ruff (UP035, UP006) - "`typing.Dict` is deprecated, use `dict` instead"
+
+**Fix Strategy:** Find/replace all `Dict[` → `dict[` in file
+
+**Found in:** WebSocket Endpoint Linting Review (2025-10-19)
+
+---
+
+## Issue 34: Fix bare except clauses in WebSocket test file ✅ RESOLVED
+
+**Labels:** `bug`, `testing`, `code-quality`, `medium-priority`, `phase-0`
+
+**Title:** Replace bare except with specific exception types in test_websocket.py
+
+**Description:**
+The WebSocket integration tests use bare `except:` clauses when receiving WebSocket events. This caused tests to hang indefinitely when `receive_json()` waits for events that never arrive, because no timeout exceptions were ever caught.
+
+**File:** `tests/integration/test_api_endpoints/test_websocket.py`
+
+**Locations Fixed:**
+- Line 107: `test_websocket_accepts_chat_message`
+- Line 138: `test_websocket_streams_multiple_events`
+- Line 228: `test_websocket_handles_agent_error`
+- Line 287: `test_websocket_handles_concurrent_messages` (first loop)
+- Line 303: `test_websocket_handles_concurrent_messages` (second loop)
+
+**Current Code:**
+```python
+try:
+    event = websocket.receive_json()
+    events.append(event)
+except:  # BAD - hangs indefinitely
+    break
+```
+
+**Fixed Code:**
+```python
+try:
+    event = websocket.receive_json()
+    events.append(event)
+except (WebSocketDisconnect, Exception):  # GOOD - specific exceptions
+    break
+```
+
+**Impact:** MEDIUM-HIGH - Tests were hanging for >10 minutes each due to this issue.
+
+**Root Cause:**
+1. `receive_json()` waits indefinitely for events without a timeout
+2. Bare `except:` was meant to catch exceptions and break the loop
+3. Without timeouts, no exceptions were raised → infinite wait
+4. Bare `except:` also catches system exceptions (KeyboardInterrupt, SystemExit)
+
+**Benefits of Fix:**
+- Tests no longer hang indefinitely
+- Proper exception handling (doesn't catch system-level exceptions)
+- Follows Python best practices (explicit exception types)
+- Consistent with production code (Issue #32)
+
+**Linter:** Ruff (E722) - "Do not use bare `except`"
+
+**Resolution:** Fixed in commit alongside Issue #32 and #33 (2025-10-19)
+
+**Found in:** WebSocket Test Investigation (2025-10-19)
+
+---

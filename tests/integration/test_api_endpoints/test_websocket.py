@@ -104,7 +104,7 @@ class TestWebSocketEndpoint:
                     # Stop after receiving end event
                     if event.get("event") == "on_chat_model_end":
                         break
-                except:
+                except (WebSocketDisconnect, Exception):
                     break
 
         # Assert
@@ -135,7 +135,7 @@ class TestWebSocketEndpoint:
                 try:
                     event = websocket.receive_json()
                     events.append(event)
-                except:
+                except (WebSocketDisconnect, Exception):
                     break
 
         # Assert
@@ -225,7 +225,7 @@ class TestWebSocketEndpoint:
                 try:
                     event = websocket.receive_json()
                     events.append(event)
-                except:
+                except (WebSocketDisconnect, Exception):
                     break
 
         # Assert
@@ -284,7 +284,7 @@ class TestWebSocketEndpoint:
                 try:
                     event = websocket.receive_json()
                     first_events.append(event)
-                except:
+                except (WebSocketDisconnect, Exception):
                     break
 
             # Send second message
@@ -300,7 +300,7 @@ class TestWebSocketEndpoint:
                 try:
                     event = websocket.receive_json()
                     second_events.append(event)
-                except:
+                except (WebSocketDisconnect, Exception):
                     break
 
         # Assert

@@ -6,7 +6,7 @@ agent interaction with AG-UI event streaming.
 """
 import json
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field, ValidationError, field_validator
@@ -42,7 +42,7 @@ class WebSocketMessage(BaseModel):
         min_length=1,
         description="Conversation thread identifier",
     )
-    metadata: Dict[str, Any] | None = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None,
         description="Optional metadata",
     )
@@ -261,5 +261,5 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         )
         try:
             await websocket.close()
-        except:
+        except (WebSocketDisconnect, RuntimeError):
             pass  # Connection may already be closed
