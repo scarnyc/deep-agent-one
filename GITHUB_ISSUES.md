@@ -1160,3 +1160,187 @@ The FastAPI app version is hardcoded as `"0.1.0"` instead of being loaded from a
 **Found in:** FastAPI App Code Review (2025-10-07)
 
 ---
+
+## Issue 29: Extract secret patterns to shared configuration constant
+
+**Labels:** `refactoring`, `security`, `low-priority`, `phase-1`
+
+**Title:** Centralize API key/secret patterns for consistent sanitization
+
+**Description:**
+Secret pattern sanitization logic is duplicated in chat.py (lines 140, 263 - POST /chat and POST /chat/stream). These patterns should be extracted to a shared constant for maintainability and consistency.
+
+**Files:**
+- `backend/deep_agent/api/v1/chat.py:140, 263`
+
+**Current Code:**
+```python
+if any(pattern in error_msg for pattern in ["sk-", "lsv2_", "key=", "token=", "password="]):
+    error_msg = "[REDACTED: Potential secret in error message]"
+```
+
+**Suggested Fix:**
+Create `backend/deep_agent/core/security.py` or add to `backend/deep_agent/core/errors.py`:
+```python
+# Secret patterns to detect in error messages
+SECRET_PATTERNS = [
+    "sk-",        # OpenAI API keys
+    "lsv2_",      # LangSmith tokens
+    "key=",       # Generic key parameters
+    "token=",     # Generic token parameters
+    "password=",  # Passwords
+]
+
+def sanitize_error_message(error_msg: str) -> str:
+    """Sanitize error messages to prevent secret leakage."""
+    if any(pattern in error_msg for pattern in SECRET_PATTERNS):
+        return "[REDACTED: Potential secret in error message]"
+    return error_msg
+```
+
+**Impact:** LOW - Code duplication. Current implementation works correctly.
+
+**Benefits:**
+- Single source of truth for secret patterns
+- Easier to add new patterns (just update one list)
+- Consistent sanitization across all endpoints
+- Testable in isolation
+
+**Found in:** Streaming Endpoint Code Review (2025-10-19)
+
+---
+
+## Issue 30: Add timeout protection to streaming endpoint
+
+**Labels:** `enhancement`, `reliability`, `medium-priority`, `phase-1`
+
+**Title:** Implement timeout for long-running SSE streams
+
+**Description:**
+The POST /chat/stream endpoint doesn't enforce a timeout, potentially allowing infinite-duration streams that could exhaust server resources. Adding a configurable timeout would prevent resource exhaustion.
+
+**File:** `backend/deep_agent/api/v1/chat.py:220-284`
+
+**Recommended Implementation:**
+```python
+import asyncio
+from backend.deep_agent.config.settings import get_settings
+
+async def event_generator() -> AsyncGenerator[str, None]:
+    """Generate SSE-formatted events from agent stream."""
+    settings = get_settings()
+    
+    try:
+        service = AgentService()
+        
+        # Add timeout protection (default: 5 minutes)
+        timeout_seconds = settings.STREAM_TIMEOUT or 300
+        
+        async with asyncio.timeout(timeout_seconds):
+            async for event in service.stream(
+                message=request_body.message,
+                thread_id=request_body.thread_id,
+            ):
+                event_json = json.dumps(event)
+                yield f"data: {event_json}\n\n"
+                
+    except asyncio.TimeoutError:
+        logger.warning(
+            "Chat stream timeout",
+            request_id=request_id,
+            thread_id=request_body.thread_id,
+            timeout=timeout_seconds,
+        )
+        error_event = {
+            "event_type": "error",
+            "data": {
+                "error": f"Stream timeout exceeded ({timeout_seconds}s)",
+                "status": "timeout"
+            },
+        }
+        yield f"data: {json.dumps(error_event)}\n\n"
+```
+
+**Configuration Addition:**
+```python
+# In backend/deep_agent/config/settings.py
+STREAM_TIMEOUT: int = Field(
+    default=300,
+    description="Maximum duration for SSE streams (seconds)",
+)
+```
+
+**Impact:** MEDIUM - Not critical for Phase 0 single-user dev, important for production.
+
+**Benefits:**
+- Prevents resource exhaustion from stuck/infinite streams
+- Configurable per-environment (dev vs prod)
+- Graceful timeout with error event sent to client
+- Better observability (timeout logged)
+
+**Found in:** Streaming Endpoint Code Review (2025-10-19)
+
+---
+
+## Issue 31: Transform LangChain events to AG-UI Protocol format
+
+**Labels:** `enhancement`, `frontend-integration`, `medium-priority`, `phase-0-layer-7`
+
+**Title:** Map streaming events to AG-UI Protocol event types
+
+**Description:**
+The streaming endpoint currently passes through raw LangChain events. Per CLAUDE.md Phase 0 requirements, the UI implements the AG-UI Protocol which expects specific event types (RunStarted, RunFinished, StepStarted, TextMessageStart, etc.). Events should be transformed before sending to clients.
+
+**File:** `backend/deep_agent/api/v1/chat.py:231-238`
+
+**Current Code:**
+```python
+async for event in service.stream(
+    message=request_body.message,
+    thread_id=request_body.thread_id,
+):
+    # Format event as SSE
+    event_json = json.dumps(event)
+    yield f"data: {event_json}\n\n"
+```
+
+**Suggested Enhancement:**
+```python
+from backend.deep_agent.integrations.ag_ui import transform_to_ag_ui_event
+
+async for event in service.stream(
+    message=request_body.message,
+    thread_id=request_body.thread_id,
+):
+    # Transform LangChain event to AG-UI Protocol format
+    ag_ui_event = transform_to_ag_ui_event(event, thread_id=request_body.thread_id)
+    
+    if ag_ui_event:  # Some events may be filtered
+        event_json = json.dumps(ag_ui_event)
+        yield f"data: {event_json}\n\n"
+```
+
+**Implementation Location:** `backend/deep_agent/integrations/ag_ui.py`
+
+**Required AG-UI Events (per CLAUDE.md):**
+- **Lifecycle:** RunStarted, RunFinished, RunError
+- **Steps:** StepStarted, StepFinished
+- **Messages:** TextMessageStart, TextMessageContent, TextMessageEnd
+- **Tools:** ToolCallStart, ToolCallArgs, ToolCallEnd, ToolCallResult
+- **HITL:** Custom events for approval workflows
+
+**Impact:** MEDIUM - Required for Layer 7 (Frontend AG-UI implementation), not blocking for Layer 6.
+
+**Benefits:**
+- Frontend receives properly formatted events
+- Consistent event structure across UI
+- Enables AG-UI features (progress tracking, tool transparency, HITL)
+- Decouples backend event format from frontend expectations
+
+**Dependencies:**
+- Requires AG-UI SDK integration (Layer 7)
+- Event mapping logic needs LangChain event documentation
+
+**Found in:** Streaming Endpoint Code Review (2025-10-19)
+
+---
