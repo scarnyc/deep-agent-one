@@ -856,3 +856,180 @@ The `setup_langsmith()` docstring (line 29) says "Raises: ValueError: If LANGSMI
 **Found in:** LangSmith Integration Code Review (2025-10-07)
 
 ---
+
+## Issue 21: Duplicate validator logic across agent models
+
+**Labels:** `refactoring`, `technical-debt`, `low-priority`, `phase-1`
+
+**Title:** Extract shared `strip_and_validate_string()` validator to reduce duplication
+
+**Description:**
+All three agent models (`AgentRunInfo`, `HITLApprovalRequest`, `HITLApprovalResponse`) implement identical `strip_and_validate_string()` validators. This code duplication violates the DRY (Don't Repeat Yourself) principle.
+
+**Files:**
+- `backend/deep_agent/models/agents.py:87-98` (AgentRunInfo)
+- `backend/deep_agent/models/agents.py:155-166` (HITLApprovalRequest)
+- `backend/deep_agent/models/agents.py:223-234` (HITLApprovalResponse)
+
+**Current Duplication:**
+```python
+@field_validator("run_id", "thread_id", mode="before")
+@classmethod
+def strip_and_validate_string(cls, v: Any) -> str:
+    """Strip whitespace and validate string is not empty."""
+    if not isinstance(v, str):
+        raise ValueError("Value must be a string")
+
+    stripped = v.strip()
+    if not stripped:
+        raise ValueError("Value cannot be empty or whitespace-only")
+
+    return stripped
+```
+
+**Recommended Solution:**
+
+**Option 1:** Create shared validator utility in `backend/deep_agent/models/validators.py`:
+```python
+"""Shared Pydantic validators for Deep Agent models."""
+from typing import Any
+
+from pydantic import field_validator
+
+
+def strip_and_validate_string_field(v: Any) -> str:
+    """
+    Strip whitespace and validate string is not empty.
+
+    Shared validator for string fields across all models.
+
+    Args:
+        v: Value to validate
+
+    Returns:
+        Stripped string
+
+    Raises:
+        ValueError: If value is not a string or is empty/whitespace-only
+    """
+    if not isinstance(v, str):
+        raise ValueError("Value must be a string")
+
+    stripped = v.strip()
+    if not stripped:
+        raise ValueError("Value cannot be empty or whitespace-only")
+
+    return stripped
+```
+
+Then in models:
+```python
+from backend.deep_agent.models.validators import strip_and_validate_string_field
+
+class AgentRunInfo(BaseModel):
+    # ...
+
+    @field_validator("run_id", "thread_id", mode="before")
+    @classmethod
+    def strip_and_validate_string(cls, v: Any) -> str:
+        """Strip whitespace and validate string is not empty."""
+        return strip_and_validate_string_field(v)
+```
+
+**Option 2:** Create base model class (more comprehensive):
+```python
+class BaseAgentModel(BaseModel):
+    """Base model with common validators for agent models."""
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def strip_and_validate_string(cls, v: Any, field: FieldInfo) -> Any:
+        """Strip whitespace and validate string fields are not empty."""
+        if not isinstance(v, str):
+            return v  # Only process strings
+
+        stripped = v.strip()
+        if not stripped and field.is_required():
+            raise ValueError(f"{field.field_name} cannot be empty or whitespace-only")
+
+        return stripped if stripped else v
+
+class AgentRunInfo(BaseAgentModel):
+    # Inherits validator, no need to duplicate
+    ...
+```
+
+**Impact:** LOW - Code duplication exists but doesn't affect functionality. Should be addressed in Phase 1 when broader model refactoring occurs.
+
+**Benefits:**
+- Single source of truth for string validation
+- Easier to enhance validation logic (e.g., add Unicode normalization)
+- Reduces code duplication by ~30 lines
+- Improves maintainability
+
+**Trade-offs:**
+- Option 1: Adds one more import per model file
+- Option 2: More invasive refactoring, affects all models
+
+**Note:** This same duplication exists in `chat.py` models (lines 60-71, 112-123, 179-190, 245-256). Should be addressed consistently across all models.
+
+**Found in:** Agent Models Code Review (2025-10-07)
+
+---
+
+## Issue 22: Migrate from deprecated `datetime.utcnow()` to `datetime.now(timezone.utc)`
+
+**Labels:** `technical-debt`, `python-3.12`, `low-priority`, `phase-1`
+
+**Title:** Replace deprecated `datetime.utcnow()` with `datetime.now(timezone.utc)` in all models
+
+**Description:**
+The `datetime.utcnow()` method is deprecated as of Python 3.12 in favor of `datetime.now(timezone.utc)`. All timestamp fields using `default_factory=datetime.utcnow` should be updated for future Python compatibility.
+
+**Files Affected:**
+- `backend/deep_agent/models/agents.py:71` (AgentRunInfo.started_at)
+- `backend/deep_agent/models/chat.py:56` (Message.timestamp)
+- `backend/deep_agent/models/chat.py:237` (StreamEvent.timestamp)
+
+**Current Code:**
+```python
+from datetime import datetime
+
+started_at: datetime = Field(
+    default_factory=datetime.utcnow,
+    description="When the run started",
+)
+```
+
+**Recommended:**
+```python
+from datetime import datetime, timezone
+
+started_at: datetime = Field(
+    default_factory=lambda: datetime.now(timezone.utc),
+    description="When the run started (UTC)",
+)
+```
+
+**Impact:** LOW - Python 3.12 compatibility. Not urgent for Phase 0 as project currently uses Python 3.11.
+
+**Benefits:**
+- Future-proof for Python 3.12+
+- Explicit timezone awareness (better practice)
+- Aligns with modern Python datetime best practices
+- Consistent across all timestamp fields
+
+**Migration Steps:**
+1. Update all 3 occurrences in models
+2. Add timezone import where needed
+3. Update field descriptions to clarify UTC timezone
+4. Run existing tests (should pass without changes)
+
+**Python Version Timeline:**
+- Python 3.11: `datetime.utcnow()` works but soft-deprecated
+- Python 3.12+: May show deprecation warnings
+- Future versions: May be removed entirely
+
+**Found in:** Agent Models Code Review (2025-10-07)
+
+---
