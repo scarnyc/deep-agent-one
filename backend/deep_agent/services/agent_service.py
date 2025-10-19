@@ -243,3 +243,162 @@ class AgentService:
                 error_type=type(e).__name__,
             )
             raise
+
+    async def get_state(
+        self,
+        thread_id: str,
+        checkpoint_id: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """
+        Get current state from checkpointer for a thread.
+
+        Retrieves the persisted state for a conversation thread,
+        including messages, agent status, and execution metadata.
+
+        Args:
+            thread_id: Thread ID to get state for.
+            checkpoint_id: Optional specific checkpoint ID. If None, gets latest.
+
+        Returns:
+            State dictionary containing:
+                - values: Current state values (messages, etc.)
+                - next: List of next nodes to execute (empty if completed)
+                - config: Configuration including thread_id and checkpoint_id
+                - metadata: State metadata
+                - created_at: When the state was created
+                - parent_config: Parent checkpoint config (if any)
+
+        Raises:
+            ValueError: If thread_id is empty or thread not found.
+            RuntimeError: If state retrieval fails.
+
+        Example:
+            >>> state = await service.get_state("user-123")
+            >>> print(state["values"]["messages"])
+            >>> print("Running" if state["next"] else "Completed")
+        """
+        if not thread_id or not thread_id.strip():
+            raise ValueError("Thread ID cannot be empty")
+
+        logger.debug(
+            "Getting agent state",
+            thread_id=thread_id,
+            checkpoint_id=checkpoint_id,
+        )
+
+        # Ensure agent is created
+        agent = await self._ensure_agent()
+
+        # Prepare config
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        if checkpoint_id:
+            config["configurable"]["checkpoint_id"] = checkpoint_id
+
+        # Get state from checkpointer
+        try:
+            state = await agent.aget_state(config)
+
+            if state is None:
+                raise ValueError(f"Thread not found: {thread_id}")
+
+            logger.debug(
+                "Agent state retrieved",
+                thread_id=thread_id,
+                has_next=len(state.next) > 0,
+            )
+
+            # Convert StateSnapshot to dict for API response
+            return {
+                "values": state.values,
+                "next": list(state.next),
+                "config": state.config,
+                "metadata": state.metadata,
+                "created_at": state.created_at,
+                "parent_config": state.parent_config,
+            }
+
+        except ValueError:
+            # Re-raise ValueError (thread not found)
+            raise
+
+        except Exception as e:
+            logger.error(
+                "Failed to get agent state",
+                thread_id=thread_id,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            raise RuntimeError(f"Failed to get state: {str(e)}") from e
+
+    async def update_state(
+        self,
+        thread_id: str,
+        values: dict[str, Any],
+        as_node: Optional[str] = None,
+    ) -> None:
+        """
+        Update state in checkpointer (for HITL approval).
+
+        Updates the persisted state for a conversation thread,
+        typically used to provide human feedback or approval for
+        agent actions (HITL workflow).
+
+        Args:
+            thread_id: Thread ID to update state for.
+            values: State values to update (e.g., approval decision).
+            as_node: Optional node name to attribute update to.
+
+        Raises:
+            ValueError: If thread_id is empty or thread not found.
+            RuntimeError: If state update fails.
+
+        Example:
+            >>> # Approve HITL request
+            >>> await service.update_state(
+            ...     thread_id="user-123",
+            ...     values={"approved": True},
+            ...     as_node="human"
+            ... )
+        """
+        if not thread_id or not thread_id.strip():
+            raise ValueError("Thread ID cannot be empty")
+
+        logger.info(
+            "Updating agent state",
+            thread_id=thread_id,
+            as_node=as_node,
+            update_keys=list(values.keys()),
+        )
+
+        # Ensure agent is created
+        agent = await self._ensure_agent()
+
+        # Prepare config
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        # Update state
+        try:
+            await agent.aupdate_state(config, values, as_node=as_node)
+
+            logger.info(
+                "Agent state updated successfully",
+                thread_id=thread_id,
+            )
+
+        except Exception as e:
+            logger.error(
+                "Failed to update agent state",
+                thread_id=thread_id,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            raise RuntimeError(f"Failed to update state: {str(e)}") from e
