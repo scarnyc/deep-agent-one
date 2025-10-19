@@ -291,14 +291,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "healthy"}
 
     # Include API routers
-    from backend.deep_agent.api.v1 import chat
+    from backend.deep_agent.api.v1 import chat, websocket
 
     app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
+    app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])
 
-    # TODO: Include remaining routers when implemented
-    # from backend.deep_agent.api.v1 import agents, websocket
+    # TODO: Include agent management router when implemented
+    # from backend.deep_agent.api.v1 import agents
     # app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
-    # app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])
 
     logger.info("FastAPI app created successfully")
 
