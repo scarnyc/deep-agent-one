@@ -1490,3 +1490,1330 @@ except (WebSocketDisconnect, Exception):  # GOOD - specific exceptions
 **Found in:** WebSocket Test Investigation (2025-10-19)
 
 ---
+
+## Issue 35: Playwright WebSocket tests assume unimplemented UI components
+
+**Labels:** `testing`, `ui`, `medium-priority`, `phase-0-layer-7`
+
+**Title:** WebSocket UI tests depend on chat interface not yet implemented
+
+**Description:**
+All Playwright tests in `test_websocket_connection.py` navigate to `http://localhost:3000/chat` and expect specific data-testid attributes that don't exist yet. According to CLAUDE.md Layer 7 TODO list, the chat interface hasn't been implemented. Tests will fail immediately until UI components are created.
+
+**File:** `tests/ui/test_websocket_connection.py` (all 10 tests)
+
+**Missing Prerequisites:**
+- `frontend/app/chat/page.tsx` (not created yet)
+- Required data-testid attributes:
+  - `[data-testid="ws-status"]` - Connection status indicator
+  - `[data-testid="message-input"]` - Message input field
+  - `[data-testid="send-button"]` - Send message button
+  - `[data-testid="chat-history"]` - Chat message display
+  - `[data-testid="ws-error"]` - Error indicator
+
+**Impact:** MEDIUM - Tests cannot run until Layer 7 UI components exist. This creates a dependency order issue for TDD workflow.
+
+**Recommended Solutions:**
+
+**Option 1: Skip tests until UI ready (quick fix)**
+```python
+@pytest.mark.skip(reason="Pending Layer 7 UI implementation (ChatInterface)")
+class TestWebSocketConnection:
+    ...
+```
+
+**Option 2: Implement tests alongside UI (TDD best practice)**
+- Create chat interface first (Layer 7 TODO)
+- Implement tests as UI components are built
+- Ensure data-testid attributes match test expectations
+
+**Option 3: Create minimal test harness (compromise)**
+Create `tests/ui/fixtures/websocket_test_page.html`:
+```html
+<!DOCTYPE html>
+<html>
+<body>
+  <div data-testid="ws-status">disconnected</div>
+  <input data-testid="message-input" type="text" />
+  <button data-testid="send-button">Send</button>
+  <div data-testid="chat-history"></div>
+  <div data-testid="ws-error" style="display:none"></div>
+  <script src="useWebSocket-bundle.js"></script>
+</body>
+</html>
+```
+
+**Benefits:**
+- Option 1: Unblocks other testing work
+- Option 2: Follows TDD principles correctly
+- Option 3: Allows hook testing independently of full UI
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 36: Missing Playwright configuration for UI tests
+
+**Labels:** `testing`, `ui`, `configuration`, `medium-priority`, `phase-0`
+
+**Title:** Add conftest.py with Playwright fixtures and configuration
+
+**Description:**
+Playwright UI tests use `page: Page` fixture but there's no `conftest.py` to provide Playwright configuration. Tests need proper setup including browser context, base URL, timeout settings, and screenshot-on-failure.
+
+**Missing File:** `tests/ui/conftest.py`
+
+**Current Impact:** Tests likely won't run or will use default Playwright configuration without project-specific settings.
+
+**Required Configuration:**
+
+```python
+"""Playwright UI test configuration and fixtures."""
+import pytest
+from playwright.sync_api import Browser, BrowserContext, Page
+
+
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args):
+    """Configure browser context for all tests."""
+    return {
+        **browser_context_args,
+        "viewport": {"width": 1280, "height": 720},
+        "record_video_dir": "test-results/videos",
+        "record_video_size": {"width": 1280, "height": 720},
+    }
+
+
+@pytest.fixture(scope="session")
+def base_url():
+    """Base URL for frontend application."""
+    return "http://localhost:3000"
+
+
+@pytest.fixture
+def page(page: Page, base_url: str):
+    """Page fixture with base URL configured."""
+    page.set_default_timeout(10000)  # 10s default timeout
+    yield page
+    # Screenshot on failure handled by pytest-playwright
+
+
+@pytest.fixture(scope="session", autouse=True)
+def verify_backend_running():
+    """Ensure backend WebSocket server is running before tests."""
+    import requests
+    import websocket
+
+    try:
+        # Check health endpoint
+        response = requests.get("http://localhost:8000/health", timeout=5)
+        assert response.status_code == 200
+
+        # Test WebSocket connection
+        ws = websocket.create_connection(
+            "ws://localhost:8000/api/v1/ws",
+            timeout=5
+        )
+        ws.close()
+    except Exception as e:
+        pytest.skip(f"Backend server not available: {e}")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def verify_frontend_running(base_url: str):
+    """Ensure frontend is running before tests."""
+    import requests
+
+    try:
+        response = requests.get(base_url, timeout=5)
+        assert response.status_code == 200
+    except Exception as e:
+        pytest.skip(f"Frontend not available at {base_url}: {e}")
+```
+
+**Additional Configuration Files:**
+
+**pytest.ini section for UI tests:**
+```ini
+[tool:pytest]
+markers =
+    ui: Playwright UI tests (slow, require frontend/backend running)
+
+# Playwright settings
+playwright_timeout = 30000
+playwright_headed = false
+playwright_slow_mo = 0
+playwright_browser = chromium
+```
+
+**Benefits:**
+- Proper browser configuration
+- Automatic video recording on failure
+- Backend/frontend availability checks (skip tests if not running)
+- Consistent timeout settings
+- Better test isolation
+
+**Impact:** MEDIUM - Tests can't run reliably without proper configuration.
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 37: Weak assertions in WebSocket tests don't verify connection state
+
+**Labels:** `testing`, `ui`, `enhancement`, `medium-priority`, `phase-0`
+
+**Title:** Strengthen WebSocket status assertions to verify actual connection state
+
+**Description:**
+WebSocket tests use `to_have_text("connected")` to verify connection status, but this only checks UI text without verifying the underlying WebSocket connection state. The text could be hardcoded or come from any source.
+
+**Files:** `tests/ui/test_websocket_connection.py` (lines 28, 35, 54, 72, 92, 112, 127, 148, 168)
+
+**Current Code:**
+```python
+connection_status = page.locator('[data-testid="ws-status"]')
+expect(connection_status).to_have_text("connected", timeout=5000)
+```
+
+**Problem:**
+- Doesn't verify WebSocket is actually open
+- Text could be static or mocked
+- No state machine verification
+- Doesn't check WebSocket readyState
+
+**Recommended Improvement:**
+
+**UI Implementation:** Add data attribute for state
+```tsx
+// In ChatInterface or WebSocket status component
+<div
+  data-testid="ws-status"
+  data-status={connectionStatus}  // "connecting" | "connected" | "disconnected" | "reconnecting"
+  data-ready-state={ws?.readyState}  // WebSocket.OPEN = 1
+>
+  {connectionStatus}
+</div>
+```
+
+**Test Code:**
+```python
+connection_status = page.locator('[data-testid="ws-status"]')
+
+# Verify initial state
+expect(connection_status).to_have_attribute("data-status", "connecting")
+
+# Wait for connected state
+expect(connection_status).to_have_attribute("data-status", "connected", timeout=5000)
+
+# Verify WebSocket readyState
+expect(connection_status).to_have_attribute("data-ready-state", "1")  # OPEN
+
+# Also verify text for user visibility
+expect(connection_status).to_have_text("connected")
+```
+
+**Benefits:**
+- Verifies actual WebSocket state (not just UI text)
+- Can differentiate between connection states
+- Catches bugs where UI shows "connected" but WebSocket is broken
+- Tests state machine transitions properly
+
+**Impact:** MEDIUM - Current tests may pass even if WebSocket isn't actually connected.
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 38: WebSocket tests don't verify AG-UI Protocol events received
+
+**Labels:** `testing`, `ui`, `enhancement`, `medium-priority`, `phase-0-layer-7`
+
+**Title:** Add assertions to verify AG-UI Protocol events are received and displayed
+
+**Description:**
+Tests `test_websocket_receives_events()` and `test_websocket_multiple_threads()` claim to verify AG-UI event handling but only check for generic "assistant" text. They don't verify specific AG-UI Protocol events (RunStartedEvent, TextMessageContentEvent, RunFinishedEvent) are received and processed correctly.
+
+**Files:** `tests/ui/test_websocket_connection.py:49-65, 163-182`
+
+**Current Code:**
+```python
+def test_websocket_receives_events(self, page: Page) -> None:
+    """Test WebSocket receives AG-UI events from backend."""
+    # ... send message ...
+
+    # Wait for streaming response (AG-UI events)
+    # Should see assistant message appear
+    chat_history = page.locator('[data-testid="chat-history"]')
+    expect(chat_history).to_contain_text("assistant", timeout=10000)
+```
+
+**What's Missing:**
+- No verification of RunStartedEvent received
+- No verification of streaming tokens (TextMessageContentEvent)
+- No verification of RunFinishedEvent received
+- No verification of tool call events
+- No verification of event order/sequence
+
+**Recommended Implementation:**
+
+**UI Changes Needed:**
+```tsx
+// In chat interface, render AG-UI events for testing
+{events.map(event => (
+  <div
+    key={event.run_id}
+    data-testid={`event-${event.event}`}
+    data-event-type={event.event}
+    data-run-id={event.run_id}
+  >
+    {/* Event content */}
+  </div>
+))}
+```
+
+**Test Code:**
+```python
+def test_websocket_receives_events(self, page: Page) -> None:
+    """Test WebSocket receives AG-UI events from backend."""
+    # Arrange
+    page.goto("http://localhost:3000/chat")
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
+
+    # Act: Send message
+    page.fill('[data-testid="message-input"]', "Test message")
+    page.click('[data-testid="send-button"]')
+
+    # Assert: Verify AG-UI Protocol event sequence
+
+    # 1. RunStartedEvent (on_chain_start or on_llm_start)
+    run_started = page.locator('[data-testid="event-on_chain_start"]').first
+    expect(run_started).to_be_visible(timeout=5000)
+
+    # 2. TextMessageContentEvent (streaming tokens)
+    message_stream = page.locator('[data-testid="message-stream"]')
+    expect(message_stream).to_be_visible()
+    expect(message_stream).not_to_be_empty()
+
+    # 3. RunFinishedEvent (on_chain_end or on_llm_end)
+    run_finished = page.locator('[data-testid="event-on_chain_end"]').first
+    expect(run_finished).to_be_visible(timeout=10000)
+
+    # 4. Verify message in chat history
+    chat_history = page.locator('[data-testid="chat-history"]')
+    expect(chat_history).to_contain_text("Test message")  # User message
+    expect(chat_history).to_contain_text(/\w+/)  # Assistant response (non-empty)
+```
+
+**Benefits:**
+- Verifies actual AG-UI Protocol implementation
+- Catches event parsing errors
+- Verifies event order/sequence
+- Tests core framework integration (not just UI text)
+
+**Impact:** MEDIUM - Tests don't verify the core functionality they claim to test.
+
+**Dependencies:** Requires Layer 7 AG-UI integration (Issue #31 - transform LangChain events to AG-UI format)
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 39: Remove or fix synthetic invalid JSON test
+
+**Labels:** `testing`, `ui`, `bug`, `medium-priority`, `phase-0`
+
+**Title:** Fix test_websocket_invalid_json_error to actually test error handling
+
+**Description:**
+The test `test_websocket_invalid_json_error()` admits in its own comments that it's "synthetic" and doesn't actually test invalid JSON handling. It only verifies that an error indicator isn't visible during normal operation, which doesn't test error handling at all.
+
+**File:** `tests/ui/test_websocket_connection.py:107-121`
+
+**Current Code:**
+```python
+def test_websocket_invalid_json_error(self, page: Page) -> None:
+    """Test WebSocket handles invalid JSON gracefully."""
+    page.goto("http://localhost:3000/chat")
+
+    # Wait for connection
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
+
+    # Inject invalid JSON via console (simulate error)
+    # This is a synthetic test - real implementation would handle parse errors
+    # We verify error state is shown
+    error_indicator = page.locator('[data-testid="ws-error"]')
+
+    # In normal operation, error should not be visible
+    expect(error_indicator).not_to_be_visible()
+```
+
+**Problem:**
+- Docstring says "handles invalid JSON gracefully" but test doesn't inject invalid JSON
+- Test only verifies error indicator hidden during normal operation
+- No actual error handling tested
+- Provides zero coverage of JSON parsing error paths
+
+**Recommended Solutions:**
+
+**Option 1: Remove the test (simplest)**
+```python
+# Delete test_websocket_invalid_json_error() entirely
+# Invalid JSON from backend would be caught by backend tests, not UI tests
+```
+
+**Option 2: Test real error handling via backend mock**
+```python
+def test_websocket_invalid_json_error(self, page: Page) -> None:
+    """Test WebSocket handles invalid JSON gracefully."""
+    # Arrange: Set up route to inject bad JSON
+    page.route("**/api/v1/ws", lambda route: route.fulfill(
+        body="{invalid json}",  # Malformed JSON
+        headers={"Content-Type": "application/json"}
+    ))
+
+    page.goto("http://localhost:3000/chat")
+
+    # Act: Try to connect (will receive invalid JSON)
+
+    # Assert: Error state shown
+    error_indicator = page.locator('[data-testid="ws-error"]')
+    expect(error_indicator).to_be_visible(timeout=5000)
+    expect(error_indicator).to_contain_text("Failed to parse")
+
+    # Connection status should show error
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("error")
+```
+
+**Option 3: Use console injection (complex, brittle)**
+```python
+# Use page.evaluate() to simulate parse error in WebSocket handler
+# Not recommended - too coupled to implementation details
+```
+
+**Recommendation:** Option 1 (remove test) is best. Invalid JSON errors should be tested at the integration level (backend tests), not UI tests. UI tests should focus on user-visible error states, not low-level parsing errors.
+
+**Impact:** MEDIUM - Test provides zero value and misleads about coverage.
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 40: Missing edge case tests for WebSocket hook
+
+**Labels:** `testing`, `ui`, `enhancement`, `low-priority`, `phase-0`
+
+**Title:** Add edge case tests for WebSocket error conditions
+
+**Description:**
+The WebSocket test suite covers happy paths and basic error scenarios, but misses important edge cases that could cause issues in production.
+
+**File:** `tests/ui/test_websocket_connection.py`
+
+**Missing Test Cases:**
+
+**1. Send message before connection established**
+```python
+def test_websocket_send_before_connected(self, page: Page) -> None:
+    """Test sending message before WebSocket connects is handled gracefully."""
+    # Arrange: Navigate but don't wait for connection
+    page.goto("http://localhost:3000/chat")
+
+    # Act: Try to send immediately (before connected)
+    page.fill('[data-testid="message-input"]', "Test message")
+    page.click('[data-testid="send-button"]')
+
+    # Assert: Error message shown OR message queued until connected
+    # (Depends on implementation choice)
+```
+
+**2. Rapid reconnection cycling (network flapping)**
+```python
+def test_websocket_handles_network_flapping(self, page: Page) -> None:
+    """Test WebSocket handles rapid connect/disconnect cycles."""
+    page.goto("http://localhost:3000/chat")
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected")
+
+    # Rapidly toggle network on/off 5 times
+    for i in range(5):
+        page.context.set_offline(True)
+        page.wait_for_timeout(100)
+        page.context.set_offline(False)
+        page.wait_for_timeout(100)
+
+    # Should eventually stabilize to connected
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=15000)
+```
+
+**3. Max reconnection attempts (if implemented)**
+```python
+def test_websocket_max_reconnection_attempts(self, page: Page) -> None:
+    """Test WebSocket stops reconnecting after max attempts."""
+    # Only if maxReconnectAttempts is implemented in useWebSocket
+    # Verify it gives up after N attempts and shows permanent error
+```
+
+**4. Large message handling**
+```python
+def test_websocket_handles_large_messages(self, page: Page) -> None:
+    """Test WebSocket handles or rejects very large messages."""
+    page.goto("http://localhost:3000/chat")
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected")
+
+    # Try to send 10MB message
+    large_message = "A" * (10 * 1024 * 1024)
+    page.fill('[data-testid="message-input"]', large_message)
+
+    # Should either:
+    # 1. Show validation error (recommended)
+    # 2. Send successfully if backend supports it
+    # 3. Show network error if too large
+```
+
+**5. Concurrent disconnect during reconnection**
+```python
+def test_websocket_disconnect_during_reconnection(self, page: Page) -> None:
+    """Test disconnect() called during active reconnection attempt."""
+    page.goto("http://localhost:3000/chat")
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected")
+
+    # Trigger disconnect
+    page.context.set_offline(True)
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("reconnecting", timeout=3000)
+
+    # Navigate away during reconnection (calls disconnect())
+    page.goto("http://localhost:3000/")
+
+    # Should cleanly disconnect without errors
+    # Check console for errors
+```
+
+**Impact:** LOW - Edge cases unlikely in normal operation but would improve robustness.
+
+**Benefits:**
+- Catches rare but critical bugs
+- Improves production reliability
+- Demonstrates thorough testing
+- Prevents user-facing errors in edge conditions
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 41: WebSocket tests missing performance assertions
+
+**Labels:** `testing`, `ui`, `enhancement`, `low-priority`, `phase-0`
+
+**Title:** Add performance metrics to WebSocket tests for regression detection
+
+**Description:**
+WebSocket tests verify functionality but don't measure or assert on performance characteristics like connection time, message latency, or reconnection speed. Adding performance metrics would enable regression detection.
+
+**File:** `tests/ui/test_websocket_connection.py`
+
+**Missing Metrics:**
+
+**1. Connection establishment time**
+```python
+def test_websocket_connection_performance(self, page: Page) -> None:
+    """Test WebSocket connects within acceptable time."""
+    import time
+
+    # Measure connection time
+    start = time.time()
+    page.goto("http://localhost:3000/chat")
+
+    connection_status = page.locator('[data-testid="ws-status"]')
+    expect(connection_status).to_have_text("connected", timeout=5000)
+
+    connection_time = time.time() - start
+
+    # Assert reasonable connection time
+    assert connection_time < 2.0, f"Connection took {connection_time:.2f}s (expected <2s)"
+    print(f"✓ Connection established in {connection_time:.2f}s")
+```
+
+**2. Message roundtrip latency**
+```python
+def test_websocket_message_latency(self, page: Page) -> None:
+    """Test message roundtrip time is acceptable."""
+    import time
+
+    page.goto("http://localhost:3000/chat")
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected")
+
+    # Send message and measure response time
+    start = time.time()
+    page.fill('[data-testid="message-input"]', "Test latency")
+    page.click('[data-testid="send-button"]')
+
+    # Wait for response
+    chat_history = page.locator('[data-testid="chat-history"]')
+    expect(chat_history).to_contain_text("assistant", timeout=10000)
+
+    latency = time.time() - start
+
+    # Per Phase 0 requirements: <2s for simple queries
+    assert latency < 2.0, f"Message roundtrip took {latency:.2f}s (expected <2s)"
+    print(f"✓ Message roundtrip in {latency:.2f}s")
+```
+
+**3. Reconnection speed**
+```python
+def test_websocket_reconnection_speed(self, page: Page) -> None:
+    """Test reconnection completes within reasonable time."""
+    import time
+
+    page.goto("http://localhost:3000/chat")
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected")
+
+    # Trigger disconnect and measure reconnection time
+    start = time.time()
+    page.context.set_offline(True)
+    page.wait_for_timeout(100)
+    page.context.set_offline(False)
+
+    # Wait for reconnection
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=10000)
+
+    reconnect_time = time.time() - start
+
+    # Should reconnect within 5 seconds (first attempt, no backoff)
+    assert reconnect_time < 5.0, f"Reconnection took {reconnect_time:.2f}s (expected <5s)"
+    print(f"✓ Reconnected in {reconnect_time:.2f}s")
+```
+
+**4. Memory usage tracking (advanced)**
+```python
+def test_websocket_memory_usage(self, page: Page) -> None:
+    """Test WebSocket doesn't leak memory over extended session."""
+    page.goto("http://localhost:3000/chat")
+
+    # Get initial memory
+    initial_memory = page.evaluate("() => performance.memory.usedJSHeapSize")
+
+    # Send 100 messages
+    for i in range(100):
+        page.fill('[data-testid="message-input"]', f"Message {i}")
+        page.click('[data-testid="send-button"]')
+        page.wait_for_timeout(100)
+
+    # Check memory hasn't grown excessively
+    final_memory = page.evaluate("() => performance.memory.usedJSHeapSize")
+    memory_growth = (final_memory - initial_memory) / (1024 * 1024)  # MB
+
+    # Memory growth should be reasonable (<50MB for 100 messages)
+    assert memory_growth < 50, f"Memory grew {memory_growth:.2f}MB (expected <50MB)"
+    print(f"✓ Memory growth: {memory_growth:.2f}MB")
+```
+
+**Impact:** VERY LOW - Nice to have for performance regression detection, not critical for Phase 0.
+
+**Benefits:**
+- Detects performance regressions early
+- Validates Phase 0 success criteria (latency <2s)
+- Provides baseline metrics for optimization
+- Catches memory leaks before production
+
+**Trade-offs:**
+- Performance tests can be flaky (network variance)
+- May need to run multiple times and average results
+- Thresholds may need adjustment per environment
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 42: WebSocket tests don't follow AAA pattern consistently
+
+**Labels:** `testing`, `ui`, `code-quality`, `low-priority`, `phase-0`
+
+**Title:** Improve test readability by consistently applying AAA pattern with clear comments
+
+**Description:**
+While most tests loosely follow Arrange-Act-Assert pattern, some have implicit arrange phases mixed with act phases, making tests harder to read and understand. Adding clear section comments would improve maintainability.
+
+**File:** `tests/ui/test_websocket_connection.py` (multiple tests)
+
+**Current Code Example:**
+```python
+def test_websocket_sends_valid_message(self, page: Page) -> None:
+    """Test WebSocket sends properly formatted messages."""
+    page.goto("http://localhost:3000/chat")  # Arrange part 1
+
+    # Wait for connection  # Still Arrange
+    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
+
+    # Type message and send  # Act part 1
+    message_input = page.locator('[data-testid="message-input"]')
+    message_input.fill("Hello from test")
+
+    send_button = page.locator('[data-testid="send-button"]')  # Act part 2
+    send_button.click()
+
+    # Verify message was sent  # Assert
+    chat_history = page.locator('[data-testid="chat-history"]')
+    expect(chat_history).to_contain_text("Hello from test", timeout=3000)
+```
+
+**Improved Structure:**
+```python
+def test_websocket_sends_valid_message(self, page: Page) -> None:
+    """Test WebSocket sends properly formatted messages."""
+    # Arrange: Navigate to chat and wait for connection
+    page.goto("http://localhost:3000/chat")
+    connection_status = page.locator('[data-testid="ws-status"]')
+    expect(connection_status).to_have_text("connected", timeout=5000)
+
+    # Act: Type and send message
+    page.fill('[data-testid="message-input"]', "Hello from test")
+    page.click('[data-testid="send-button"]')
+
+    # Assert: Message appears in chat history
+    chat_history = page.locator('[data-testid="chat-history"]')
+    expect(chat_history).to_contain_text("Hello from test", timeout=3000)
+```
+
+**Benefits:**
+- Clear separation of test phases
+- Easier to understand test flow at a glance
+- Simplifies debugging (know which phase failed)
+- Better maintainability
+- Consistent with other test files in project
+
+**Pattern to Apply:**
+```python
+# Arrange: [Description of setup]
+# ... setup code ...
+
+# Act: [Description of action]
+# ... action code ...
+
+# Assert: [Description of expectation]
+# ... assertion code ...
+```
+
+**Impact:** VERY LOW - Pure readability improvement, no functional change.
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 43: WebSocket cleanup test doesn't verify no memory leaks
+
+**Labels:** `testing`, `ui`, `enhancement`, `low-priority`, `phase-0`
+
+**Title:** Add memory leak detection to useWebSocket cleanup test
+
+**Description:**
+The test `test_websocket_cleanup_on_unmount()` verifies reconnection after unmount but doesn't check for memory leaks from duplicate WebSocket connections. The comment says "prevents memory leaks" but test doesn't verify this claim.
+
+**File:** `tests/ui/test_websocket_connection.py:183-202`
+
+**Current Code:**
+```python
+def test_websocket_cleanup_on_unmount(self, page: Page) -> None:
+    """Test WebSocket connection closes when component unmounts."""
+    page.goto("http://localhost:3000/chat")
+
+    # Wait for connection
+    connection_status = page.locator('[data-testid="ws-status"]')
+    expect(connection_status).to_have_text("connected", timeout=5000)
+
+    # Navigate away (unmount component)
+    page.goto("http://localhost:3000/")
+
+    # Navigate back
+    page.goto("http://localhost:3000/chat")
+
+    # Should reconnect
+    expect(connection_status).to_have_text("connected", timeout=5000)
+
+    # Verify no duplicate connections (would show as multiple messages)
+    # This is a behavioral test - proper cleanup prevents memory leaks
+```
+
+**What's Missing:**
+- No verification that old WebSocket was actually closed
+- No check for multiple active connections
+- No verification of WebSocket count in browser
+- Comment claims "prevents memory leaks" but test doesn't verify
+
+**Recommended Enhancement:**
+```python
+def test_websocket_cleanup_on_unmount(self, page: Page) -> None:
+    """Test WebSocket connection closes when component unmounts and doesn't leak."""
+    # Arrange: Connect initially
+    page.goto("http://localhost:3000/chat")
+    connection_status = page.locator('[data-testid="ws-status"]')
+    expect(connection_status).to_have_text("connected", timeout=5000)
+
+    # Act: Navigate away (unmount) and back (remount)
+    page.goto("http://localhost:3000/")
+    page.wait_for_timeout(500)  # Ensure cleanup completes
+    page.goto("http://localhost:3000/chat")
+
+    # Assert: Reconnects successfully
+    expect(connection_status).to_have_text("connected", timeout=5000)
+
+    # Assert: No duplicate WebSocket connections
+    # Check performance API for WebSocket connection count
+    ws_connections = page.evaluate("""() => {
+        // Count active WebSocket connections via performance API
+        const entries = performance.getEntriesByType('resource');
+        return entries.filter(e =>
+            e.name.includes('/ws') &&
+            e.initiatorType === 'websocket'
+        ).length;
+    }""")
+
+    assert ws_connections == 1, f"Expected 1 WebSocket, found {ws_connections} (memory leak?)"
+
+    # Assert: No console errors about failed WebSocket cleanup
+    console_logs = []
+    page.on("console", lambda msg: console_logs.append(msg.text()))
+
+    # Do another mount/unmount cycle
+    page.goto("http://localhost:3000/")
+    page.goto("http://localhost:3000/chat")
+
+    # Check for error messages
+    error_logs = [log for log in console_logs if "error" in log.lower()]
+    assert len(error_logs) == 0, f"Found console errors: {error_logs}"
+```
+
+**Alternative Approach (Simpler):**
+```python
+# Just verify console has no errors and connection works
+# Assume React hooks cleanup properly (they do in React 18+)
+# Memory leak testing is better suited for long-running E2E tests
+```
+
+**Impact:** VERY LOW - Memory leaks unlikely with React hooks' built-in cleanup, but good to verify.
+
+**Benefits:**
+- Catches potential useEffect cleanup bugs
+- Verifies WebSocket.close() is called
+- Demonstrates thorough testing
+- Provides confidence in production behavior
+
+**Trade-offs:**
+- Browser WebSocket count APIs are limited
+- May need platform-specific detection
+- More complex test for marginal benefit
+
+**Found in:** Playwright WebSocket Tests Review (2025-10-20)
+
+---
+
+## Issue 44: useWebSocket callback dependency causes infinite reconnection loops
+
+**Labels:** `bug`, `high-priority`, `phase-0-layer-7`, `react`
+
+**Title:** Fix callback dependency issue in useWebSocket hook to prevent infinite reconnection loops
+
+**Description:**
+The `connect` function includes `onEvent` and `onError` in its dependency array, but these callbacks can change on every render if passed inline by the parent component. This will trigger infinite reconnection loops when callbacks are recreated on every render.
+
+**File:** `frontend/hooks/useWebSocket.ts:166`
+
+**Current Code:**
+```typescript
+const connect = useCallback(() => {
+  // ... implementation ...
+}, [getWebSocketUrl, reconnect, getReconnectDelay, onEvent, onError]);
+```
+
+**Problem:**
+If parent component passes callbacks like:
+```tsx
+<Component onEvent={(e) => console.log(e)} />
+```
+These get recreated every render → `connect` recreates every render → infinite reconnection loops.
+
+**Fix (Option 1 - Recommended):**
+```typescript
+// Use refs for callbacks
+const onEventRef = useRef(onEvent);
+const onErrorRef = useRef(onError);
+
+useEffect(() => {
+  onEventRef.current = onEvent;
+  onErrorRef.current = onError;
+}, [onEvent, onError]);
+
+const connect = useCallback(() => {
+  // ... implementation ...
+  if (onEventRef.current) {
+    onEventRef.current(data);
+  }
+  // ... rest of implementation ...
+}, [getWebSocketUrl, reconnect, getReconnectDelay]);
+// Remove onEvent, onError from deps ^
+```
+
+**Fix (Option 2):**
+Document that users MUST memoize callbacks:
+```typescript
+/**
+ * @param onEvent - Callback for AG-UI events. MUST be memoized with useCallback.
+ * @param onError - Callback for errors. MUST be memoized with useCallback.
+ */
+```
+
+**Recommendation:** Use Option 1 (refs) - safer and doesn't rely on user discipline.
+
+**Impact:** HIGH - Can cause infinite loops if callbacks not memoized by parent.
+
+**Found in:** useWebSocket Hook Code Review (2025-10-20)
+
+---
+
+## Issue 45: useWebSocket missing rate limiting for sendMessage
+
+**Labels:** `enhancement`, `security`, `high-priority`, `phase-0-layer-7`
+
+**Title:** Add rate limiting to useWebSocket sendMessage function
+
+**Description:**
+Users can spam messages, potentially overwhelming the backend or hitting rate limits. Per Phase 0 requirements, all expensive operations should have rate limiting protection.
+
+**File:** `frontend/hooks/useWebSocket.ts:190-218`
+
+**Recommended Implementation:**
+```typescript
+// Add rate limiting state
+const sendTimestampsRef = useRef<number[]>([]);
+const SEND_RATE_LIMIT = 10; // messages
+const SEND_RATE_WINDOW = 60000; // 60 seconds
+
+const sendMessage = useCallback(
+  (message: string, thread_id: string, metadata?: Record<string, any>) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('[useWebSocket] Cannot send message: not connected');
+      return;
+    }
+
+    // Check rate limit
+    const now = Date.now();
+    sendTimestampsRef.current = sendTimestampsRef.current.filter(
+      (ts) => now - ts < SEND_RATE_WINDOW
+    );
+
+    if (sendTimestampsRef.current.length >= SEND_RATE_LIMIT) {
+      const rateLimitError = new Error(
+        `Rate limit exceeded: ${SEND_RATE_LIMIT} messages per ${SEND_RATE_WINDOW / 1000}s`
+      );
+      console.error('[useWebSocket]', rateLimitError);
+      setError(rateLimitError);
+
+      if (onErrorRef.current) {
+        onErrorRef.current(rateLimitError);
+      }
+      return;
+    }
+
+    sendTimestampsRef.current.push(now);
+
+    // ... rest of implementation
+  },
+  []
+);
+```
+
+**Impact:** HIGH - Users can spam backend, violates Phase 0 infrastructure requirements.
+
+**Benefits:**
+- Prevents backend overload from message spam
+- Better user experience (clear rate limit errors)
+- Aligns with Phase 0 requirements
+
+**Found in:** useWebSocket Hook Code Review (2025-10-20)
+
+---
+
+## Issue 46: useWebSocket missing max reconnection attempts (infinite retry risk)
+
+**Labels:** `bug`, `reliability`, `high-priority`, `phase-0-layer-7`
+
+**Title:** Implement max reconnection attempts in useWebSocket hook
+
+**Description:**
+Network failures or backend downtime could cause infinite reconnection attempts, draining battery on mobile devices and creating unnecessary load. No circuit breaker pattern implemented.
+
+**File:** `frontend/hooks/useWebSocket.ts:142-153`
+
+**Current Code:**
+```typescript
+// Auto-reconnect if enabled and not a normal closure
+if (reconnect && event.code !== 1000) {
+  setConnectionStatus('reconnecting');
+  reconnectAttemptRef.current += 1;
+
+  const delay = getReconnectDelay();
+  console.log(`[useWebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
+
+  reconnectTimeoutRef.current = setTimeout(() => {
+    connect();
+  }, delay);
+}
+```
+
+**Fix:**
+```typescript
+interface UseWebSocketOptions {
+  // ... existing options ...
+  maxReconnectAttempts?: number; // Max reconnect attempts (default: 10)
+}
+
+export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
+  const {
+    // ... existing destructuring ...
+    maxReconnectAttempts = 10,
+  } = options;
+
+  // In ws.onclose handler:
+  ws.onclose = (event) => {
+    console.log('[useWebSocket] Disconnected:', event.code, event.reason);
+    setConnectionStatus('disconnected');
+    wsRef.current = null;
+
+    if (reconnect && event.code !== 1000) {
+      reconnectAttemptRef.current += 1;
+
+      // Check max attempts
+      if (reconnectAttemptRef.current > maxReconnectAttempts) {
+        const maxAttemptsError = new Error(
+          `Max reconnection attempts (${maxReconnectAttempts}) exceeded`
+        );
+        console.error('[useWebSocket]', maxAttemptsError);
+        setError(maxAttemptsError);
+        setConnectionStatus('error');
+
+        if (onErrorRef.current) {
+          onErrorRef.current(maxAttemptsError);
+        }
+        return; // Stop reconnecting
+      }
+
+      setConnectionStatus('reconnecting');
+      const delay = getReconnectDelay();
+      console.log(
+        `[useWebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${maxReconnectAttempts})`
+      );
+
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connect();
+      }, delay);
+    }
+  };
+}
+```
+
+**Impact:** HIGH - Network failures cause infinite retries, battery drain on mobile.
+
+**Benefits:**
+- Prevents infinite retry loops
+- Better battery life on mobile
+- Clear error state when max attempts reached
+- User can manually retry if needed
+
+**Found in:** useWebSocket Hook Code Review (2025-10-20)
+
+---
+
+## Issue 47: useWebSocket missing input validation for sendMessage
+
+**Labels:** `enhancement`, `security`, `medium-priority`, `phase-0-layer-7`
+
+**Title:** Add input validation to useWebSocket sendMessage function
+
+**Description:**
+Malformed messages could be sent to backend, causing parsing errors or security issues. The `sendMessage` function doesn't validate parameters before sending.
+
+**File:** `frontend/hooks/useWebSocket.ts:191-202`
+
+**Recommended Implementation:**
+```typescript
+const sendMessage = useCallback(
+  (message: string, thread_id: string, metadata?: Record<string, any>) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('[useWebSocket] Cannot send message: not connected');
+      return;
+    }
+
+    // Validate inputs
+    if (!message || message.trim().length === 0) {
+      const validationError = new Error('Message cannot be empty');
+      console.warn('[useWebSocket]', validationError);
+      setError(validationError);
+      if (onErrorRef.current) {
+        onErrorRef.current(validationError);
+      }
+      return;
+    }
+
+    if (!thread_id || thread_id.trim().length === 0) {
+      const validationError = new Error('Thread ID is required');
+      console.warn('[useWebSocket]', validationError);
+      setError(validationError);
+      if (onErrorRef.current) {
+        onErrorRef.current(validationError);
+      }
+      return;
+    }
+
+    // Limit message length (prevent DoS)
+    const MAX_MESSAGE_LENGTH = 10000; // 10KB
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      const validationError = new Error(
+        `Message too long (${message.length} chars, max ${MAX_MESSAGE_LENGTH})`
+      );
+      console.error('[useWebSocket]', validationError);
+      setError(validationError);
+      if (onErrorRef.current) {
+        onErrorRef.current(validationError);
+      }
+      return;
+    }
+
+    // ... rest of implementation
+  },
+  [onError]
+);
+```
+
+**Impact:** MEDIUM - Could send malformed messages to backend without validation.
+
+**Benefits:**
+- Prevents backend errors from malformed input
+- Better error messages for users
+- Prevents DoS via very large messages
+- Security improvement
+
+**Found in:** useWebSocket Hook Code Review (2025-10-20)
+
+---
+
+## Issue 48: useWebSocket useEffect cleanup dependency issue
+
+**Labels:** `bug`, `react`, `medium-priority`, `phase-0-layer-7`
+
+**Title:** Fix useEffect cleanup to avoid stale closure issue
+
+**Description:**
+The cleanup function in useEffect captures `disconnect` from initial render. If `disconnect` changes, cleanup won't use the latest version. Could leave connections open.
+
+**File:** `frontend/hooks/useWebSocket.ts:223-231`
+
+**Current Code:**
+```typescript
+useEffect(() => {
+  if (autoConnect) {
+    connect();
+  }
+
+  return () => {
+    disconnect();
+  };
+}, [autoConnect, connect, disconnect]);
+```
+
+**Problem:**
+React useEffect runs cleanup BEFORE re-running effect. If `disconnect` reference changes, the cleanup from the PREVIOUS render runs with the OLD `disconnect`.
+
+**Fix:**
+```typescript
+useEffect(() => {
+  if (autoConnect) {
+    connect();
+  }
+
+  // Use inline cleanup to always reference latest refs
+  return () => {
+    // Clear reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    // Close connection
+    if (wsRef.current) {
+      wsRef.current.close(1000, 'Component unmount');
+      wsRef.current = null;
+    }
+
+    setConnectionStatus('disconnected');
+  };
+}, [autoConnect, connect]); // Remove disconnect from deps
+```
+
+**Impact:** MEDIUM - Could leave connections open if disconnect reference changes.
+
+**Benefits:**
+- Always uses latest cleanup logic
+- Prevents connection leaks
+- Follows React hooks best practices
+
+**Found in:** useWebSocket Hook Code Review (2025-10-20)
+
+---
+
+## Issue 49: useWebSocket missing connection timeout protection
+
+**Labels:** `enhancement`, `reliability`, `medium-priority`, `phase-0-layer-7`
+
+**Title:** Add timeout for initial WebSocket connection attempt
+
+**Description:**
+If backend is unreachable, `new WebSocket(url)` can hang indefinitely. No timeout protection for initial connection.
+
+**File:** `frontend/hooks/useWebSocket.ts:94-105`
+
+**Recommended Implementation:**
+```typescript
+const connect = useCallback(() => {
+  // ... existing cleanup ...
+
+  try {
+    setConnectionStatus('connecting');
+    setError(null);
+
+    const wsUrl = getWebSocketUrl();
+    const ws = new WebSocket(wsUrl);
+
+    // Add connection timeout
+    const CONNECTION_TIMEOUT = 10000; // 10 seconds
+    const connectionTimeoutId = setTimeout(() => {
+      if (ws.readyState === WebSocket.CONNECTING) {
+        const timeoutError = new Error('WebSocket connection timeout');
+        console.error('[useWebSocket]', timeoutError);
+        setError(timeoutError);
+        setConnectionStatus('error');
+
+        ws.close();
+
+        if (onErrorRef.current) {
+          onErrorRef.current(timeoutError);
+        }
+      }
+    }, CONNECTION_TIMEOUT);
+
+    ws.onopen = () => {
+      clearTimeout(connectionTimeoutId); // Clear timeout on success
+      console.log('[useWebSocket] Connected to', wsUrl);
+      setConnectionStatus('connected');
+      reconnectAttemptRef.current = 0;
+    };
+
+    // ... rest of handlers ...
+  } catch (err) {
+    // ... existing error handling ...
+  }
+}, [getWebSocketUrl, reconnect, getReconnectDelay]);
+```
+
+**Impact:** MEDIUM - Connection attempts can hang indefinitely without timeout.
+
+**Benefits:**
+- Prevents indefinite hangs
+- Clear error after timeout
+- Better user experience
+- Allows retry after timeout
+
+**Found in:** useWebSocket Hook Code Review (2025-10-20)
+
+---
+
+## Issue 50: useWebSocket missing origin validation for WebSocket URL
+
+**Labels:** `security`, `medium-priority`, `phase-0-layer-7`
+
+**Title:** Add origin validation for WebSocket URL parameter
+
+**Description:**
+If `url` parameter is provided from user input or untrusted source, could connect to malicious WebSocket server (XSS/CSRF risk).
+
+**File:** `frontend/hooks/useWebSocket.ts:58-65`
+
+**Recommended Implementation:**
+```typescript
+const getWebSocketUrl = useCallback((): string => {
+  if (url) {
+    // Validate URL origin matches expected backend
+    try {
+      const wsUrl = new URL(url);
+      const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+
+      // Ensure same origin (or whitelisted origins)
+      if (wsUrl.hostname !== apiUrl.hostname) {
+        throw new Error(
+          `WebSocket URL origin (${wsUrl.hostname}) doesn't match API URL (${apiUrl.hostname})`
+        );
+      }
+
+      return url;
+    } catch (err) {
+      console.error('[useWebSocket] Invalid WebSocket URL:', err);
+      throw new Error('Invalid WebSocket URL');
+    }
+  }
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const wsUrl = apiUrl.replace(/^http/, 'ws');
+  return `${wsUrl}/api/v1/ws`;
+}, [url]);
+```
+
+**Impact:** MEDIUM - Security risk if URL can be controlled by attacker.
+
+**Benefits:**
+- Prevents connections to malicious servers
+- Validates origin matches expected backend
+- Security hardening
+
+**Found in:** useWebSocket Hook Code Review (2025-10-20)
+
+---
+
+## Issue 51: useWebSocket console.log statements should use conditional logging
+
+**Labels:** `code-quality`, `enhancement`, `low-priority`, `phase-0-layer-7`
+
+**Title:** Add debug flag for conditional console logging in useWebSocket
+
+**Description:**
+Multiple console.log statements throughout useWebSocket hook will spam production console. Should use conditional logging based on debug flag or environment.
+
+**Files:** `frontend/hooks/useWebSocket.ts:102, 137, 147, 206`
+
+**Recommended Implementation:**
+```typescript
+const DEBUG = process.env.NODE_ENV === 'development';
+
+// In onopen handler
+if (DEBUG) {
+  console.log('[useWebSocket] Connected to', wsUrl);
+}
+
+// In reconnection logic
+if (DEBUG) {
+  console.log(`[useWebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
+}
+
+// In sendMessage
+if (DEBUG) {
+  console.log('[useWebSocket] Sent message:', wsMessage);
+}
+```
+
+**Impact:** LOW - Console spam in production, but doesn't affect functionality.
+
+**Benefits:**
+- Cleaner production console
+- Easier debugging in development
+- Standard practice for conditional logging
+
+**Found in:** useWebSocket Hook Code Review (2025-10-20)
+
+---
