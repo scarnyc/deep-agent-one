@@ -1,57 +1,57 @@
 /**
- * CopilotKit Runtime API Route
+ * CopilotKit Runtime API Route (Phase 0 Simplified)
  *
- * This Next.js API route connects CopilotKit to our FastAPI backend
- * using the AG-UI Protocol over HTTP/SSE.
+ * This Next.js API route provides a simple proxy between CopilotKit
+ * and our FastAPI backend.
  *
  * Architecture:
- * Frontend (CopilotKit) → /api/copilotkit → FastAPI backend (AG-UI)
+ * Frontend (CopilotKit) → /api/copilotkit → FastAPI backend
+ *
+ * Note: In Phase 1, we'll implement full AG-UI Protocol integration
+ * with proper event streaming and CustomHttpAgent.
  */
 
-import { CopilotRuntime, CustomHttpAgent, copilotRuntimeNextJSAppRouterEndpoint } from '@copilotkit/runtime';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * FastAPI backend URL
- * Default: http://localhost:8000
- * Override with NEXT_PUBLIC_API_URL environment variable
  */
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 /**
- * Create CopilotRuntime with CustomHttpAgent
- *
- * The CustomHttpAgent connects to our FastAPI backend's AG-UI endpoint.
- * Our backend implements AG-UI Protocol via:
- * - POST /api/v1/chat (synchronous)
- * - POST /api/v1/chat/stream (SSE streaming)
- * - WebSocket /api/v1/ws (real-time events)
- */
-const runtime = new CopilotRuntime({
-  agents: {
-    /**
-     * Default agent: connects to our deep agent backend
-     */
-    deepAgent: new CustomHttpAgent({
-      url: `${BACKEND_URL}/api/v1/chat/stream`,
-      name: 'Deep Agent',
-      description: 'General-purpose deep agent with web search, code execution, and file tools',
-    }),
-  },
-});
-
-/**
- * HTTP POST handler
- *
- * CopilotKit sends requests to this endpoint, which proxies them
- * to our FastAPI backend using the AG-UI Protocol.
+ * POST handler - Forward requests to FastAPI backend
  */
 export async function POST(req: NextRequest) {
-  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
-    runtime,
-    serviceAdapter: 'vercel',
-    endpoint: '/api/copilotkit',
-  });
+  try {
+    const body = await req.json();
 
-  return handleRequest(req);
+    // Forward request to FastAPI backend
+    const response = await fetch(`${BACKEND_URL}/api/v1/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('[CopilotKit API] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to connect to backend' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET handler - Health check
+ */
+export async function GET() {
+  return NextResponse.json({
+    status: 'ok',
+    backend: BACKEND_URL,
+    message: 'CopilotKit API Route (Phase 0)',
+  });
 }
