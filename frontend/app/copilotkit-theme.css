@@ -1,0 +1,120 @@
+/**
+ * CopilotKit Custom Theme
+ *
+ * Override CopilotKit's default styles to match shadcn/ui theme.
+ * Uses CSS variables from globals.css for consistency.
+ */
+
+/* CopilotChat Container */
+.copilotKitChat {
+  --copilot-kit-primary-color: hsl(var(--primary));
+  --copilot-kit-background-color: hsl(var(--background));
+  --copilot-kit-secondary-color: hsl(var(--secondary));
+  --copilot-kit-muted-color: hsl(var(--muted));
+  --copilot-kit-border-color: hsl(var(--border));
+
+  font-family: inherit;
+}
+
+/* Message Bubbles */
+.copilotKitMessage {
+  border-radius: var(--radius);
+}
+
+.copilotKitMessage.user {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.copilotKitMessage.assistant {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+/* Input Area */
+.copilotKitInput {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.copilotKitInput:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: hsl(var(--ring));
+}
+
+/* Buttons */
+.copilotKitButton {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.copilotKitButton:hover {
+  opacity: 0.9;
+}
+
+/* Tool Call Display */
+.copilotKitToolCall {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background-color: hsl(var(--secondary));
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+/* Scrollbar */
+.copilotKitMessages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.copilotKitMessages::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: var(--radius);
+}
+
+.copilotKitMessages::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: var(--radius);
+}
+
+.copilotKitMessages::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Loading Indicator */
+.copilotKitLoading {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Error State */
+.copilotKitError {
+  background-color: hsl(var(--destructive) / 0.1);
+  border: 1px solid hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+/* Header */
+.copilotKitHeader {
+  border-bottom: 1px solid hsl(var(--border));
+  background-color: hsl(var(--background));
+}
+
+/* Suggestions */
+.copilotKitSuggestion {
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.copilotKitSuggestion:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
