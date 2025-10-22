@@ -318,6 +318,13 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 3. Authentication & IAM (OAuth 2.0, rotating credentials, least-privilege)
 4. Provenance Store (source tracking, citations, confidence scores)
 5. Enhanced AG-UI (reasoning indicators, state events, provenance display)
+6. **Custom TypeScript Components** - Explore building custom AG-UI components on top of SDK:
+   - Custom chat components using `@ag-ui/react` hooks for full UI control
+   - Advanced HITL workflows (multi-step approval, conditional branching)
+   - Custom event visualizers (tool call timeline, reasoning display)
+   - Company-specific branding, animations, and UX enhancements
+   - Use `@ag-ui/core` types and `@ag-ui/react` hooks as building blocks
+   - Replace CopilotKit components incrementally as needed
 
 **Key Metrics:** Memory retrieval >90%, auth token refresh >99%, deep reasoning >5% queries, provenance 100% sources
 
