@@ -14,6 +14,7 @@
  * - Request timeouts (30s)
  * - Sanitized error messages
  * - Structured logging
+ * - Rate limiting (10 req/10s per IP)
  *
  * Note: In Phase 1, we'll implement full AG-UI Protocol integration
  * with proper event streaming and CustomHttpAgent.
@@ -47,6 +48,56 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || [
  * Request timeout in milliseconds (30 seconds)
  */
 const REQUEST_TIMEOUT_MS = 30000;
+
+/**
+ * Rate limiting configuration (Phase 0: in-memory)
+ * Phase 1: Migrate to @upstash/ratelimit with Redis for production
+ */
+const RATE_LIMIT_WINDOW_MS = 10000; // 10 seconds
+const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per window
+
+/**
+ * In-memory rate limiter storage
+ * Key: IP address, Value: Array of request timestamps
+ */
+const rateLimitStore = new Map<string, number[]>();
+
+/**
+ * Simple sliding window rate limiter
+ * Returns true if request is allowed, false if rate limit exceeded
+ */
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const windowStart = now - RATE_LIMIT_WINDOW_MS;
+
+  // Get or initialize request history for this IP
+  let requestTimestamps = rateLimitStore.get(ip) || [];
+
+  // Remove timestamps outside the sliding window
+  requestTimestamps = requestTimestamps.filter(timestamp => timestamp > windowStart);
+
+  // Check if rate limit exceeded
+  if (requestTimestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+    // Update store and return false (rate limited)
+    rateLimitStore.set(ip, requestTimestamps);
+    return false;
+  }
+
+  // Add current request timestamp
+  requestTimestamps.push(now);
+  rateLimitStore.set(ip, requestTimestamps);
+
+  // Cleanup old entries periodically (prevent memory leak)
+  if (rateLimitStore.size > 10000) {
+    for (const [key, timestamps] of rateLimitStore.entries()) {
+      if (timestamps.every(ts => ts < windowStart)) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+
+  return true;
+}
 
 /**
  * Zod schema for chat request validation
@@ -96,6 +147,24 @@ export async function POST(req: NextRequest) {
   });
 
   try {
+    // Rate limiting: check request frequency
+    const ip = req.ip || req.headers.get('x-forwarded-for') || '127.0.0.1';
+    if (!checkRateLimit(ip)) {
+      log('error', 'Rate limit exceeded', {
+        requestId,
+        ip,
+      });
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': '10', // Retry after 10 seconds
+          },
+        }
+      );
+    }
+
     // CSRF protection: verify origin
     if (!verifyOrigin(req)) {
       log('error', 'CSRF check failed - invalid origin', {
