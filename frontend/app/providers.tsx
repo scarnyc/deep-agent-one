@@ -1,18 +1,15 @@
 /**
- * Client-side Providers with Error Boundary (Phase 0 - Security Hardened)
+ * Client-side Providers with Error Boundary (Phase 0 - AG-UI Protocol)
  *
- * This component wraps the app with client-side providers like CopilotKit
- * and includes an error boundary for graceful error handling.
+ * This component wraps the app with an error boundary for graceful error handling.
+ * Uses native AG-UI Protocol components instead of CopilotKit.
  *
  * Separated from layout.tsx to maintain server component benefits.
  */
 
 'use client';
 
-import { CopilotKit } from '@copilotkit/react-core';
 import { ErrorBoundary } from 'react-error-boundary';
-import '@copilotkit/react-ui/styles.css';
-import './copilotkit-theme.css';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -67,9 +64,7 @@ function handleError(error: Error, errorInfo: { componentStack?: string | null }
 export function Providers({ children }: ProvidersProps) {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onError={handleError}>
-      <CopilotKit runtimeUrl="/api/copilotkit" agent="deepAgent">
-        {children}
-      </CopilotKit>
+      {children}
     </ErrorBoundary>
   );
 }

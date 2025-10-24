@@ -1,21 +1,25 @@
 /**
- * Chat Page with Error Boundary (Phase 0 - Security Hardened)
+ * Chat Page with Error Boundary (Phase 0 - AG-UI Protocol)
  *
- * Main chat interface using CopilotKit for AG-UI Protocol communication
+ * Main chat interface using native AG-UI Protocol components
  * with the Deep Agent backend.
  *
  * Features:
  * - Thread initialization on mount
- * - HITL approval actions
+ * - Custom AG-UI components (ChatInterface, ToolCallDisplay, ProgressTracker, AgentStatus)
+ * - WebSocket event processing via useAGUIEventHandler
  * - Error boundary for graceful error handling
  * - Loading state during initialization
  */
 
 'use client';
 
-import { CopilotChat } from '@copilotkit/react-ui';
 import { useAgentState } from '@/hooks/useAgentState';
-import { useHITLActions } from './components/HITLApproval';
+import { useAGUIEventHandler } from '@/hooks/useAGUIEventHandler';
+import ChatInterface from './components/ChatInterface';
+import ToolCallDisplay from '@/components/ag-ui/ToolCallDisplay';
+import ProgressTracker from '@/components/ag-ui/ProgressTracker';
+import AgentStatus from '@/components/ag-ui/AgentStatus';
 import { useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -54,10 +58,10 @@ function ChatErrorFallback({
  */
 function ChatPageContent() {
   const [isReady, setIsReady] = useState(false);
-  const { createThread, setActiveThread } = useAgentState();
+  const { createThread, setActiveThread, active_thread_id } = useAgentState();
 
-  // Register HITL approval actions
-  useHITLActions();
+  // Initialize WebSocket event handler
+  useAGUIEventHandler(active_thread_id || '');
 
   useEffect(() => {
     // Create a new thread on page load (runs once)
@@ -83,21 +87,29 @@ function ChatPageContent() {
 
   return (
     <div
-      className="h-screen w-full flex items-center justify-center p-4 bg-background"
+      className="h-screen w-full p-4 bg-background"
       role="main"
       aria-label="Chat interface"
     >
-      <div className="w-full max-w-5xl h-full">
-        <CopilotChat
-          className="h-full rounded-2xl shadow-xl border border-border"
-          labels={{
-            title: 'Deep Agent',
-            initial:
-              "Hi! I'm Deep Agent. I can search the web, execute code, manage files, and more. How can I help you today?",
-            placeholder: 'Ask me anything...',
-          }}
-          aria-label="Deep Agent conversation"
-        />
+      <div className="w-full h-full">
+        {/* AG-UI Component Layout */}
+        <div className="grid grid-cols-12 gap-4 h-full">
+          {/* Left sidebar: Agent Status & Progress Tracker */}
+          <div className="col-span-3 space-y-4 overflow-y-auto">
+            <AgentStatus />
+            <ProgressTracker />
+          </div>
+
+          {/* Center: Chat Interface */}
+          <div className="col-span-6 h-full">
+            <ChatInterface />
+          </div>
+
+          {/* Right sidebar: Tool Call Display */}
+          <div className="col-span-3 h-full overflow-y-auto">
+            <ToolCallDisplay />
+          </div>
+        </div>
       </div>
     </div>
   );
