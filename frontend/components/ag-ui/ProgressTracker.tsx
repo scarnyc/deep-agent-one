@@ -103,11 +103,9 @@ function calculateDuration(start?: string, end?: string): string {
  */
 function ProgressStepItem({
   step,
-  index,
   isLast,
 }: {
   step: AgentStep;
-  index: number;
   isLast: boolean;
 }) {
   const { icon, color, label } = getStatusDisplay(step.status);
@@ -246,7 +244,6 @@ export default function ProgressTracker() {
               <ProgressStepItem
                 key={step.id}
                 step={step}
-                index={index}
                 isLast={index === steps.length - 1}
               />
             ))}

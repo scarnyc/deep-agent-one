@@ -161,18 +161,23 @@ function getReasoningEffortColor(
  */
 export default function AgentStatus() {
   const { active_thread_id, threads } = useAgentState();
-  const { status: connectionStatus } = useWebSocket();
+  const { connectionStatus } = useWebSocket();
 
   // Get thread data
   const thread = active_thread_id ? threads[active_thread_id] : null;
-  const agentStatus: AgentStatusType = thread?.status || 'idle';
-  const reasoningEffort = thread?.metadata?.reasoning_effort as
+  const agentStatus: AgentStatusType = thread?.agent_status || 'idle';
+
+  // Extract metadata from the most recent assistant message
+  const lastAssistantMessage = thread?.messages
+    .filter((m) => m.role === 'assistant')
+    .pop();
+  const reasoningEffort = lastAssistantMessage?.metadata?.reasoning_effort as
     | 'low'
     | 'medium'
     | 'high'
     | undefined;
-  const tokensUsed = thread?.metadata?.tokens_used as number | undefined;
-  const model = thread?.metadata?.model as string | undefined;
+  const tokensUsed = lastAssistantMessage?.metadata?.tokens_used as number | undefined;
+  const model = lastAssistantMessage?.metadata?.model as string | undefined;
 
   const { icon, color, bgColor, label, pulse } =
     getStatusDisplay(agentStatus);
