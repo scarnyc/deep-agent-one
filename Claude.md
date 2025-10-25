@@ -141,6 +141,7 @@ Create `.mcp/` directory with configuration files for each MCP server (see READM
 - **Commit constantly:** Every logical unit of work (single function, test, config change) gets committed
 - Commit early and often with meaningful messages
 - **Never wait to commit:** Small, frequent commits > large, infrequent ones
+- **MANDATORY: Run testing-expert and code-review-expert agents before EVERY commit**
 - Run tests on every commit
 - Automated testing pipeline via GitHub Actions
 - Use Playwright MCP server for UI regression testing
@@ -285,6 +286,7 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
    - [ ] 80%+ test coverage
    - [ ] Unit, integration, E2E, UI tests passing
    - [ ] Test reports generated automatically
+   - [ ] testing-expert and code-review-expert agents run before every commit
 
 7. **Infrastructure** ✓
    - [ ] FastAPI backend running
@@ -360,6 +362,7 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 - **Testing:** pytest, Playwright MCP, pytest-html, pytest-cov
 - **Security:** TheAuditor
 - **Code Quality:** Ruff (linting + formatting), mypy (type checking)
+- **Code Review:** testing-expert and code-review-expert agents (run before every commit)
 - **Version Control:** Git with semantic commits
 - **CI/CD:** GitHub Actions
 
@@ -465,7 +468,9 @@ All code quality issues and technical debt items are tracked in `GITHUB_ISSUES.m
 13. Generate test reports → **Commit**
 14. Deploy to dev → **Commit**
 
-**Throughout Phase 0:** Commit every logical unit of work immediately.
+**Throughout Phase 0:**
+- Commit every logical unit of work immediately
+- **MANDATORY: Run testing-expert and code-review-expert agents before EVERY commit**
 
 ### Commit Message Convention
 
@@ -582,6 +587,7 @@ After each phase, validate:
 - [ ] **Playwright MCP UI tests** pass
 - [ ] **TheAuditor security scan** completed (`aud full`)
 - [ ] **Security report shows PASS** (no critical vulnerabilities)
+- [ ] **testing-expert and code-review-expert agents run before every commit**
 - [ ] No secrets in version control
 - [ ] Environment separation working
 - [ ] Monitoring/tracing operational
