@@ -33,7 +33,7 @@ def mock_openai_client():
     Mocks at the OpenAI client level (not service layer) to test
     complete internal flow while avoiding actual API calls.
     """
-    with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+    with patch("langchain_openai.ChatOpenAI") as mock_client_class:
         # Create mock client instance
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -67,8 +67,8 @@ def mock_langsmith():
     Prevents actual tracing calls during testing while maintaining
     the tracing code paths.
     """
-    with patch("backend.deep_agent.integrations.langsmith.get_langsmith_config") as mock_config:
-        mock_config.return_value = None
+    with patch("backend.deep_agent.integrations.langsmith.setup_langsmith") as mock_config:
+        pass  # setup_langsmith returns None
         yield mock_config
 
 

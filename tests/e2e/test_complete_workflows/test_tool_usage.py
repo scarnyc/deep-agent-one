@@ -51,7 +51,7 @@ def mock_openai_client_with_tool_calls():
     Returns responses that trigger tool execution and then
     final responses after tool results.
     """
-    with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+    with patch("langchain_openai.ChatOpenAI") as mock_client_class:
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
 
@@ -103,8 +103,8 @@ def mock_openai_client_with_tool_calls():
 @pytest.fixture
 def mock_langsmith():
     """Mock LangSmith tracing for E2E tests."""
-    with patch("backend.deep_agent.integrations.langsmith.get_langsmith_config") as mock_config:
-        mock_config.return_value = None
+    with patch("backend.deep_agent.integrations.langsmith.setup_langsmith") as mock_config:
+        pass  # setup_langsmith returns None
         yield mock_config
 
 
@@ -177,7 +177,7 @@ class TestFileToolUsage:
         }
 
         # Mock OpenAI to return tool call for write_file
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
@@ -222,7 +222,7 @@ class TestFileToolUsage:
         }
 
         # Mock OpenAI
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
@@ -266,7 +266,7 @@ class TestFileToolUsage:
         }
 
         # Mock OpenAI
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
@@ -315,7 +315,7 @@ class TestWebSearchToolUsage:
         }
 
         # Mock OpenAI
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
@@ -364,7 +364,7 @@ class TestMultipleToolUsage:
         }
 
         # Mock OpenAI with multiple responses
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
@@ -418,7 +418,7 @@ class TestMultipleToolUsage:
         }
 
         # Mock OpenAI
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
@@ -468,7 +468,7 @@ class TestToolUsageWithPlanning:
         }
 
         # Mock OpenAI
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
@@ -513,7 +513,7 @@ class TestToolUsageTransparency:
         }
 
         # Mock OpenAI
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
@@ -561,7 +561,7 @@ class TestToolUsagePerformance:
         }
 
         # Mock OpenAI
-        with patch("backend.deep_agent.services.llm_factory.OpenAI") as mock_client_class:
+        with patch("langchain_openai.ChatOpenAI") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
 
