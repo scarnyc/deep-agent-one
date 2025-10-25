@@ -308,6 +308,177 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 
 ---
 
+## Phase 0.5: Live API Integration Testing
+
+### Objective
+Validate real API integrations after Phase 0 MVP completion, before starting Phase 1 productionization features.
+
+### Timing
+After Phase 0 complete (v0.1.0-phase0), before Phase 1 begins.
+
+### Core Components
+
+#### 1. Live API Test Suite Structure
+```
+tests/live_api/
+├── __init__.py
+├── conftest.py                          # Live API fixtures
+├── test_openai_integration.py           # Real GPT-5 calls
+├── test_perplexity_integration.py       # Real web search
+├── test_langsmith_integration.py        # Real tracing
+└── test_complete_workflow_live.py       # End-to-end with real APIs
+```
+
+#### 2. Test Markers & Execution
+```python
+@pytest.mark.live_api
+@pytest.mark.skipif(not os.getenv("OPENAI_API_KEY"), reason="No API key")
+def test_real_gpt5_completion():
+    # Test with actual OpenAI API
+    pass
+```
+
+**Run live tests:**
+```bash
+# With pytest marker
+pytest -m live_api -v --maxfail=1
+
+# With interactive script (includes cost warning)
+./scripts/test_live_api.sh
+```
+
+#### 3. Tests to Create
+
+**test_openai_integration.py:**
+- Verify GPT-5 model availability
+- Test chat completions with real API
+- Test streaming responses
+- Test token usage tracking
+- Test reasoning effort parameter
+- Test error handling (rate limits, invalid keys)
+
+**test_perplexity_integration.py:**
+- Verify Perplexity MCP connection
+- Test web search with real queries
+- Test search result parsing
+- Test error handling
+
+**test_langsmith_integration.py:**
+- Verify LangSmith tracing active
+- Test trace creation for agent runs
+- Test metadata logging
+- Verify traces visible in LangSmith UI
+
+**test_complete_workflow_live.py:**
+- Complete end-to-end flow with real APIs
+- Chat → GPT-5 → Web Search → LangSmith trace
+- Verify all integrations work together
+
+#### 4. Cost Management
+
+**Estimated Costs per Run:**
+- GPT-5 calls: ~$0.50
+- Perplexity searches: ~$0.10
+- LangSmith: Free tier
+- **Total: ~$1-2 per complete run**
+
+**Optimization Strategies:**
+- Use minimal test messages (short prompts)
+- Focus on critical paths only (~8-10 tests total)
+- Use `--maxfail=1` to stop on first failure
+- Only run before releases, never in CI/CD
+- Document actual costs in test output
+
+#### 5. Script: test_live_api.sh
+
+Create `scripts/test_live_api.sh`:
+```bash
+#!/bin/bash
+# Run live API integration tests with cost warning
+
+set -e
+
+echo "🔴 WARNING: This will charge your API keys!"
+echo "Estimated cost: $1-2 per run"
+echo ""
+read -p "Continue? (y/n) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    exit 1
+fi
+
+# Verify API keys present
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo "❌ OPENAI_API_KEY not set in .env"
+    exit 1
+fi
+
+echo "🧪 Running live API integration tests..."
+
+# Run live API tests
+pytest -m live_api \
+    --maxfail=1 \
+    -v \
+    --tb=short
+
+echo ""
+echo "✅ Live API tests complete!"
+```
+
+### Success Criteria - Phase 0.5
+
+**Must Pass All:**
+
+1. **Live Test Suite Created** ✓
+   - [ ] 4 live API test files created
+   - [ ] Tests marked with `@pytest.mark.live_api`
+   - [ ] Fixtures for live API clients in conftest.py
+   - [ ] Script `./scripts/test_live_api.sh` created
+
+2. **OpenAI Integration Validated** ✓
+   - [ ] GPT-5 model accessible
+   - [ ] Chat completions work
+   - [ ] Streaming responses work
+   - [ ] Token usage tracked correctly
+   - [ ] Error handling works (rate limits, etc.)
+
+3. **Perplexity Integration Validated** ✓
+   - [ ] MCP connection successful
+   - [ ] Web search returns results
+   - [ ] Search results properly parsed
+
+4. **LangSmith Integration Validated** ✓
+   - [ ] Traces appear in LangSmith UI
+   - [ ] Metadata logged correctly
+   - [ ] Tool calls tracked
+
+5. **End-to-End Validated** ✓
+   - [ ] Complete workflow with real APIs passes
+   - [ ] All integrations work together
+   - [ ] No unexpected errors
+
+**Quantitative Metrics:**
+- All live tests pass: 100%
+- Cost per run: <$5
+- Execution time: <2 minutes
+
+### Development Workflow
+
+**Phase 0.5 Steps:**
+1. Create `tests/live_api/` directory structure
+2. Write live API test files (4 files)
+3. Create `./scripts/test_live_api.sh` with cost warning
+4. Document cost estimates and execution strategy
+5. Run live tests to validate all integrations (costs ~$1-2)
+6. Fix any issues discovered with real APIs
+7. Document findings in `PHASE_0_5_VALIDATION.md`
+8. Commit: `test(phase-0.5): add live API integration test suite`
+9. Tag release: `git tag v0.1.5-live-api-validation`
+10. Push: `git push origin phase-0-mvp --tags`
+11. **Proceed to Phase 1 with validated integrations**
+
+---
+
 ## Phase 1: Enhance MVP (Productionization)
 
 **Objective:** Production-grade features - advanced reasoning, memory, authentication, enhanced UI.
