@@ -143,7 +143,6 @@ Create `.mcp/` directory with configuration files for each MCP server (see READM
 - **Never wait to commit:** Small, frequent commits > large, infrequent ones
 - Run tests on every commit
 - Automated testing pipeline via GitHub Actions
-- **Code reviews:** Use CodeRabbit CLI for automated code reviews when available
 - Use Playwright MCP server for UI regression testing
 
 ---
@@ -286,7 +285,6 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
    - [ ] 80%+ test coverage
    - [ ] Unit, integration, E2E, UI tests passing
    - [ ] Test reports generated automatically
-   - [ ] CodeRabbit reviews pass (when available)
 
 7. **Infrastructure** ✓
    - [ ] FastAPI backend running
@@ -362,7 +360,6 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 - **Testing:** pytest, Playwright MCP, pytest-html, pytest-cov
 - **Security:** TheAuditor
 - **Code Quality:** Ruff (linting + formatting), mypy (type checking)
-- **Code Review:** CodeRabbit CLI (when available)
 - **Version Control:** Git with semantic commits
 - **CI/CD:** GitHub Actions
 
@@ -441,7 +438,6 @@ All code quality issues and technical debt items are tracked in `GITHUB_ISSUES.m
 - Coverage report (HTML + terminal)
 - Performance metrics
 - Security scan results (TheAuditor)
-- Code review status (CodeRabbit)
 
 **CI/CD Integration:**
 - Run on every commit
@@ -467,8 +463,7 @@ All code quality issues and technical debt items are tracked in `GITHUB_ISSUES.m
 11. Add HITL approval → **Commit**
 12. Write comprehensive tests → **Commit after each category**
 13. Generate test reports → **Commit**
-14. CodeRabbit review → **Commit**
-15. Deploy to dev → **Commit**
+14. Deploy to dev → **Commit**
 
 **Throughout Phase 0:** Commit every logical unit of work immediately.
 
@@ -587,7 +582,6 @@ After each phase, validate:
 - [ ] **Playwright MCP UI tests** pass
 - [ ] **TheAuditor security scan** completed (`aud full`)
 - [ ] **Security report shows PASS** (no critical vulnerabilities)
-- [ ] **CodeRabbit review approved** (if available)
 - [ ] No secrets in version control
 - [ ] Environment separation working
 - [ ] Monitoring/tracing operational
@@ -720,251 +714,15 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 
 ## 📋 Phase 0 Implementation TODO List
 
-### **Layer 1: Foundation (Configuration & Core Infrastructure)**
+### ✅ **Layers 1-7: COMPLETED**
 
-#### Configuration System
-- [x] Create `backend/deep_agent/config/__init__.py`
-- [x] Write test: `tests/unit/test_config.py` - test settings load from .env
-- [x] Implement `backend/deep_agent/config/settings.py` - Pydantic Settings class
-- [x] Verify tests pass - settings validation works
-- [x] Commit: `feat(phase-0): implement pydantic settings configuration`
-
-#### Structured Logging
-- [x] Create `backend/deep_agent/core/__init__.py`
-- [x] Write test: `tests/unit/test_logging.py` - test log format and levels
-- [x] Implement `backend/deep_agent/core/logging.py` - structlog setup with JSON
-- [x] Verify tests pass - logging outputs correctly
-- [x] Commit: `feat(phase-0): add structlog for structured logging`
-
-#### Error Handling
-- [x] Write test: `tests/unit/test_errors.py` - test custom exceptions
-- [x] Implement `backend/deep_agent/core/errors.py` - custom exception classes
-- [x] Verify tests pass - exceptions raised properly
-- [x] Commit: `feat(phase-0): implement custom error handling`
-
-### **Layer 2: GPT-5 Integration**
-
-**⚠️ Refactoring Note:** This layer was refactored to use LangChain's `ChatOpenAI` instead of raw OpenAI API for DeepAgents compatibility. See commits: `6c1c28f`, `6525029`, `361dcd2`
-
-#### GPT-5 Pydantic Models
-- [x] Create `backend/deep_agent/models/__init__.py`
-- [x] Write test: `tests/unit/test_models/test_gpt5.py` - test model serialization
-- [x] Implement `backend/deep_agent/models/gpt5.py` - GPT5Config, ReasoningEffort, Verbosity
-- [x] Verify tests pass - models validate correctly (13 tests)
-- [x] Commit: `refactor(phase-0): simplify GPT-5 models for LangChain compatibility`
-
-#### LLM Factory (LangChain ChatOpenAI)
-- [x] Create `backend/deep_agent/services/__init__.py`
-- [x] Write test: `tests/unit/test_services/test_llm_factory.py` - test ChatOpenAI creation
-- [x] Implement `backend/deep_agent/services/llm_factory.py` - create_gpt5_llm() factory
-- [x] Verify tests pass - ChatOpenAI instances created correctly (12 tests)
-- [x] Commit: `feat(phase-0): implement LLM factory for LangChain ChatOpenAI`
-
-#### Basic Reasoning Router
-- [x] Create `backend/deep_agent/agents/__init__.py`
-- [x] Write test: `tests/unit/test_agents/test_reasoning_router.py` - test basic routing
-- [x] Implement `backend/deep_agent/agents/reasoning_router.py` - return "medium" for all queries
-- [x] Verify tests pass - router returns expected effort (11 tests)
-- [x] Commit: `feat(phase-0): implement basic reasoning router`
-- [x] **Bug Fix:** Issue #5 - Fixed .env.example verbosity mismatch (commit `82ae04a`)
-
-### **Layer 3: LangGraph DeepAgents Setup**
-
-#### Checkpointer Configuration
-- [x] Write test: `tests/unit/test_agents/test_checkpointer.py` - test persistence
-- [x] Implement `backend/deep_agent/agents/checkpointer.py` - AsyncSqliteSaver setup
-- [x] Verify tests pass - state persists correctly
-- [x] Commit: `feat(phase-0): implement AsyncSqliteSaver checkpointer manager` (commit `5c367ec`)
-
-#### DeepAgents Initialization
-- [x] Write test: `tests/unit/test_agents/test_deep_agent.py` - test agent init, tools loaded
-- [x] Implement `backend/deep_agent/agents/deep_agent.py` - initialize DeepAgents with file tools, HITL
-- [x] Implement `backend/deep_agent/agents/prompts.py` - system prompts module
-- [x] Verify tests pass - agent starts, tools available
-- [x] Commit: `feat(phase-0): complete DeepAgents integration with LangGraph` (commit `7c51da7`)
-
-#### Agent Service
-- [x] Write test: `tests/integration/test_agent_workflows/test_basic_workflow.py` - full agent run
-- [x] Implement `backend/deep_agent/services/agent_service.py` - orchestration layer
-- [x] Verify tests pass - agent executes workflow end-to-end
-- [x] Commit: `feat(phase-0): implement prompts module and agent service orchestration layer` (commit `3eb107b`)
-- [x] **Code Review Fix:** Addressed agent_service findings (commit `20aa5ad`)
-
-### **Layer 4: MCP Integration (Web Search)**
-
-#### Perplexity MCP Client
-- [x] Create `backend/deep_agent/integrations/__init__.py`
-- [x] Create `backend/deep_agent/integrations/mcp_clients/__init__.py`
-- [x] Write test: `tests/integration/test_mcp_integration/test_perplexity.py` - 18 tests with TDD
-- [x] Implement `backend/deep_agent/integrations/mcp_clients/perplexity.py` - MCP client with security features
-- [x] Verify tests pass - MCP calls work (18/18 tests, 89.89% coverage)
-- [x] Commit: `test(phase-0): add Perplexity MCP client integration tests` (commit `647498c`)
-- [x] Commit: `feat(phase-0): implement Perplexity MCP client with security features` (commit `dd3185f`)
-- [x] **Security Review:** Addressed HIGH/MEDIUM findings (Issue #11, commit `9eb0a89`)
-
-#### Web Search Tool
-- [x] Create `backend/deep_agent/tools/__init__.py`
-- [x] Write test: `tests/unit/test_tools/test_web_search.py` - 15 tests with TDD
-- [x] Implement `backend/deep_agent/tools/web_search.py` - LangChain tool using Perplexity
-- [x] Verify tests pass - tool callable by agent (15/15 tests, 100% coverage)
-- [x] Integrate with DeepAgent (added to create_deep_agent tools list)
-- [x] Commit: `test(phase-0): add Web Search Tool tests (15 tests, TDD)` (commit `1b36824`)
-- [x] Commit: `feat(phase-0): implement Web Search Tool using Perplexity MCP client` (commit `4f56c7a`)
-- [x] Commit: `feat(phase-0): integrate Web Search Tool with DeepAgent` (commit `a7e3f12`)
-- [x] **Code Review:** testing-expert 9.0/10, code-review-expert 9.5/10 (Issues #16-18 logged)
-
-### **Layer 5: LangSmith Integration (Observability)**
-
-#### LangSmith Tracing
-- [x] Write test: `tests/unit/test_integrations/test_langsmith.py` - verify trace metadata
-- [x] Implement `backend/deep_agent/integrations/langsmith.py` - configure tracing
-- [x] Verify tests pass - traces created
-- [x] Commit: `feat(phase-0): integrate LangSmith for agent tracing`
-
-### **Layer 6: FastAPI Backend (API Layer)**
-
-#### API Models
-- [x] Write test: `tests/unit/test_models/test_chat.py` - validate schemas (61 tests)
-- [x] Implement `backend/deep_agent/models/chat.py` - chat request/response models
-- [x] Write test: `tests/unit/test_models/test_agents.py` - validate agent schemas (57 tests)
-- [x] Implement `backend/deep_agent/models/agents.py` - agent management models
-- [x] Implement `backend/deep_agent/models/common.py` - shared models
-- [x] Verify tests pass - schemas validate (118 tests total)
-- [x] Commit: `test(phase-0): add comprehensive chat API model tests (61 tests, TDD)` (commit `515833e`)
-- [x] Commit: `feat(phase-0): implement chat API pydantic models (TDD Green)` (commit `9f43ddd`)
-- [x] Commit: `test(phase-0): add agent management model tests (57 tests, TDD)` (commit `8de0341`)
-- [x] Commit: `feat(phase-0): implement agent management pydantic models (TDD Green)` (commit `48234b6`)
-
-#### FastAPI App Setup
-- [x] Create `backend/deep_agent/api/__init__.py`
-- [x] Create `backend/deep_agent/api/v1/__init__.py`
-- [x] Write test: `tests/integration/test_api_endpoints/test_main.py` - verify app starts (13 tests)
-- [x] Implement `backend/deep_agent/main.py` - FastAPI app with CORS, rate limiting, logging
-- [x] Verify tests pass - app serves requests (13/13 tests pass)
-- [x] Commit: `test(phase-0): add FastAPI app initialization tests (13 tests, TDD)` (commit `92dbc75`)
-
-#### Chat Endpoints
-- [x] Write test: `tests/integration/test_api_endpoints/test_chat.py` - test REST endpoint (14 tests)
-- [x] Implement `backend/deep_agent/api/v1/chat.py` - POST /chat with rate limiting, security
-- [x] Verify tests pass - endpoint returns responses (14/14 tests pass)
-- [x] Commit: `test(phase-0): add chat endpoint integration tests (14 tests, TDD)` (commit `a5d2a49`)
-- [x] Commit: `feat(phase-0): implement POST /api/v1/chat with rate limiting and security features` (commit `8c88d1c`)
-- [x] Write test: `tests/integration/test_api_endpoints/test_chat_stream.py` - test SSE streaming (11 tests)
-- [x] Verify streaming tests pass - SSE works correctly (11/11 tests pass)
-- [x] Commit: `test(phase-0): add chat streaming endpoint tests (11 tests, TDD)` (commit `922af7f`)
-
-#### WebSocket for AG-UI
-- [x] Write test: `tests/integration/test_api_endpoints/test_websocket.py` - test WS connection
-- [x] Implement `backend/deep_agent/api/v1/websocket.py` - WebSocket endpoint for events
-- [x] Verify tests pass - WS connects, events stream
-- [x] Commit: `feat(phase-0): implement WebSocket endpoint for AG-UI events` (commit `70d924b`)
-- [x] **Code Quality Fix:** Fixed bare except clauses and modernized type hints (commit `7dce407`)
-- [x] **Issues Resolved:** Issues #32 (bare except), #33 (typing.Dict), #34 (test bare except)
-
-#### Agent Management Endpoints
-- [x] Write test: `tests/integration/test_api_endpoints/test_agents.py` - test HITL workflows (14 tests, TDD)
-- [x] Extend `backend/deep_agent/services/agent_service.py` - add get_state() and update_state() methods
-- [x] Implement `backend/deep_agent/api/v1/agents.py` - GET /agents/{thread_id}, POST /approve, /respond
-- [x] Register agents router in `backend/deep_agent/main.py`
-- [x] Verify tests pass - HITL approval works (14/14 tests pass in 1.69s, 86.96% coverage)
-- [x] Run code reviews - testing-expert 9.0/10, code-review-expert 8.5/10
-- [x] Fix HIGH issue - added rate limiting decorators (@limiter.limit)
-- [x] Fix MEDIUM issues - timestamp fallback, status code consistency (422 for validation)
-- [x] Fix LOW issue - extracted "human" to HITL_NODE_NAME constant
-- [x] Commit: `feat(phase-0): implement agent management endpoints for HITL workflows` (commit `abbfa9c`)
-
-### **Layer 7: Frontend (AG-UI Protocol)**
-
-**⚠️ Migration Note:** Initial implementation used CopilotKit as interim solution. Now migrating to native AG-UI Protocol components for full control and Phase 1 readiness.
-
-#### Next.js Setup
-- [x] Create `frontend/next.config.js` - Next.js configuration
-- [x] Create `frontend/tailwind.config.js` - Tailwind CSS config
-- [x] Create `frontend/postcss.config.js` - PostCSS config
-- [x] Create `frontend/tsconfig.json` - TypeScript config
-- [x] Create `frontend/app/layout.tsx` - root layout
-- [x] Create `frontend/app/page.tsx` - home page
-- [x] Verify: `npm run dev` starts successfully
-- [x] Commit: `chore(phase-0): install critical frontend dependencies` (commit `11075f0`)
-
-#### AG-UI Type Definitions
-- [x] Create `frontend/types/agent.ts` - TypeScript types for agent state
-- [x] Create `frontend/types/ag-ui.ts` - AG-UI Protocol event types
-- [x] Commit: `feat(phase-0): add AG-UI and agent state type definitions`
-
-#### WebSocket Hook
-- [x] Create `frontend/hooks/useWebSocket.ts` - React hook for backend WS
-- [x] Features: Auto-reconnect, rate limiting, exponential backoff
-- [x] Commit: `feat(phase-0): add Zustand agent state management with Playwright tests`
-
-#### Agent State Management
-- [x] Create `frontend/hooks/useAgentState.ts` - Zustand store for agent state
-- [x] Features: Thread management, message CRUD, tool call tracking, HITL requests
-- [x] Selectors: getActiveThread(), getPendingHITL(), getMessagesByThread()
-- [x] Commit: `feat(phase-0): add Zustand agent state management with Playwright tests`
-
-#### Security & Infrastructure
-- [x] Create `frontend/middleware.ts` - Security headers (CSRF, XSS, CSP)
-- [x] Create `frontend/.env.local.example` - Environment configuration
-- [x] Create `frontend/lib/logger.ts` - Structured logging
-- [x] Security hardening: CSRF protection, input validation, rate limiting, error boundaries
-- [x] Commit: `security(phase-0): add CSRF protection, input validation, and security headers` (commit `c70a785`)
-- [x] Commit: `feat(phase-0): add error boundaries and improve UX reliability` (commit `eb60dc1`)
-- [x] Commit: `feat(phase-0): implement structured logging infrastructure` (commit `e353ef6`)
-- [x] Commit: `feat(phase-0): add in-memory rate limiting to API route` (commit `38acf63`)
-
-#### shadcn/ui Components
-- [x] Create `frontend/components/ui/` - 11 shadcn/ui base components
-- [x] Components: Button, Input, Card, Textarea, ScrollArea, Separator, Avatar, DropdownMenu, Tooltip, Badge, Alert
-
-#### Chat Page & Providers
-- [x] Create `frontend/app/chat/page.tsx` - Chat page with thread initialization
-- [x] Create `frontend/app/providers.tsx` - App providers with error boundaries
-- [x] Features: Loading states, error handling, accessibility attributes
-
-#### **✅ COMPLETED: Custom AG-UI Components (Native Protocol)**
-
-#### Chat Interface (Replacing CopilotKit)
-- [x] Create `frontend/app/chat/components/ChatInterface.tsx` - Custom chat UI (332 lines)
-- [x] Features: Streaming messages, role-based styling, keyboard shortcuts, auto-scroll
-- [x] Integration: useWebSocket + useAgentState + AG-UI events
-- [x] Commit: `feat(phase-0): migrate from CopilotKit to native AG-UI Protocol components` (commit `c250296`)
-
-#### AG-UI Event Handler
-- [x] Create `frontend/hooks/useAGUIEventHandler.ts` - WebSocket event processor (336 lines)
-- [x] Handlers: on_chain_start/end, on_chat_model_stream, on_tool_start/end, hitl_request/approval, error events
-- [x] Integration: Processes events → updates Zustand store
-- [x] Fixed TypeScript types: TextMessageContentEvent, ToolCallArgsEvent, ToolCallResultEvent
-- [x] Commit: `feat(phase-0): migrate from CopilotKit to native AG-UI Protocol components` (commit `c250296`)
-
-#### Tool Call Display
-- [x] Create `frontend/components/ag-ui/ToolCallDisplay.tsx` - Tool transparency panel (350 lines)
-- [x] Features: Collapsible accordion, syntax-highlighted JSON, status indicators, copy to clipboard
-- [x] Commit: `feat(phase-0): build AG-UI components (ToolCallDisplay, ProgressTracker, AgentStatus)` (commit `28847d2`)
-
-#### Progress Indicators
-- [x] Create `frontend/components/ag-ui/ProgressTracker.tsx` - Subtask list display (290 lines)
-- [x] Features: Timeline view, status per step, timestamps, duration calculations
-- [x] Create `frontend/components/ag-ui/AgentStatus.tsx` - Agent state indicator (300 lines)
-- [x] Features: Status badge, color-coded, pulse animation, reasoning effort display, connection status
-- [x] Commit: `feat(phase-0): build AG-UI components (ToolCallDisplay, ProgressTracker, AgentStatus)` (commit `28847d2`)
-
-#### Finalize Migration
-- [x] Update `frontend/app/chat/page.tsx` - 3-column AG-UI layout (Left: AgentStatus + ProgressTracker, Center: ChatInterface, Right: ToolCallDisplay)
-- [x] Update `frontend/app/providers.tsx` - Removed CopilotKit wrapper, kept ErrorBoundary
-- [x] Remove CopilotKit dependencies: Uninstalled 3 @copilotkit/* packages (661 packages removed)
-- [x] Delete `frontend/app/copilotkit-theme.css`
-- [x] Delete `frontend/app/api/copilotkit/route.ts` (no longer needed with direct WS)
-- [x] Delete `frontend/app/chat/components/HITLApproval.tsx` (CopilotKit-based, will reimplement with AG-UI)
-- [x] Test complete migration: Next.js build succeeds with zero errors
-- [x] Commit: `feat(phase-0): migrate from CopilotKit to native AG-UI Protocol components` (commit `c250296`)
-
-**Migration Summary:**
-- ✅ 717 insertions, 427 deletions (7 files changed)
-- ✅ Zero TypeScript compilation errors
-- ✅ Full AG-UI Protocol integration via WebSocket
-- ✅ All components render correctly
-- ✅ Ready for backend integration testing
+**Layer 1: Foundation** - Configuration, logging, error handling ✓
+**Layer 2: GPT-5 Integration** - Models, LLM factory, reasoning router ✓
+**Layer 3: LangGraph DeepAgents** - Checkpointer, agent initialization, service layer ✓
+**Layer 4: MCP Integration** - Perplexity client, web search tool ✓
+**Layer 5: LangSmith** - Tracing and observability ✓
+**Layer 6: FastAPI Backend** - API models, chat/WS/agents endpoints ✓
+**Layer 7: Frontend** - Next.js, AG-UI Protocol, custom components (migrated from CopilotKit) ✓
 
 ### **Layer 8: Testing & Quality**
 
@@ -1011,6 +769,9 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - [ ] Commit: `chore(phase-0): complete Phase 0 MVP`
 
 ---
-- if CodeRabbit extension is not triggered. Review PRs and identify issues in the comments
-- periodically review claude.md by removing stale context. make sure it's < 40k chars to prevent performance impacts
-- run the code-review-expert and testing-expert agents before every commit. Make sure we ask both agents to log non-critical issues into the github_issues.md for tracking
+
+## 📝 Important Reminders
+
+- **Periodic maintenance:** Review CLAUDE.md regularly to remove stale context (keep < 40k chars)
+- **Pre-commit workflow:** Run code-review-expert and testing-expert agents before EVERY commit
+- **Issue tracking:** Both agents must log non-critical issues to GITHUB_ISSUES.md for future work
