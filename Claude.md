@@ -119,6 +119,25 @@ npx playwright install
 npx playwright install-deps
 ```
 
+#### context7 MCP (Documentation Retrieval - Built-in)
+
+context7 is a built-in MCP server in Claude Code that provides up-to-date library documentation and code examples.
+
+**Features:**
+- Resolve library names to Context7-compatible IDs
+- Fetch documentation with code snippets and API references
+- Support for versioned documentation
+- Trust scores and snippet coverage metrics
+
+**Usage:**
+```python
+# Automatically used when you need library documentation
+# Example: "Show me how to create a FastAPI route with async"
+# Tools: mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+```
+
+**No installation required** - context7 is pre-configured in Claude Code and ready to use immediately.
+
 **MCP Configuration Directory:**
 Create `.mcp/` directory with configuration files for each MCP server (see README.md for details).
 
@@ -952,3 +971,4 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - **Periodic maintenance:** Review CLAUDE.md regularly to remove stale context (keep < 40k chars)
 - **Pre-commit workflow:** Run code-review-expert and testing-expert agents before EVERY commit
 - **Issue tracking:** Both agents must log non-critical issues to GITHUB_ISSUES.md for future work
+- **Code Doc Context:** Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
