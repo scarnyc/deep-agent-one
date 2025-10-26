@@ -3,6 +3,10 @@ E2E tests for agent tool usage workflow.
 
 Tests the complete tool execution flow including file system tools
 (ls, read_file, write_file, edit_file) and custom tools (web_search).
+
+NOTE: These tests require valid OpenAI API keys and are intended for
+Phase 0.5 Live API Integration Testing. They will be skipped in regular
+test runs and should only be run manually or as part of live API validation.
 """
 
 import pytest
@@ -11,6 +15,12 @@ from unittest.mock import AsyncMock, MagicMock, patch, mock_open
 from typing import Any, Dict
 import tempfile
 import os
+
+# Skip all E2E tests unless OPENAI_API_KEY is set
+pytestmark = pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY").startswith("your_"),
+    reason="E2E tests require valid OPENAI_API_KEY (Phase 0.5 Live API Testing)"
+)
 
 
 @pytest.fixture

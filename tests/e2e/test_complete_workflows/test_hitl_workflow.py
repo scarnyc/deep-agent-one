@@ -3,14 +3,25 @@ E2E tests for Human-in-the-Loop (HITL) workflow.
 
 Tests the complete HITL approval flow including agent interruption,
 state persistence, approval/rejection, and agent continuation.
+
+NOTE: These tests require valid OpenAI API keys and are intended for
+Phase 0.5 Live API Integration Testing. They will be skipped in regular
+test runs and should only be run manually or as part of live API validation.
 """
 
+import os
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Any, Dict
 
 from backend.deep_agent.models.agents import AgentRunStatus, HITLAction
+
+# Skip all E2E tests unless OPENAI_API_KEY is set
+pytestmark = pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY").startswith("your_"),
+    reason="E2E tests require valid OPENAI_API_KEY (Phase 0.5 Live API Testing)"
+)
 
 
 @pytest.fixture

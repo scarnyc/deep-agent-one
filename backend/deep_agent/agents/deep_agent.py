@@ -99,46 +99,49 @@ async def create_agent(
         raise
 
     # Create checkpointer for state persistence
-    async with CheckpointerManager(settings=settings) as checkpointer_manager:
-        try:
-            checkpointer = await checkpointer_manager.create_checkpointer()
-            logger.debug(
-                "Created checkpointer",
-                db_path=settings.CHECKPOINT_DB_PATH,
-            )
-        except (OSError, PermissionError) as e:
-            logger.error(
-                "Failed to create checkpointer",
-                error=str(e),
-                db_path=settings.CHECKPOINT_DB_PATH,
-            )
-            raise
+    # Note: We don't use context manager here because the checkpointer needs
+    # to stay open for the lifetime of the agent. The agent will manage the
+    # checkpointer's lifecycle through its own cleanup mechanisms.
+    checkpointer_manager = CheckpointerManager(settings=settings)
+    try:
+        checkpointer = await checkpointer_manager.create_checkpointer()
+        logger.debug(
+            "Created checkpointer",
+            db_path=settings.CHECKPOINT_DB_PATH,
+        )
+    except (OSError, PermissionError) as e:
+        logger.error(
+            "Failed to create checkpointer",
+            error=str(e),
+            db_path=settings.CHECKPOINT_DB_PATH,
+        )
+        raise
 
-        # Get environment-specific system instructions
-        system_prompt = get_agent_instructions(settings=settings)
+    # Get environment-specific system instructions
+    system_prompt = get_agent_instructions(settings=settings)
 
-        # Create DeepAgent using official API
-        try:
-            compiled_graph = create_deep_agent(
-                model=llm,
-                tools=[web_search],  # Custom tools in addition to built-in tools
-                system_prompt=system_prompt,
-                subagents=subagents,
-                checkpointer=checkpointer,
-            )
+    # Create DeepAgent using official API
+    try:
+        compiled_graph = create_deep_agent(
+            model=llm,
+            tools=[web_search],  # Custom tools in addition to built-in tools
+            system_prompt=system_prompt,
+            subagents=subagents,
+            checkpointer=checkpointer,
+        )
 
-            logger.info(
-                "Successfully created and compiled DeepAgent",
-                has_checkpointer=True,
-                subagents_enabled=subagents is not None and len(subagents) > 0,
-            )
+        logger.info(
+            "Successfully created and compiled DeepAgent",
+            has_checkpointer=True,
+            subagents_enabled=subagents is not None and len(subagents) > 0,
+        )
 
-            return compiled_graph
+        return compiled_graph
 
-        except Exception as e:
-            logger.error(
-                "Failed to create DeepAgent",
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise
+    except Exception as e:
+        logger.error(
+            "Failed to create DeepAgent",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        raise
