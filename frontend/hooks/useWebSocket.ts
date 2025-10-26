@@ -73,7 +73,25 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
    * Get WebSocket URL from env or parameter
    */
   const getWebSocketUrl = useCallback((): string => {
-    if (url) return url;
+    // Issue 50 fix: Validate URL origin if provided
+    if (url) {
+      try {
+        const wsUrl = new URL(url);
+        const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+
+        // Ensure same origin (security: prevent connection to malicious servers)
+        if (wsUrl.hostname !== apiUrl.hostname) {
+          throw new Error(
+            `WebSocket URL origin (${wsUrl.hostname}) doesn't match API URL (${apiUrl.hostname})`
+          );
+        }
+
+        return url;
+      } catch (err) {
+        console.error('[useWebSocket] Invalid WebSocket URL:', err);
+        throw new Error('Invalid WebSocket URL');
+      }
+    }
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     // Convert http(s):// to ws(s)://
@@ -115,7 +133,25 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       const wsUrl = getWebSocketUrl();
       const ws = new WebSocket(wsUrl);
 
+      // Issue 49 fix: Add connection timeout protection
+      const CONNECTION_TIMEOUT = 10000; // 10 seconds
+      const connectionTimeoutId = setTimeout(() => {
+        if (ws.readyState === WebSocket.CONNECTING) {
+          const timeoutError = new Error('WebSocket connection timeout (10s)');
+          console.error('[useWebSocket]', timeoutError);
+          setError(timeoutError);
+          setConnectionStatus('error');
+
+          ws.close();
+
+          if (onErrorRef.current) {
+            onErrorRef.current(timeoutError);
+          }
+        }
+      }, CONNECTION_TIMEOUT);
+
       ws.onopen = () => {
+        clearTimeout(connectionTimeoutId); // Clear timeout on successful connection
         console.log('[useWebSocket] Connected to', wsUrl);
         setConnectionStatus('connected');
         reconnectAttemptRef.current = 0; // Reset reconnect counter
@@ -228,6 +264,41 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         return;
       }
 
+      // Issue 47 fix: Validate inputs
+      if (!message || message.trim().length === 0) {
+        const validationError = new Error('Message cannot be empty');
+        console.warn('[useWebSocket]', validationError);
+        setError(validationError);
+        if (onErrorRef.current) {
+          onErrorRef.current(validationError);
+        }
+        return;
+      }
+
+      if (!thread_id || thread_id.trim().length === 0) {
+        const validationError = new Error('Thread ID is required');
+        console.warn('[useWebSocket]', validationError);
+        setError(validationError);
+        if (onErrorRef.current) {
+          onErrorRef.current(validationError);
+        }
+        return;
+      }
+
+      // Limit message length to prevent DoS
+      const MAX_MESSAGE_LENGTH = 10000; // 10KB
+      if (message.length > MAX_MESSAGE_LENGTH) {
+        const validationError = new Error(
+          `Message too long (${message.length} chars, max ${MAX_MESSAGE_LENGTH})`
+        );
+        console.error('[useWebSocket]', validationError);
+        setError(validationError);
+        if (onErrorRef.current) {
+          onErrorRef.current(validationError);
+        }
+        return;
+      }
+
       // HIGH-2 fix: Rate limiting to prevent message spam
       const now = Date.now();
       sendTimestampsRef.current = sendTimestampsRef.current.filter(
@@ -280,10 +351,23 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       connect();
     }
 
+    // Issue 48 fix: Use inline cleanup to avoid stale closure
     return () => {
-      disconnect();
+      // Clear reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
+      // Close connection
+      if (wsRef.current) {
+        wsRef.current.close(1000, 'Component unmount');
+        wsRef.current = null;
+      }
+
+      setConnectionStatus('disconnected');
     };
-  }, [autoConnect, connect, disconnect]);
+  }, [autoConnect, connect]); // Removed disconnect from deps
 
   return {
     sendMessage,
