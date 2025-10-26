@@ -269,7 +269,7 @@ class TestCheckpointerIntegration:
     @pytest.mark.asyncio
     @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
     @patch("backend.deep_agent.agents.deep_agent.CheckpointerManager")
-    async def test_checkpointer_manager_context_cleanup(
+    async def test_checkpointer_manager_creates_checkpointer(
         self,
         mock_checkpointer_manager_class: Mock,
         mock_llm_factory: Mock,
@@ -277,7 +277,7 @@ class TestCheckpointerIntegration:
         mock_llm: ChatOpenAI,
         mock_checkpointer: AsyncSqliteSaver,
     ) -> None:
-        """Test CheckpointerManager context manager cleans up properly."""
+        """Test CheckpointerManager creates checkpointer for agent."""
         # Arrange
         from backend.deep_agent.agents.deep_agent import create_agent
 
@@ -286,8 +286,6 @@ class TestCheckpointerIntegration:
         # Mock CheckpointerManager
         mock_manager = AsyncMock()
         mock_manager.create_checkpointer = AsyncMock(return_value=mock_checkpointer)
-        mock_manager.__aenter__ = AsyncMock(return_value=mock_manager)
-        mock_manager.__aexit__ = AsyncMock()
         mock_checkpointer_manager_class.return_value = mock_manager
 
         # Act
@@ -296,9 +294,8 @@ class TestCheckpointerIntegration:
         except NotImplementedError:
             pass  # Expected
 
-        # Assert - verify context manager was used (enter and exit called)
-        mock_manager.__aenter__.assert_called_once()
-        mock_manager.__aexit__.assert_called_once()
+        # Assert - verify checkpointer was created
+        mock_manager.create_checkpointer.assert_called_once()
 
 
 class TestSubAgentSupport:

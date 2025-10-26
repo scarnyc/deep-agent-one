@@ -75,9 +75,10 @@ class TestAgentStateManagement:
         tool_call = page.locator('[data-testid="tool-call"]').first
 
         # Assert: Tool call is visible with name and status
+        import re
         expect(tool_call).to_be_visible(timeout=10000)
-        expect(tool_call).to_have_attribute("data-tool-name", /web_search|search/)
-        expect(tool_call).to_have_attribute("data-status", /pending|running|completed/)
+        expect(tool_call).to_have_attribute("data-tool-name", re.compile(r"web_search|search"))
+        expect(tool_call).to_have_attribute("data-status", re.compile(r"pending|running|completed"))
 
     def test_update_agent_status(self, page: Page) -> None:
         """Test agent status updates as agent runs."""
@@ -87,17 +88,17 @@ class TestAgentStateManagement:
 
         # Get initial status (should be idle)
         agent_status = page.locator('[data-testid="agent-status"]')
-        expect(agent_status).to_have_text(/idle|ready/, timeout=3000)
+        expect(agent_status).to_have_text(re.compile(r"idle|ready"), timeout=3000)
 
         # Act: Send message to trigger agent run
         page.fill('[data-testid="message-input"]', "Hello")
         page.click('[data-testid="send-button"]')
 
         # Assert: Status changes to running
-        expect(agent_status).to_have_text(/running|processing/, timeout=3000)
+        expect(agent_status).to_have_text(re.compile(r"running|processing"), timeout=3000)
 
         # Assert: Eventually completes
-        expect(agent_status).to_have_text(/completed|idle/, timeout=15000)
+        expect(agent_status).to_have_text(re.compile(r"completed|idle"), timeout=15000)
 
     def test_hitl_request_state(self, page: Page) -> None:
         """Test HITL approval request updates state."""
@@ -117,7 +118,7 @@ class TestAgentStateManagement:
 
         # Assert: Agent status shows waiting for approval
         agent_status = page.locator('[data-testid="agent-status"]')
-        expect(agent_status).to_have_text(/waiting.*approval|pending/, timeout=3000)
+        expect(agent_status).to_have_text(re.compile(r"waiting.*approval|pending"), timeout=3000)
 
     def test_multiple_threads_isolation(self, page: Page) -> None:
         """Test multiple threads are isolated in state."""

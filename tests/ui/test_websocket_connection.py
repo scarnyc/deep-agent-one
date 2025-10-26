@@ -145,7 +145,8 @@ class TestWebSocketConnection:
         connection_status = page.locator('[data-testid="ws-status"]')
 
         # Should start as "connecting" or "connected"
-        expect(connection_status).to_have_text(/connecting|connected/, timeout=5000)
+        import re
+        expect(connection_status).to_have_text(re.compile(r"connecting|connected"), timeout=5000)
 
         # Eventually should be "connected"
         expect(connection_status).to_have_text("connected", timeout=5000)
@@ -154,7 +155,7 @@ class TestWebSocketConnection:
         page.context.set_offline(True)
 
         # Should show "disconnected" or "reconnecting"
-        expect(connection_status).to_have_text(/disconnected|reconnecting/, timeout=3000)
+        expect(connection_status).to_have_text(re.compile(r"disconnected|reconnecting"), timeout=3000)
 
         # Reconnect
         page.context.set_offline(False)
