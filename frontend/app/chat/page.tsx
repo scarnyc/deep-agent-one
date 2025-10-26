@@ -65,7 +65,11 @@ function ChatPageContent() {
 
   useEffect(() => {
     // Create a new thread on page load (runs once)
-    const threadId = crypto.randomUUID();
+    // Issue 81 fix: Fallback for crypto.randomUUID()
+    const threadId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
     createThread(threadId);
     setActiveThread(threadId);
     setIsReady(true);

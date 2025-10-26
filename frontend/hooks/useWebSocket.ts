@@ -8,6 +8,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AGUIEvent, ConnectionStatus, WebSocketMessage } from '@/types/ag-ui';
 
+// Issue 51 fix: Conditional logging for production
+const DEBUG = process.env.NODE_ENV === 'development';
+
 interface UseWebSocketOptions {
   url?: string; // WebSocket URL (defaults to NEXT_PUBLIC_API_URL/ws)
   autoConnect?: boolean; // Auto-connect on mount (default: true)
@@ -152,7 +155,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
       ws.onopen = () => {
         clearTimeout(connectionTimeoutId); // Clear timeout on successful connection
-        console.log('[useWebSocket] Connected to', wsUrl);
+        if (DEBUG) {
+          console.log('[useWebSocket] Connected to', wsUrl);
+        }
         setConnectionStatus('connected');
         reconnectAttemptRef.current = 0; // Reset reconnect counter
       };
@@ -187,7 +192,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       };
 
       ws.onclose = (event) => {
-        console.log('[useWebSocket] Disconnected:', event.code, event.reason);
+        if (DEBUG) {
+          console.log('[useWebSocket] Disconnected:', event.code, event.reason);
+        }
         setConnectionStatus('disconnected');
         wsRef.current = null;
 
@@ -212,9 +219,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
           setConnectionStatus('reconnecting');
           const delay = getReconnectDelay();
-          console.log(
-            `[useWebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${maxReconnectAttempts})`
-          );
+          if (DEBUG) {
+            console.log(
+              `[useWebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${maxReconnectAttempts})`
+            );
+          }
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
@@ -329,7 +338,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
       try {
         wsRef.current.send(JSON.stringify(wsMessage));
-        console.log('[useWebSocket] Sent message:', wsMessage);
+        if (DEBUG) {
+          console.log('[useWebSocket] Sent message:', wsMessage);
+        }
       } catch (err) {
         const sendError = err instanceof Error ? err : new Error(String(err));
         console.error('[useWebSocket] Send error:', sendError);
