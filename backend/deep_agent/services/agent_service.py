@@ -9,6 +9,12 @@ import asyncio
 from typing import Any, AsyncGenerator, Optional
 
 from langgraph.graph.state import CompiledStateGraph
+from tenacity import (
+    AsyncRetrying,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 
 from backend.deep_agent.agents.deep_agent import create_agent
 from backend.deep_agent.config.settings import Settings, get_settings
@@ -151,9 +157,23 @@ class AgentService:
             }
         }
 
-        # Invoke agent
+        # Invoke agent with retry logic for transient failures
         try:
-            result = await agent.ainvoke(input_data, config)
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(3),
+                wait=wait_exponential(multiplier=1, min=2, max=10),
+                retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+                reraise=True,
+            ):
+                with attempt:
+                    if attempt.retry_state.attempt_number > 1:
+                        logger.warning(
+                            "Retrying agent invocation",
+                            thread_id=thread_id,
+                            attempt=attempt.retry_state.attempt_number,
+                        )
+
+                    result = await agent.ainvoke(input_data, config)
 
             logger.info(
                 "Agent invocation completed",
@@ -225,10 +245,24 @@ class AgentService:
             }
         }
 
-        # Stream events
+        # Stream events with retry logic for initial connection
         try:
-            async for event in agent.astream_events(input_data, config, version="v2"):
-                yield event
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(3),
+                wait=wait_exponential(multiplier=1, min=2, max=10),
+                retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+                reraise=True,
+            ):
+                with attempt:
+                    if attempt.retry_state.attempt_number > 1:
+                        logger.warning(
+                            "Retrying agent streaming",
+                            thread_id=thread_id,
+                            attempt=attempt.retry_state.attempt_number,
+                        )
+
+                    async for event in agent.astream_events(input_data, config, version="v2"):
+                        yield event
 
             logger.info(
                 "Agent streaming completed",

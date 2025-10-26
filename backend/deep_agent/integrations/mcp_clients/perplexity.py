@@ -7,6 +7,7 @@ for performing web searches and retrieving real-time information.
 
 import asyncio
 import re
+import threading
 import time
 from typing import Any
 
@@ -74,6 +75,7 @@ class PerplexityClient:
         self._request_timestamps: list[float] = []
         self._rate_limit_window = RATE_LIMIT_WINDOW
         self._rate_limit_max = RATE_LIMIT_MAX_REQUESTS
+        self._rate_limit_lock = threading.Lock()  # Thread-safe rate limiting
 
         # Mask API key for logging (security: HIGH-2 fix)
         masked_key = mask_api_key(self.api_key)
@@ -173,7 +175,7 @@ class PerplexityClient:
 
     def _check_rate_limit(self, query: str) -> None:
         """
-        Check if request is within rate limits.
+        Check if request is within rate limits (thread-safe).
 
         Args:
             query: Search query for logging
@@ -181,35 +183,36 @@ class PerplexityClient:
         Raises:
             RuntimeError: If rate limit is exceeded
         """
-        now = time.time()
+        with self._rate_limit_lock:
+            now = time.time()
 
-        # Remove timestamps outside the window
-        self._request_timestamps = [
-            ts
-            for ts in self._request_timestamps
-            if now - ts < self._rate_limit_window
-        ]
+            # Remove timestamps outside the window
+            self._request_timestamps = [
+                ts
+                for ts in self._request_timestamps
+                if now - ts < self._rate_limit_window
+            ]
 
-        # Check if limit exceeded
-        if len(self._request_timestamps) >= self._rate_limit_max:
-            logger.warning(
-                "Rate limit exceeded for Perplexity search",
-                query=query,
+            # Check if limit exceeded
+            if len(self._request_timestamps) >= self._rate_limit_max:
+                logger.warning(
+                    "Rate limit exceeded for Perplexity search",
+                    query=query,
+                    requests_in_window=len(self._request_timestamps),
+                    limit=self._rate_limit_max,
+                )
+                raise RuntimeError(
+                    f"Rate limit exceeded: {self._rate_limit_max} requests per "
+                    f"{self._rate_limit_window}s"
+                )
+
+            # Add current timestamp
+            self._request_timestamps.append(now)
+            logger.debug(
+                "Rate limit check passed",
                 requests_in_window=len(self._request_timestamps),
                 limit=self._rate_limit_max,
             )
-            raise RuntimeError(
-                f"Rate limit exceeded: {self._rate_limit_max} requests per "
-                f"{self._rate_limit_window}s"
-            )
-
-        # Add current timestamp
-        self._request_timestamps.append(now)
-        logger.debug(
-            "Rate limit check passed",
-            requests_in_window=len(self._request_timestamps),
-            limit=self._rate_limit_max,
-        )
 
     def _sanitize_query(self, query: str) -> str:
         """

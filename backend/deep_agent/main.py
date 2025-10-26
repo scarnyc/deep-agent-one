@@ -18,9 +18,10 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from starlette.responses import Response
 
+from backend.deep_agent.api.middleware import TimeoutMiddleware
 from backend.deep_agent.config.settings import Settings, get_settings
 from backend.deep_agent.core.errors import ConfigurationError, DeepAgentError
-from backend.deep_agent.core.logging import get_logger
+from backend.deep_agent.core.logging import LogLevel, get_logger, setup_logging
 
 logger = get_logger(__name__)
 
@@ -73,6 +74,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     # Startup
     settings = get_settings()
+
+    # Initialize logging with appropriate format and level
+    log_level = LogLevel.DEBUG if settings.DEBUG else LogLevel.INFO
+    log_format = "standard" if settings.DEBUG else "json"
+    setup_logging(log_level=log_level, log_format=log_format)
+
     logger.info(
         "Starting Deep Agent AGI API",
         env=settings.ENV,
@@ -111,9 +118,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Add CORS middleware
     if settings.CORS_ORIGINS:
-        allowed_origins = [
-            origin.strip() for origin in settings.CORS_ORIGINS.split(",")
-        ]
+        allowed_origins = settings.cors_origins_list
 
         # Security: Validate CORS configuration
         if "*" in allowed_origins:
@@ -139,6 +144,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
         logger.debug("CORS enabled", allowed_origins=allowed_origins)
+
+    # Add request timeout middleware
+    app.add_middleware(TimeoutMiddleware, timeout=30)
+    logger.debug("Request timeout middleware enabled", timeout_seconds=30)
 
     # Add rate limiting
     app.state.limiter = limiter
