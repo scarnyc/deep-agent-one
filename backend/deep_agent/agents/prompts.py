@@ -5,8 +5,6 @@ Environment-specific prompts for DeepAgents framework with version tracking.
 Uses base prompt + environment appendices for maintainability.
 """
 
-from typing import Optional
-
 from backend.deep_agent.config.settings import Settings, get_settings
 
 # Prompt version for tracking changes (semantic versioning)
@@ -79,8 +77,8 @@ Production mode prioritizes efficiency and reliability. Execute tasks confidentl
 
 
 def get_agent_instructions(
-    env: Optional[str] = None,
-    settings: Optional[Settings] = None,
+    env: str | None = None,
+    settings: Settings | None = None,
 ) -> str:
     """
     Get environment-specific agent instructions.

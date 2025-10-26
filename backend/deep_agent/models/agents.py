@@ -1,5 +1,5 @@
 """Agent Management Pydantic models for run tracking and HITL workflows."""
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -68,8 +68,8 @@ class AgentRunInfo(BaseModel):
         description="Current status of the run",
     )
     started_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="When the run started",
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When the run started (UTC)",
     )
     completed_at: Optional[datetime] = Field(
         default=None,

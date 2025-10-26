@@ -1,6 +1,6 @@
 """Chat API Pydantic models for request/response validation."""
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -54,8 +54,8 @@ class Message(BaseModel):
         description="The text content of the message",
     )
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="When the message was created",
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When the message was created (UTC)",
     )
 
     @field_validator("content", mode="before")
@@ -288,8 +288,8 @@ class StreamEvent(BaseModel):
         description="Event payload data",
     )
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="When the event was created",
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When the event was created (UTC)",
     )
     thread_id: Optional[str] = Field(
         default=None,

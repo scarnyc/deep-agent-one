@@ -41,6 +41,14 @@ def create_gpt5_llm(
     if not api_key:
         raise ValueError("API key is required")
 
+    # Issue 7 fix: Validate API key format
+    if not api_key.startswith("sk-"):
+        logger.warning(
+            "API key format may be invalid",
+            expected_prefix="sk-",
+            actual_prefix=api_key[:5] if len(api_key) >= 5 else api_key,
+        )
+
     # Use default config if none provided
     if config is None:
         config = GPT5Config()

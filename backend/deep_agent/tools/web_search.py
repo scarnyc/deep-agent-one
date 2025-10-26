@@ -43,8 +43,9 @@ async def web_search(
 
     Note:
         - Queries are automatically sanitized for security
-        - Rate limiting: 10 requests per minute
+        - Rate limiting: 10 requests per minute (raises error if exceeded)
         - Timeout: 30 seconds (configurable)
+        - Retries automatically on transient failures (3 attempts with exponential backoff)
     """
     logger.info("Web search tool invoked", query=query, max_results=max_results)
 
@@ -70,6 +71,12 @@ async def web_search(
 
         # Format results for agent consumption
         formatted_results = client.format_results_for_agent(results)
+
+        logger.debug(
+            "Returning formatted results to agent",
+            result_length=len(formatted_results),
+            query=query,
+        )
 
         return formatted_results
 

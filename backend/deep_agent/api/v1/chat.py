@@ -133,12 +133,9 @@ async def chat(
     except Exception as e:
         # Agent execution errors
         # Sanitize error message before logging (security)
-        error_msg = str(e)
+        from backend.deep_agent.core.security import sanitize_error_message
 
-        # Check if error might contain sensitive data (API keys, tokens)
-        # Common patterns: sk- (OpenAI), lsv2_ (LangSmith), etc.
-        if any(pattern in error_msg for pattern in ["sk-", "lsv2_", "key=", "token=", "password="]):
-            error_msg = "[REDACTED: Potential secret in error message]"
+        error_msg = sanitize_error_message(str(e))
 
         logger.error(
             "Chat request failed",
@@ -272,11 +269,9 @@ async def chat_stream(
         except Exception as e:
             # Agent execution errors
             # Sanitize error message before logging (security)
-            error_msg = str(e)
+            from backend.deep_agent.core.security import sanitize_error_message
 
-            # Check if error might contain sensitive data
-            if any(pattern in error_msg for pattern in ["sk-", "lsv2_", "key=", "token=", "password="]):
-                error_msg = "[REDACTED: Potential secret in error message]"
+            error_msg = sanitize_error_message(str(e))
 
             logger.error(
                 "Chat stream failed",

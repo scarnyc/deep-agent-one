@@ -27,7 +27,9 @@ def setup_langsmith(settings: Settings | None = None) -> None:
         settings: Configuration settings. If None, uses get_settings().
 
     Raises:
-        ValueError: If LANGSMITH_API_KEY is not configured.
+        ValueError: If LANGSMITH_API_KEY is missing or empty. Note that this
+            only validates the key exists - authentication with LangSmith API
+            is verified when actual tracing occurs (lazy validation).
 
     Example:
         >>> from backend.deep_agent.integrations.langsmith import setup_langsmith

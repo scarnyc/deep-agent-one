@@ -1,5 +1,46 @@
 """Security utilities for Deep Agent AGI."""
 
+# Secret patterns to detect in error messages and logs
+SECRET_PATTERNS = [
+    "sk-",  # OpenAI API keys
+    "lsv2_",  # LangSmith tokens
+    "ls__",  # LangSmith legacy tokens
+    "key=",  # Generic key parameters
+    "token=",  # Generic token parameters
+    "password=",  # Passwords
+    "api_key=",  # API key parameters
+    "secret=",  # Secret parameters
+]
+
+
+def sanitize_error_message(error_msg: str) -> str:
+    """
+    Sanitize error messages to prevent secret leakage in logs.
+
+    Checks if error message contains common secret patterns and redacts
+    the entire message if found. Used to prevent accidental logging of
+    API keys, tokens, or passwords in error messages.
+
+    Args:
+        error_msg: The error message to sanitize
+
+    Returns:
+        Original message if safe, redacted message if patterns found
+
+    Examples:
+        >>> sanitize_error_message("Connection failed")
+        'Connection failed'
+
+        >>> sanitize_error_message("Invalid API key: sk-1234567890")
+        '[REDACTED: Potential secret in error message]'
+
+        >>> sanitize_error_message("Auth failed with token=abc123")
+        '[REDACTED: Potential secret in error message]'
+    """
+    if any(pattern in error_msg for pattern in SECRET_PATTERNS):
+        return "[REDACTED: Potential secret in error message]"
+    return error_msg
+
 
 def mask_api_key(api_key: str, prefix_len: int = 8, suffix_len: int = 4) -> str:
     """
