@@ -1,5 +1,5 @@
 """Custom exception classes for Deep Agent AGI."""
-from typing import Any, Optional  # TODO: Remove unused Optional import
+from typing import Any
 
 
 class DeepAgentError(Exception):

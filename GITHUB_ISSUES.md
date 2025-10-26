@@ -4,31 +4,6 @@ These issues were identified during code review on 2025-10-06.
 
 ---
 
-## Issue 1: Remove unused `Optional` import from logging.py
-
-**Labels:** `technical-debt`, `good-first-issue`, `cleanup`
-
-**Title:** Remove unused `Optional` import from `core/logging.py`
-
-**Description:**
-The `Optional` type is imported but never used in `backend/deep_agent/core/logging.py`.
-
-**File:** `backend/deep_agent/core/logging.py:5`
-
-**Current Code:**
-```python
-from typing import Any, Optional
-```
-
-**Expected:**
-```python
-from typing import Any
-```
-
-**Impact:** No functional impact, just cleaner imports and reduces linter warnings.
-
----
-
 ## Issue 2: Remove unused `Optional` import from errors.py
 
 **Labels:** `technical-debt`, `good-first-issue`, `cleanup`
@@ -135,38 +110,6 @@ logging.basicConfig(
 **Impact:** Prevents duplicate log output when `setup_logging()` is called multiple times.
 
 **Status:** Not blocking - all tests pass (19/19), but could cause confusing output in certain scenarios.
-
----
-
-## Issue 5: `.env.example` Verbosity Values Mismatch ✅ RESOLVED
-
-**Labels:** `bug`, `configuration`, `phase-0`, `high-priority`
-
-**Title:** Fix verbosity enum values in `.env.example` to match `Verbosity` enum
-
-**Description:**
-The `.env.example` file specifies verbosity values as `standard/verbose/concise`, but the `Verbosity` enum in `gpt5.py` uses `low/medium/high`. This mismatch will cause validation errors when loading configuration.
-
-**File:** `.env.example:9`
-
-**Current Code:**
-```bash
-GPT5_DEFAULT_VERBOSITY=standard      # standard, verbose, concise
-```
-
-**Expected:**
-```bash
-GPT5_DEFAULT_VERBOSITY=medium        # low, medium, high
-```
-
-**Impact:** HIGH - Configuration validation will fail. Users copying `.env.example` to `.env` will get errors.
-
-**Related Files:**
-- `backend/deep_agent/models/gpt5.py:20-29` (Verbosity enum definition)
-
-**Found in:** Layer 2 Code Review (2025-10-06)
-
-**Resolution:** Fixed in commit 82ae04a - Updated `.env.example:9` to use `medium` with correct comment `# low, medium, high`
 
 ---
 
@@ -374,45 +317,6 @@ class AgentService:
 
 ---
 
-## Issue 11: Perplexity MCP Client Security Review Findings ✅ RESOLVED
-
-**Labels:** `security`, `high-priority`, `phase-0`
-
-**Title:** Fix security issues in Perplexity MCP client
-
-**Description:**
-Code review by code-review-expert identified 2 HIGH and 3 MEDIUM priority security issues in initial Perplexity MCP client implementation.
-
-**File:** `backend/deep_agent/integrations/mcp_clients/perplexity.py`
-
-**Issues Found:**
-- **HIGH-1:** Missing rate limiting on expensive search operations
-- **HIGH-2:** API key exposure risk in logs
-- **MEDIUM-1:** No retry logic for transient failures
-- **MEDIUM-2:** Missing input sanitization for query parameter
-- **MEDIUM-3:** No timeout enforcement in _call_mcp()
-
-**Resolution:** Fixed in commit dd3185f
-
-**Security Features Implemented:**
-1. **Rate Limiting:** 10 requests per 60 seconds (configurable)
-2. **API Key Masking:** Only first 8 characters logged
-3. **Retry Logic:** 3 attempts with exponential backoff (2-10s)
-4. **Query Sanitization:** Removes dangerous characters, limits length to 500 chars
-5. **Timeout Enforcement:** asyncio.timeout() wrapper in _call_mcp()
-
-**Tests Added:** 4 new security tests (18 total tests)
-- `test_search_enforces_rate_limit()`
-- `test_rate_limit_window_resets()`
-- `test_search_sanitizes_special_characters()`
-- `test_search_truncates_long_queries()`
-
-**Coverage:** 89.89% (up from 85.39%)
-
-**Found in:** Layer 4 Code Review (2025-10-07)
-
----
-
 ## Issue 12: Thread safety in Perplexity MCP client rate limiting
 
 **Labels:** `enhancement`, `reliability`, `medium-priority`, `phase-1`
@@ -540,54 +444,6 @@ async def test_format_results_handles_empty_results(
 **Impact:** VERY LOW - Current 89.89% coverage exceeds 80% requirement. This is an optional quality improvement.
 
 **Found in:** Layer 4 Post-Commit Review (2025-10-07, commit 647498c)
-
----
-
-## Issue 15: Workflow contradiction - POST-COMMIT vs PRE-COMMIT ✅ RESOLVED
-
-**Labels:** `documentation`, `critical`, `phase-0`
-
-**Title:** Resolve contradiction between POST-COMMIT and PRE-COMMIT review workflows
-
-**Description:**
-Claude.md contained contradictory instructions about when to run code-review-expert and testing-expert agents:
-
-**Location 1 (Lines 482-545 in commit 509ea7c):**
-- Workflow: POST-COMMIT (review AFTER committing)
-- Process: Commit → Review → Fix if needed (with fixup commits)
-
-**Location 2 (Line 930):**
-- Workflow: PRE-COMMIT (review BEFORE committing)
-- Requirement: "run the code-review-expert and testing-expert agents before every commit"
-
-**Impact:** CRITICAL - Developers would receive conflicting instructions about when to run reviews.
-
-**Resolution:** Fixed in commit 08a2668
-
-**Decision:** Adopted PRE-COMMIT workflow (matches line 930)
-
-**Rationale:**
-1. User's explicit instruction at line 930 takes precedence
-2. Cleaner git history (no fixup commits needed)
-3. Never commit unreviewed code
-4. Standard code quality gate pattern
-5. All issues (including non-critical) logged to GITHUB_ISSUES.md
-
-**New Workflow:**
-1. Write code/tests following TDD
-2. Run testing-expert (if tests written)
-3. Run code-review-expert (for all code)
-4. Review findings and track ALL issues (HIGH/MEDIUM/LOW) in GITHUB_ISSUES.md
-5. Fix blocking issues or document deferral
-6. **ONLY AFTER APPROVAL:** Make commit
-
-**Trade-off Accepted:**
-- Slightly slower initial workflow (10-15 min wait before commit)
-- BUT: Results in cleaner git history with zero unreviewed code
-
-**Note:** Previous commits (647498c, dd3185f, 9eb0a89) were reviewed POST-COMMIT before this workflow correction. All future commits will follow PRE-COMMIT workflow.
-
-**Found in:** Workflow Review (2025-10-07)
 
 ---
 
@@ -1342,152 +1198,6 @@ async for event in service.stream(
 - Event mapping logic needs LangChain event documentation
 
 **Found in:** Streaming Endpoint Code Review (2025-10-19)
-
----
-
-## Issue 32: Fix bare except clause in WebSocket endpoint ✅ RESOLVED
-
-**Labels:** `bug`, `code-quality`, `medium-priority`, `phase-0`
-
-**Title:** Replace bare except with specific exception types in websocket.py
-
-**Description:**
-The WebSocket endpoint uses a bare `except:` clause which catches all exceptions including system-level ones like KeyboardInterrupt and SystemExit. This can prevent graceful shutdown and hide real bugs.
-
-**File:** `backend/deep_agent/api/v1/websocket.py:264`
-
-**Current Code:**
-```python
-try:
-    await websocket.close()
-except:
-    pass  # Connection may already be closed
-```
-
-**Expected:**
-```python
-try:
-    await websocket.close()
-except (WebSocketDisconnect, RuntimeError):
-    pass  # Connection may already be closed
-```
-
-**Impact:** MEDIUM - Could prevent graceful shutdown, mask real errors, break async task cancellation.
-
-**Why This Matters:**
-- Bare `except:` catches KeyboardInterrupt (Ctrl+C) → prevents user from stopping app
-- Catches SystemExit → prevents application from exiting cleanly
-- Catches asyncio.CancelledError → breaks async task cancellation
-- Hides real bugs that should be surfaced
-
-**Linter:** Ruff (E722) - "Do not use bare `except`"
-
-**Found in:** WebSocket Endpoint Linting Review (2025-10-19)
-
----
-
-## Issue 33: Modernize typing.Dict to dict in WebSocket endpoint ✅ RESOLVED
-
-**Labels:** `technical-debt`, `code-quality`, `low-priority`, `phase-0`
-
-**Title:** Replace deprecated typing.Dict with built-in dict type
-
-**Description:**
-The WebSocket endpoint uses `typing.Dict` which is deprecated in Python 3.9+ per PEP 585. Python 3.10+ (our target) uses the built-in `dict` type directly for type annotations.
-
-**Files:**
-- `backend/deep_agent/api/v1/websocket.py:9` (import statement)
-- `backend/deep_agent/api/v1/websocket.py:45` (type annotation)
-
-**Current Code:**
-```python
-# Line 9
-from typing import Any, Dict
-
-# Line 45
-metadata: Dict[str, Any] | None = Field(...)
-```
-
-**Expected:**
-```python
-# Line 9
-from typing import Any
-
-# Line 45
-metadata: dict[str, Any] | None = Field(...)
-```
-
-**Impact:** LOW - Pure style/modernization issue. No functional impact.
-
-**Benefits:**
-- Follows Python 3.10+ best practices (PEP 585)
-- Consistent with modern Python idioms
-- Simpler syntax (no import needed)
-- Aligns with rest of codebase
-
-**Linter:** Ruff (UP035, UP006) - "`typing.Dict` is deprecated, use `dict` instead"
-
-**Fix Strategy:** Find/replace all `Dict[` → `dict[` in file
-
-**Found in:** WebSocket Endpoint Linting Review (2025-10-19)
-
----
-
-## Issue 34: Fix bare except clauses in WebSocket test file ✅ RESOLVED
-
-**Labels:** `bug`, `testing`, `code-quality`, `medium-priority`, `phase-0`
-
-**Title:** Replace bare except with specific exception types in test_websocket.py
-
-**Description:**
-The WebSocket integration tests use bare `except:` clauses when receiving WebSocket events. This caused tests to hang indefinitely when `receive_json()` waits for events that never arrive, because no timeout exceptions were ever caught.
-
-**File:** `tests/integration/test_api_endpoints/test_websocket.py`
-
-**Locations Fixed:**
-- Line 107: `test_websocket_accepts_chat_message`
-- Line 138: `test_websocket_streams_multiple_events`
-- Line 228: `test_websocket_handles_agent_error`
-- Line 287: `test_websocket_handles_concurrent_messages` (first loop)
-- Line 303: `test_websocket_handles_concurrent_messages` (second loop)
-
-**Current Code:**
-```python
-try:
-    event = websocket.receive_json()
-    events.append(event)
-except:  # BAD - hangs indefinitely
-    break
-```
-
-**Fixed Code:**
-```python
-try:
-    event = websocket.receive_json()
-    events.append(event)
-except (WebSocketDisconnect, Exception):  # GOOD - specific exceptions
-    break
-```
-
-**Impact:** MEDIUM-HIGH - Tests were hanging for >10 minutes each due to this issue.
-
-**Root Cause:**
-1. `receive_json()` waits indefinitely for events without a timeout
-2. Bare `except:` was meant to catch exceptions and break the loop
-3. Without timeouts, no exceptions were raised → infinite wait
-4. Bare `except:` also catches system exceptions (KeyboardInterrupt, SystemExit)
-
-**Benefits of Fix:**
-- Tests no longer hang indefinitely
-- Proper exception handling (doesn't catch system-level exceptions)
-- Follows Python best practices (explicit exception types)
-- Consistent with production code (Issue #32)
-
-**Linter:** Ruff (E722) - "Do not use bare `except`"
-
-**Resolution:** Fixed in commit alongside Issue #32 and #33 (2025-10-19)
-
-**Found in:** WebSocket Test Investigation (2025-10-19)
 
 ---
 
@@ -2306,252 +2016,6 @@ def test_websocket_cleanup_on_unmount(self, page: Page) -> None:
 
 ---
 
-## Issue 44: useWebSocket callback dependency causes infinite reconnection loops ✅ RESOLVED
-
-**Labels:** `bug`, `high-priority`, `phase-0-layer-7`, `react`
-
-**Title:** Fix callback dependency issue in useWebSocket hook to prevent infinite reconnection loops
-
-**Description:**
-The `connect` function includes `onEvent` and `onError` in its dependency array, but these callbacks can change on every render if passed inline by the parent component. This will trigger infinite reconnection loops when callbacks are recreated on every render.
-
-**File:** `frontend/hooks/useWebSocket.ts:166`
-
-**Current Code:**
-```typescript
-const connect = useCallback(() => {
-  // ... implementation ...
-}, [getWebSocketUrl, reconnect, getReconnectDelay, onEvent, onError]);
-```
-
-**Problem:**
-If parent component passes callbacks like:
-```tsx
-<Component onEvent={(e) => console.log(e)} />
-```
-These get recreated every render → `connect` recreates every render → infinite reconnection loops.
-
-**Fix (Option 1 - Recommended):**
-```typescript
-// Use refs for callbacks
-const onEventRef = useRef(onEvent);
-const onErrorRef = useRef(onError);
-
-useEffect(() => {
-  onEventRef.current = onEvent;
-  onErrorRef.current = onError;
-}, [onEvent, onError]);
-
-const connect = useCallback(() => {
-  // ... implementation ...
-  if (onEventRef.current) {
-    onEventRef.current(data);
-  }
-  // ... rest of implementation ...
-}, [getWebSocketUrl, reconnect, getReconnectDelay]);
-// Remove onEvent, onError from deps ^
-```
-
-**Fix (Option 2):**
-Document that users MUST memoize callbacks:
-```typescript
-/**
- * @param onEvent - Callback for AG-UI events. MUST be memoized with useCallback.
- * @param onError - Callback for errors. MUST be memoized with useCallback.
- */
-```
-
-**Recommendation:** Use Option 1 (refs) - safer and doesn't rely on user discipline.
-
-**Impact:** HIGH - Can cause infinite loops if callbacks not memoized by parent.
-
-**Found in:** useWebSocket Hook Code Review (2025-10-20)
-
----
-
-## Issue 45: useWebSocket missing rate limiting for sendMessage ✅ RESOLVED
-
-**Labels:** `enhancement`, `security`, `high-priority`, `phase-0-layer-7`
-
-**Title:** Add rate limiting to useWebSocket sendMessage function
-
-**Resolution Date:** 2025-10-25
-
-**Resolution Summary:**
-Implemented sliding window rate limiting (10 messages per 60 seconds) in `sendMessage` function. Uses `sendTimestampsRef` to track message timestamps, filters expired timestamps, blocks requests exceeding limit with clear error messages.
-
-**Implementation:** `frontend/hooks/useWebSocket.ts:61-64, 231-250`
-
-**Validation:** 4/4 tests passing in `frontend/hooks/__tests__/useWebSocket.test.ts:353-429`
-- ✅ Allows 10 messages within window
-- ✅ Blocks 11th message with error
-- ✅ Resets after 60-second window expires
-- ✅ Exact timing validation
-
-**Description:**
-Users can spam messages, potentially overwhelming the backend or hitting rate limits. Per Phase 0 requirements, all expensive operations should have rate limiting protection.
-
-**File:** `frontend/hooks/useWebSocket.ts:190-218` (OLD - see Implementation above)
-
-**Recommended Implementation:**
-```typescript
-// Add rate limiting state
-const sendTimestampsRef = useRef<number[]>([]);
-const SEND_RATE_LIMIT = 10; // messages
-const SEND_RATE_WINDOW = 60000; // 60 seconds
-
-const sendMessage = useCallback(
-  (message: string, thread_id: string, metadata?: Record<string, any>) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.warn('[useWebSocket] Cannot send message: not connected');
-      return;
-    }
-
-    // Check rate limit
-    const now = Date.now();
-    sendTimestampsRef.current = sendTimestampsRef.current.filter(
-      (ts) => now - ts < SEND_RATE_WINDOW
-    );
-
-    if (sendTimestampsRef.current.length >= SEND_RATE_LIMIT) {
-      const rateLimitError = new Error(
-        `Rate limit exceeded: ${SEND_RATE_LIMIT} messages per ${SEND_RATE_WINDOW / 1000}s`
-      );
-      console.error('[useWebSocket]', rateLimitError);
-      setError(rateLimitError);
-
-      if (onErrorRef.current) {
-        onErrorRef.current(rateLimitError);
-      }
-      return;
-    }
-
-    sendTimestampsRef.current.push(now);
-
-    // ... rest of implementation
-  },
-  []
-);
-```
-
-**Impact:** HIGH - Users can spam backend, violates Phase 0 infrastructure requirements.
-
-**Benefits:**
-- Prevents backend overload from message spam
-- Better user experience (clear rate limit errors)
-- Aligns with Phase 0 requirements
-
-**Found in:** useWebSocket Hook Code Review (2025-10-20)
-
----
-
-## Issue 46: useWebSocket missing max reconnection attempts (infinite retry risk) ✅ RESOLVED
-
-**Labels:** `bug`, `reliability`, `high-priority`, `phase-0-layer-7`
-
-**Title:** Implement max reconnection attempts in useWebSocket hook
-
-**Resolution Date:** 2025-10-25
-
-**Resolution Summary:**
-Implemented circuit breaker pattern with `maxReconnectAttempts` (default: 10). After max attempts exceeded, connection status changes to 'error', error callback invoked with clear message, and reconnection stops. Counter resets to 0 on successful connection. Normal closures (code 1000) don't trigger reconnection.
-
-**Implementation:** `frontend/hooks/useWebSocket.ts:42, 162-175, 200`
-
-**Validation:** 3/4 tests passing in `frontend/hooks/__tests__/useWebSocket.test.ts:431-537`
-- ✅ Counter resets on successful connection
-- ✅ Normal closure (1000) doesn't trigger reconnect
-- ✅ Exponential backoff delays calculated correctly
-- ⚠️ Max attempts test has false negative (MockWebSocket limitation - see Issue 91)
-
-**Agent Reviews:**
-- testing-expert: 9.5/10 - "Implementation correct, test has false negative due to MockWebSocket always succeeding"
-- code-review-expert: 8.5/10 - Initially flagged as HIGH, but testing-expert analysis showed implementation is correct
-
-**Description:**
-Network failures or backend downtime could cause infinite reconnection attempts, draining battery on mobile devices and creating unnecessary load. No circuit breaker pattern implemented.
-
-**File:** `frontend/hooks/useWebSocket.ts:142-153` (OLD - see Implementation above)
-
-**Current Code:**
-```typescript
-// Auto-reconnect if enabled and not a normal closure
-if (reconnect && event.code !== 1000) {
-  setConnectionStatus('reconnecting');
-  reconnectAttemptRef.current += 1;
-
-  const delay = getReconnectDelay();
-  console.log(`[useWebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current})`);
-
-  reconnectTimeoutRef.current = setTimeout(() => {
-    connect();
-  }, delay);
-}
-```
-
-**Fix:**
-```typescript
-interface UseWebSocketOptions {
-  // ... existing options ...
-  maxReconnectAttempts?: number; // Max reconnect attempts (default: 10)
-}
-
-export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
-  const {
-    // ... existing destructuring ...
-    maxReconnectAttempts = 10,
-  } = options;
-
-  // In ws.onclose handler:
-  ws.onclose = (event) => {
-    console.log('[useWebSocket] Disconnected:', event.code, event.reason);
-    setConnectionStatus('disconnected');
-    wsRef.current = null;
-
-    if (reconnect && event.code !== 1000) {
-      reconnectAttemptRef.current += 1;
-
-      // Check max attempts
-      if (reconnectAttemptRef.current > maxReconnectAttempts) {
-        const maxAttemptsError = new Error(
-          `Max reconnection attempts (${maxReconnectAttempts}) exceeded`
-        );
-        console.error('[useWebSocket]', maxAttemptsError);
-        setError(maxAttemptsError);
-        setConnectionStatus('error');
-
-        if (onErrorRef.current) {
-          onErrorRef.current(maxAttemptsError);
-        }
-        return; // Stop reconnecting
-      }
-
-      setConnectionStatus('reconnecting');
-      const delay = getReconnectDelay();
-      console.log(
-        `[useWebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptRef.current}/${maxReconnectAttempts})`
-      );
-
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connect();
-      }, delay);
-    }
-  };
-}
-```
-
-**Impact:** HIGH - Network failures cause infinite retries, battery drain on mobile.
-
-**Benefits:**
-- Prevents infinite retry loops
-- Better battery life on mobile
-- Clear error state when max attempts reached
-- User can manually retry if needed
-
-**Found in:** useWebSocket Hook Code Review (2025-10-20)
-
----
-
 ## Issue 47: useWebSocket missing input validation for sendMessage
 
 **Labels:** `enhancement`, `security`, `medium-priority`, `phase-0-layer-7`
@@ -3342,47 +2806,6 @@ Zustand devtools are always enabled in development mode. It would be helpful to 
 - Standard practice for optional debugging tools
 
 **Found in:** useAgentState Zustand Store Code Review (2025-10-20)
-
----
-
-## Issue 44: Add TypeScript strict null checks in Zustand state updates
-
-**Labels:** `type-safety`, `frontend`, `good-first-issue`, `phase-0`
-
-**Title:** Improve TypeScript null safety in updateStep current_step logic
-
-**Description:**
-The `updateStep` action has a ternary that could be more explicit about null checking for TypeScript inference and code clarity.
-
-**File:** `frontend/hooks/useAgentState.ts:299-302`
-
-**Current Code:**
-```typescript
-current_step:
-  thread.current_step?.id === step_id
-    ? { ...thread.current_step, ...updates }
-    : thread.current_step,
-```
-
-**Expected:**
-```typescript
-current_step:
-  thread.current_step && thread.current_step.id === step_id
-    ? { ...thread.current_step, ...updates }
-    : thread.current_step,
-```
-
-**Impact:** LOW - Prevents potential runtime errors if current_step is undefined. More explicit intent.
-
-**Benefits:**
-- More explicit null checking
-- Better TypeScript inference
-- Prevents potential runtime errors
-- Clearer code intent
-
-**Found in:** useAgentState Zustand Store Code Review (2025-10-20)
-
----
 
 ---
 
@@ -4689,3 +4112,117 @@ it('should stop reconnecting after max attempts reached', async () => {
 - All CRITICAL and HIGH issues from Layer 7 review MUST be fixed before Phase 0 completion
 - These MEDIUM/LOW issues are tracked for Phase 1 improvements
 - Test coverage requirement (80%+) is CRITICAL blocker for Phase 0
+
+---
+
+## Issue 92: Unit tests failing - Mock Settings missing LANGSMITH_API_KEY
+
+**Labels:** `bug`, `tests`, `high-priority`
+
+**Title:** Fix unit test failures in test_deep_agent.py - Add LANGSMITH_API_KEY to mock settings
+
+**Description:**
+14 unit tests in `tests/unit/test_agents/test_deep_agent.py` are failing because the mock Settings object doesn't have the `LANGSMITH_API_KEY` attribute. When `create_agent()` calls `setup_langsmith(settings)`, it tries to access `settings.LANGSMITH_API_KEY` which doesn't exist on the mock.
+
+**Files:** `tests/unit/test_agents/test_deep_agent.py`
+
+**Failing Tests:**
+- test_create_agent_with_default_settings_uses_get_settings
+- test_agent_creates_llm_from_factory
+- test_agent_uses_custom_reasoning_effort_from_settings
+- test_agent_creates_checkpointer_manager
+- test_checkpointer_manager_context_cleanup
+- test_create_agent_accepts_subagents_parameter
+- test_create_agent_logs_subagent_count
+- test_create_agent_missing_api_key_raises_error
+- test_create_agent_checkpointer_failure_raises_error
+- test_create_agent_invalid_reasoning_effort_raises_error
+- test_agent_creation_logs_configuration
+- test_agent_creation_logs_llm_creation
+- test_create_agent_with_real_deepagents
+
+**Error:**
+```
+AttributeError: Mock object has no attribute 'LANGSMITH_API_KEY'
+```
+
+**Root Cause:**
+Mock Settings fixture needs to include all attributes accessed by `setup_langsmith()`:
+- LANGSMITH_API_KEY
+- LANGSMITH_PROJECT
+- ENV
+
+**Fix:**
+Add missing attributes to mock_settings fixture:
+```python
+mock_settings.LANGSMITH_API_KEY = None  # or empty string
+mock_settings.LANGSMITH_PROJECT = "test-project"
+mock_settings.ENV = "test"
+```
+
+**Impact:** HIGH - Blocks 14 unit tests, affects test coverage
+
+---
+
+## Issue 93: Unit test failing - File system tools description not in source
+
+**Labels:** `bug`, `tests`, `medium-priority`
+
+**Title:** Fix test_system_instructions_include_file_tools_description
+
+**Description:**
+Test `test_system_instructions_include_file_tools_description` expects "file system tools" to appear in the create_agent function source code, but the docstring mentions "file tools" instead.
+
+**File:** `tests/unit/test_agents/test_deep_agent.py:484`
+
+**Error:**
+```
+assert 'file system tools' in source.lower()
+```
+
+**Fix Options:**
+1. Update test to search for "file tools" (current docstring wording)
+2. Update docstring to say "file system tools" (match test expectation)
+3. Remove this test (fragile - tests implementation detail)
+
+**Recommended:** Option 1 or 3 (don't test string presence in source)
+
+**Impact:** LOW - 1 test failure, doesn't affect functionality
+
+---
+
+## Issue 94: Unit tests failing - Settings validation and defaults
+
+**Labels:** `bug`, `tests`, `configuration`, `medium-priority`
+
+**Title:** Fix test_settings_required_fields and test_settings_defaults
+
+**Description:**
+Two configuration tests are failing:
+
+1. **test_settings_required_fields** - Expected ValidationError when creating Settings with no OPENAI_API_KEY, but no error was raised. This means OPENAI_API_KEY might not be properly marked as required.
+
+2. **test_settings_defaults** - Expected DEBUG to default to False, but it's True. The .env file or environment is setting DEBUG=True when tests expect False as default.
+
+**Files:** `tests/unit/test_config.py:41, 54`
+
+**Errors:**
+```
+Failed: DID NOT RAISE <class 'pydantic_core._pydantic_core.ValidationError'>
+AssertionError: assert True is False (DEBUG should be False)
+```
+
+**Root Cause:**
+1. OPENAI_API_KEY may have a default value or not be marked as required
+2. DEBUG is being set from environment (.env file has DEBUG=True for local development)
+
+**Fix:**
+1. Ensure OPENAI_API_KEY has no default and is required in Settings model
+2. Test should either:
+   - Clear environment variables before testing defaults
+   - Use monkeypatch to override env vars
+   - Adjust expectations to match actual defaults from .env
+
+**Impact:** MEDIUM - 2 tests failing, indicates potential config issues
+
+---

@@ -33,9 +33,16 @@ class TestSettings:
         assert settings.API_HOST == "127.0.0.1"
         assert settings.API_PORT == 8000
 
-    def test_settings_required_fields(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_settings_required_fields(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Test that required fields must be provided."""
-        # Clear critical env vars
+        # Create empty .env file to prevent reading from actual .env
+        empty_env = tmp_path / ".env"
+        empty_env.write_text("")
+
+        # Patch env_file to use empty file and delete OPENAI_API_KEY from env
+        monkeypatch.setattr("backend.deep_agent.config.settings.Settings.model_config",
+                           {"env_file": str(empty_env), "env_file_encoding": "utf-8",
+                            "case_sensitive": True, "extra": "ignore"})
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
         with pytest.raises(ValidationError) as exc_info:
@@ -46,6 +53,9 @@ class TestSettings:
     def test_settings_defaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that default values are applied correctly."""
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        # Explicitly set to defaults to override any .env file values
+        monkeypatch.setenv("ENV", "local")
+        monkeypatch.setenv("DEBUG", "false")
 
         settings = Settings()
 

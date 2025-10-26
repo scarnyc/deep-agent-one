@@ -2,7 +2,7 @@
 import logging
 import sys
 from enum import Enum
-from typing import Any, Optional  # TODO: Remove unused Optional import
+from typing import Any, Literal
 
 import structlog
 from structlog.typing import EventDict, Processor
@@ -26,7 +26,7 @@ def add_app_context(logger: Any, method_name: str, event_dict: EventDict) -> Eve
 
 def setup_logging(
     log_level: LogLevel = LogLevel.INFO,
-    log_format: str = "json",  # TODO: Use Literal["json", "standard"] for type safety
+    log_format: Literal["json", "standard"] = "json",
 ) -> None:
     """
     Configure structured logging with structlog.
@@ -38,7 +38,9 @@ def setup_logging(
     # Convert string log level to logging constant
     numeric_level = getattr(logging, log_level.value)
 
-    # TODO: Clear handlers before basicConfig for both formats to prevent accumulation
+    # Clear existing handlers to prevent accumulation on reconfiguration
+    logging.root.handlers.clear()
+
     # Configure standard library logging
     logging.basicConfig(
         format="%(message)s",

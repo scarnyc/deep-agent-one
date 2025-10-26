@@ -19,6 +19,7 @@ from tenacity import (
 
 from backend.deep_agent.config.settings import Settings, get_settings
 from backend.deep_agent.core.logging import get_logger
+from backend.deep_agent.core.security import mask_api_key
 
 logger = get_logger(__name__)
 
@@ -75,11 +76,11 @@ class PerplexityClient:
         self._rate_limit_max = RATE_LIMIT_MAX_REQUESTS
 
         # Mask API key for logging (security: HIGH-2 fix)
-        masked_key = f"{self.api_key[:8]}...{self.api_key[-4:]}"
+        masked_key = mask_api_key(self.api_key)
 
         logger.info(
             "Perplexity MCP client initialized",
-            api_key_prefix=self.api_key[:8],
+            api_key_masked=masked_key,
             timeout=self.timeout,
             rate_limit=f"{self._rate_limit_max}/{self._rate_limit_window}s",
         )

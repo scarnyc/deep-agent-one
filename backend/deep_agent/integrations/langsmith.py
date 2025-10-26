@@ -10,6 +10,7 @@ import os
 
 from backend.deep_agent.config.settings import Settings, get_settings
 from backend.deep_agent.core.logging import get_logger
+from backend.deep_agent.core.security import mask_api_key
 
 logger = get_logger(__name__)
 
@@ -67,15 +68,8 @@ def setup_langsmith(settings: Settings | None = None) -> None:
 
     api_key = api_key.strip()
 
-    # Mask API key for logging (show prefix only)
-    # Format: lsv2_abc...xyz for keys >12 chars, else partial masking
-    api_key_len = len(api_key)
-    if api_key_len > 12:
-        masked_key = f"{api_key[:8]}...{api_key[-4:]}"
-    elif api_key_len > 8:
-        masked_key = f"{api_key[:4]}...***"
-    else:
-        masked_key = "***"
+    # Mask API key for logging (using shared security utility)
+    masked_key = mask_api_key(api_key)
 
     # Set environment variables for automatic tracing
     os.environ["LANGSMITH_API_KEY"] = api_key
