@@ -32,6 +32,10 @@ def mock_settings(tmp_path: Path) -> Settings:
     settings = Mock(spec=Settings)
     settings.ENV = "local"  # Required for prompts module
     settings.OPENAI_API_KEY = "sk-test-key-12345"
+    settings.LANGSMITH_API_KEY = "test-langsmith-key"
+    settings.LANGSMITH_PROJECT = "test-project"
+    settings.LANGSMITH_ENDPOINT = "https://api.smith.langchain.com"
+    settings.LANGSMITH_TRACING_V2 = True
     settings.GPT5_MODEL_NAME = "gpt-5"
     settings.GPT5_DEFAULT_REASONING_EFFORT = "medium"
     settings.GPT5_DEFAULT_VERBOSITY = "medium"  # Valid values: low, medium, high
@@ -133,6 +137,10 @@ class TestCreateAgentBasics:
         test_settings = Mock(spec=Settings)
         test_settings.ENV = "local"  # Required for prompts module
         test_settings.OPENAI_API_KEY = "sk-test-key"
+        test_settings.LANGSMITH_API_KEY = "test-langsmith-key"
+        test_settings.LANGSMITH_PROJECT = "test-project"
+        test_settings.LANGSMITH_ENDPOINT = "https://api.smith.langchain.com"
+        test_settings.LANGSMITH_TRACING_V2 = True
         test_settings.GPT5_MODEL_NAME = "gpt-5"
         test_settings.GPT5_DEFAULT_REASONING_EFFORT = "medium"
         test_settings.GPT5_DEFAULT_VERBOSITY = "medium"

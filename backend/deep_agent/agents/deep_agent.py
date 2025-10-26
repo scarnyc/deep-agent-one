@@ -48,8 +48,8 @@ async def create_agent(
         ...     {"configurable": {"thread_id": "user-123"}}
         ... )
 
-    Built-in Tools:
-        DeepAgents includes these tools by default:
+    File System Tools:
+        DeepAgents includes these file system tools by default:
         - ls: List files in directory
         - read_file: Read file contents
         - write_file: Create new files
@@ -115,14 +115,14 @@ async def create_agent(
             raise
 
         # Get environment-specific system instructions
-        instructions = get_agent_instructions(settings=settings)
+        system_prompt = get_agent_instructions(settings=settings)
 
         # Create DeepAgent using official API
         try:
             compiled_graph = create_deep_agent(
                 model=llm,
                 tools=[web_search],  # Custom tools in addition to built-in tools
-                instructions=instructions,
+                system_prompt=system_prompt,
                 subagents=subagents,
                 checkpointer=checkpointer,
             )
