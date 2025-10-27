@@ -5,62 +5,75 @@ from typing import Any, AsyncIterator, Dict, Iterator
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
+
+from backend.deep_agent.api.dependencies import get_agent_service
 
 
 @pytest.fixture
-def client() -> TestClient:
+def mock_agent_service() -> AsyncMock:
     """
-    Create FastAPI test client with WebSocket support.
+    Create mock AgentService for testing without actual agent execution.
 
-    Imports app here to avoid circular dependencies and ensure
-    fresh app instance for each test.
+    Returns a mock AgentService with a configurable stream() method that
+    can be customized per test.
+    """
+    mock_service = AsyncMock()
+
+    # Default mock streaming response
+    async def mock_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        """Mock async generator for streaming events."""
+        # Simulate AG-UI Protocol events
+        events = [
+            {
+                "event": "on_chat_model_start",
+                "data": {"input": "Hello, agent!"},
+            },
+            {
+                "event": "on_chat_model_stream",
+                "data": {"chunk": {"content": "Hi "}},
+            },
+            {
+                "event": "on_chat_model_stream",
+                "data": {"chunk": {"content": "there!"}},
+            },
+            {
+                "event": "on_chat_model_end",
+                "data": {"output": "Hi there!"},
+            },
+        ]
+        for event in events:
+            yield event
+
+    # Configure mock to return async generator
+    def create_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        return mock_stream(*args, **kwargs)
+
+    mock_service.stream.side_effect = create_stream
+
+    return mock_service
+
+
+@pytest.fixture
+def client(mock_agent_service: AsyncMock) -> Iterator[TestClient]:
+    """
+    Create FastAPI test client with mocked AgentService dependency.
+
+    Uses FastAPI's dependency override mechanism to inject mock service,
+    allowing proper testing without actual agent execution.
     """
     from backend.deep_agent.main import app
-    return TestClient(app)
 
+    # Override the AgentService dependency with our mock
+    app.dependency_overrides[get_agent_service] = lambda: mock_agent_service
 
-@pytest.fixture
-def mock_agent_service() -> Iterator[AsyncMock]:
-    """Mock AgentService for testing without actual agent execution."""
-    with patch("backend.deep_agent.api.v1.websocket.AgentService") as mock:
-        # Create mock instance
-        mock_instance = AsyncMock()
-        mock.return_value = mock_instance
+    # Create test client
+    test_client = TestClient(app)
 
-        # Mock successful streaming response
-        async def mock_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
-            """Mock async generator for streaming events."""
-            # Simulate AG-UI Protocol events
-            events = [
-                {
-                    "event": "on_chat_model_start",
-                    "data": {"input": "Hello, agent!"},
-                },
-                {
-                    "event": "on_chat_model_stream",
-                    "data": {"chunk": {"content": "Hi "}},
-                },
-                {
-                    "event": "on_chat_model_stream",
-                    "data": {"chunk": {"content": "there!"}},
-                },
-                {
-                    "event": "on_chat_model_end",
-                    "data": {"output": "Hi there!"},
-                },
-            ]
-            for event in events:
-                yield event
+    yield test_client
 
-        # Important: Use side_effect to make stream() return the async generator
-        # When stream() is called, it will call mock_stream() which returns the async generator
-        def create_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
-            return mock_stream(*args, **kwargs)
-
-        mock_instance.stream.side_effect = create_stream
-
-        yield mock_instance
+    # Clean up: Remove dependency override
+    app.dependency_overrides.clear()
 
 
 class TestWebSocketEndpoint:

@@ -9,10 +9,11 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from backend.deep_agent.api.dependencies import AgentServiceDep
 from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.services.agent_service import AgentService
 
 logger = get_logger(__name__)
 
@@ -62,7 +63,10 @@ class WebSocketMessage(BaseModel):
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket) -> None:
+async def websocket_endpoint(
+    websocket: WebSocket,
+    service: AgentServiceDep,
+) -> None:
     """
     WebSocket endpoint for real-time agent communication.
 
@@ -113,6 +117,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
     Args:
         websocket: FastAPI WebSocket connection
+        service: AgentService dependency (injected)
 
     Raises:
         WebSocketDisconnect: When client disconnects
@@ -178,10 +183,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             # Process chat message
             if message.type == "chat":
                 try:
-                    # Initialize agent service
-                    service = AgentService()
-
-                    # Stream agent responses
+                    # Stream agent responses using injected service
                     async for event in service.stream(
                         message=message.message,
                         thread_id=message.thread_id,
