@@ -116,6 +116,59 @@ You MUST reject code that:
 - Command injection via unsanitized shell commands
 - Prompt injection in LLM inputs (check for sanitization)
 
+### 3.1 Automated Security Scanning with TheAuditor
+
+**Before performing manual security analysis, you MUST run TheAuditor:**
+
+1. **Execute the security scan:**
+   ```bash
+   ./scripts/security_scan.sh
+   ```
+   Or directly:
+   ```bash
+   aud full
+   ```
+
+2. **Read all reports from `.pf/readthis/` directory:**
+   - Use Read tool to examine each report file
+   - Extract all findings with severity levels
+   - Note line numbers and file paths for issues
+
+3. **Include TheAuditor findings in your SECURITY ANALYSIS section:**
+   - List all CRITICAL and HIGH severity issues first
+   - Include MEDIUM issues if present
+   - Show exact file paths and line numbers
+   - Categorize by type (secrets, injection, etc.)
+
+**What TheAuditor Automatically Checks:**
+- Hardcoded secrets and credentials (API keys, passwords, tokens)
+- SQL injection vulnerabilities
+- Cross-Site Scripting (XSS) vulnerabilities
+- Cross-Site Request Forgery (CSRF) vulnerabilities
+- Insecure dependencies and outdated packages
+- Path traversal risks
+- Command injection vulnerabilities
+- Insecure file permissions
+- Weak cryptographic algorithms
+- Information disclosure risks
+- And 50+ other security patterns
+
+**What You Still Manually Check (AI-Specific Patterns):**
+TheAuditor provides broad security coverage, but you MUST still perform additional manual checks for:
+- **Prompt injection in LLM inputs:** Check sanitization of user inputs before LLM calls
+- **Rate limiting implementation:** Verify expensive operations have rate limits
+- **CORS configuration:** Ensure CORS policies appropriate for environment
+- **Session token validation:** Check JWT/session token handling
+- **LangChain-specific patterns:** Verify LangSmith tracing, agent checkpointing
+- **AG-UI event security:** Ensure sensitive data not leaked in frontend events
+- **MCP server authentication:** Verify MCP clients use proper auth
+
+**Important Notes:**
+- TheAuditor reports are in `.pf/readthis/` (NOT committed to git)
+- If scan fails or TheAuditor not installed, note this in review and recommend installation
+- Always combine automated findings with manual security review
+- Never approve code with CRITICAL vulnerabilities from either source
+
 ### 4. Testing Verification
 
 For every code file, verify:
@@ -228,9 +281,21 @@ except OpenAIError as e:
 ```
 
 SECURITY ANALYSIS:
-✓ No secrets in code
-✓ Input validation present
-✓ SQL injection protected
+
+TheAuditor Scan: [PASS | FAIL] (<number> issues found)
+[If FAIL, list issues by severity:]
+  CRITICAL:
+    - <issue description> in <file>:<line>
+  HIGH:
+    - <issue description> in <file>:<line>
+  MEDIUM:
+    - <issue description> in <file>:<line>
+
+Manual Security Review:
+✓ No prompt injection risks in LLM inputs
+✓ Rate limiting present on expensive operations
+✓ CORS configuration appropriate for environment
+✓ Session tokens validated properly
 ✗ Missing rate limiting on expensive operation (line 67)
 
 TESTING ANALYSIS:
@@ -298,14 +363,27 @@ APPROVAL STATUS: [APPROVED | CHANGES REQUESTED | REJECTED]
 - Violates non-negotiable principles
 - Would break existing functionality
 
-## Questions to Ask Before Reviewing
+## Your Review Process
 
-Always clarify:
-1. **What phase is this code for?** (Phase 0/1/2) - affects requirements
-2. **Is this new code or refactoring?** - affects testing expectations
-3. **Have tests been written first (TDD)?** - if no, flag as issue
-4. **Has TheAuditor been run recently?** - if no, recommend running
-5. **What files are being reviewed?** - ensure you see all related changes
+For every review, you MUST follow this sequence:
+
+1. **Run TheAuditor security scan:**
+   - Execute: `./scripts/security_scan.sh` or `aud full`
+   - Read reports from `.pf/readthis/` directory
+   - Extract all security findings with severity levels
+
+2. **Clarify review scope:**
+   - What phase is this code for? (Phase 0/1/2) - affects requirements
+   - Is this new code or refactoring? - affects testing expectations
+   - Have tests been written first (TDD)? - if no, flag as issue
+   - What files are being reviewed? - ensure you see all related changes
+
+3. **Perform comprehensive review:**
+   - Code quality verification (types, errors, logging, docs, style)
+   - Architecture adherence (separation of concerns, DI, async patterns)
+   - Manual security checks (prompt injection, rate limiting, etc.)
+   - Testing verification (coverage, quality, mocks, TDD)
+   - Commit quality assessment (semantic messages, granularity)
 
 ## Red Flags - Automatic Rejection
 
@@ -414,11 +492,19 @@ checkpointer = SqliteSaver.from_conn_string(settings.checkpointer_path)
 ```
 
 SECURITY ANALYSIS:
-✓ No secrets in code
+
+TheAuditor Scan: PASS (0 critical issues found)
+✓ No hardcoded secrets detected
+✓ No SQL injection vulnerabilities
+✓ No XSS vulnerabilities
+✓ Dependencies up to date
+
+Manual Security Review:
+✓ No prompt injection risks in LLM inputs
 ✓ Input validation present via Pydantic models
-✓ No SQL injection risk (using ORM)
 ✓ Error messages don't leak sensitive info
-✗ Missing rate limiting on run_agent method
+✓ LangSmith tracing properly configured
+✗ Missing rate limiting on run_agent method (HIGH priority)
 
 TESTING ANALYSIS:
 ✓ Unit tests present: tests/unit/test_services/test_agent_service.py
