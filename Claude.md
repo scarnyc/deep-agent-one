@@ -701,10 +701,12 @@ Use semantic commit messages:
 - No fixup commits needed (cleaner history)
 - Standard code quality gate pattern
 - All issues (critical AND non-critical) tracked before merge
+- **Automated security scanning catches vulnerabilities before commit**
 
 **Workflow:**
 
 1. **Write code/tests** following TDD principles
+
 2. **Run testing-expert** (if tests were written):
    ```bash
    # Before committing tests, verify:
@@ -714,14 +716,24 @@ Use semantic commit messages:
    # - Proper mocking
    # Agent will identify issues and suggest improvements
    ```
+
 3. **Run code-review-expert** (for all code):
    ```bash
-   # Before committing implementation, verify:
-   # - Type hints present
-   # - Security best practices
-   # - Error handling comprehensive
-   # - Integration patterns correct
-   # Agent will identify issues and suggest improvements
+   # The agent will AUTOMATICALLY:
+   # 1. Run TheAuditor security scan (./scripts/security_scan.sh)
+   # 2. Read reports from .pf/readthis/ directory
+   # 3. Include security findings in review report
+   # 4. Perform manual security analysis
+   # 5. Verify type hints, error handling, logging
+   # 6. Check architecture adherence
+   # 7. Validate testing coverage
+
+   # You will receive a comprehensive report with:
+   # - TheAuditor scan results (CRITICAL/HIGH/MEDIUM issues)
+   # - Manual security review findings
+   # - Code quality issues
+   # - Testing gaps
+   # - Commit quality feedback
    ```
 4. **Review agent findings and track ALL issues:**
    - **CRITICAL/HIGH issues:** MUST fix before commit (blocking)
@@ -753,7 +765,14 @@ Use semantic commit messages:
 
 # 4. Run code-review-expert BEFORE committing implementation
 # [Use Task tool with code-review-expert subagent]
+# [Agent automatically runs: ./scripts/security_scan.sh]
+# [Agent reads reports from .pf/readthis/]
 # Result: APPROVED WITH MINOR RECOMMENDATIONS (8.5/10)
+# TheAuditor Scan: PASS (0 critical issues)
+# - ✓ No hardcoded secrets
+# - ✓ No SQL injection vulnerabilities
+# - ✓ Dependencies up to date
+# Manual Security Review:
 # - HIGH: None
 # - MEDIUM: None
 # - LOW: Could add more detailed docstring examples (logged to GITHUB_ISSUES.md)
@@ -776,10 +795,16 @@ git commit -m "feat(phase-0): implement Web Search Tool using Perplexity MCP cli
 - ❌ NO fixup commits needed (code already reviewed)
 - ✅ Git history contains ONLY approved code
 - ✅ Faster progression (no going back after commit)
+- ✅ Automated security scanning on every commit
+- ✅ No security vulnerabilities slip through
 - ⚠️ Slightly slower initial workflow (10-15 min wait before commit)
 
-**Time Investment:** 10-15 minutes per feature for review + issue tracking
-**Return:** Clean git history, zero unreviewed code in main branch, comprehensive issue tracking
+**Time Investment:** 10-15 minutes per feature for review + issue tracking + security scanning
+**Return:**
+- Clean git history with zero unreviewed code
+- Comprehensive issue tracking (functional + security)
+- No vulnerabilities in committed code
+- Automated + manual security analysis
 
 ---
 
