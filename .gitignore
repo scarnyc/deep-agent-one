@@ -47,6 +47,7 @@ env/
 .venv
 .env.local
 .env.*.local
+.auditor_venv/
 
 # Environment Variables
 .env
