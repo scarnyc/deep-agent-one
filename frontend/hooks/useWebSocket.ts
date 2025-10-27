@@ -30,6 +30,7 @@ interface UseWebSocketReturn {
   ) => void;
   connectionStatus: ConnectionStatus;
   isConnected: boolean;
+  readyState: number; // WebSocket readyState (CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3)
   error: Error | null;
   connect: () => void;
   disconnect: () => void;
@@ -49,6 +50,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
   // State
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const [readyState, setReadyState] = useState<number>(WebSocket.CLOSED); // 3 = CLOSED
   const [error, setError] = useState<Error | null>(null);
   const isConnected = connectionStatus === 'connected';
 
@@ -131,6 +133,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
     try {
       setConnectionStatus('connecting');
+      setReadyState(WebSocket.CONNECTING); // 0 = CONNECTING
       setError(null);
 
       const wsUrl = getWebSocketUrl();
@@ -159,6 +162,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           console.log('[useWebSocket] Connected to', wsUrl);
         }
         setConnectionStatus('connected');
+        setReadyState(WebSocket.OPEN); // 1 = OPEN
         reconnectAttemptRef.current = 0; // Reset reconnect counter
       };
 
@@ -196,6 +200,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           console.log('[useWebSocket] Disconnected:', event.code, event.reason);
         }
         setConnectionStatus('disconnected');
+        setReadyState(WebSocket.CLOSED); // 3 = CLOSED
         wsRef.current = null;
 
         // Auto-reconnect if enabled and not a normal closure (HIGH-3 fix: max attempts)
@@ -384,6 +389,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     sendMessage,
     connectionStatus,
     isConnected,
+    readyState,
     error,
     connect,
     disconnect,
