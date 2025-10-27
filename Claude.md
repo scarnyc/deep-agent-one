@@ -264,10 +264,6 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 - Retry logic with exponential backoff
 - Structured error handling
 
-#### 7. Prompt Optimization (Opik)
-- Auto-prompt optimization
-- A/B testing infrastructure
-
 ### Success Criteria - Phase 0
 
 **Must Pass All:**
@@ -515,8 +511,9 @@ echo "✅ Live API tests complete!"
    - Company-specific branding, animations, and UX enhancements
    - Use `@ag-ui/core` types and `@ag-ui/react` hooks as building blocks
    - Replace CopilotKit components incrementally as needed
+7. Prompt Optimization (Opik) - Auto-prompt optimization, A/B testing infrastructure, prompt versioning
 
-**Key Metrics:** Memory retrieval >90%, auth token refresh >99%, deep reasoning >5% queries, provenance 100% sources
+**Key Metrics:** Memory retrieval >90%, auth token refresh >99%, deep reasoning >5% queries, provenance 100% sources, prompt A/B improvement >10%
 
 ---
 
