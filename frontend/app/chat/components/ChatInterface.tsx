@@ -151,7 +151,7 @@ function MessageItem({ message }: { message: AgentMessage }) {
  */
 export default function ChatInterface() {
   const { active_thread_id, threads, addMessage } = useAgentState();
-  const { sendMessage, isConnected, connectionStatus } = useWebSocket();
+  const { sendMessage, isConnected, connectionStatus, readyState } = useWebSocket();
 
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -211,14 +211,26 @@ export default function ChatInterface() {
     switch (connectionStatus) {
       case 'connected':
         return (
-          <Badge variant="outline" className="text-green-500 border-green-500/20">
+          <Badge
+            variant="outline"
+            className="text-green-500 border-green-500/20"
+            data-testid="ws-status"
+            data-status={connectionStatus}
+            data-ready-state={readyState}
+          >
             Connected
           </Badge>
         );
       case 'connecting':
       case 'reconnecting':
         return (
-          <Badge variant="outline" className="text-yellow-500 border-yellow-500/20">
+          <Badge
+            variant="outline"
+            className="text-yellow-500 border-yellow-500/20"
+            data-testid="ws-status"
+            data-status={connectionStatus}
+            data-ready-state={readyState}
+          >
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
             {connectionStatus === 'connecting' ? 'Connecting' : 'Reconnecting'}
           </Badge>
@@ -226,7 +238,13 @@ export default function ChatInterface() {
       case 'disconnected':
       case 'error':
         return (
-          <Badge variant="outline" className="text-destructive border-destructive/20">
+          <Badge
+            variant="outline"
+            className="text-destructive border-destructive/20"
+            data-testid="ws-status"
+            data-status={connectionStatus}
+            data-ready-state={readyState}
+          >
             <AlertCircle className="h-3 w-3 mr-1" />
             Disconnected
           </Badge>
