@@ -29,24 +29,13 @@ def __init__(self) -> None:
     self.complexity_threshold_medium: float = 0.5
 ```
 
-**Suggested:**
-```python
-def __init__(self, config: Settings | None = None) -> None:
-    if config is None:
-        config = get_settings()
-
-    self.trigger_phrases = config.TRIGGER_PHRASES.split(",")
-    self.complexity_threshold_high = config.COMPLEXITY_THRESHOLD_HIGH
-    self.complexity_threshold_medium = config.COMPLEXITY_THRESHOLD_MEDIUM
-```
-
 **Impact:** MEDIUM - Should be fixed in Phase 1 when implementing actual trigger phrase detection. Not blocking for Phase 0.
 
 **Related Files:**
 - `backend/deep_agent/config/settings.py` (Settings class)
 - `.env.example:19-21` (Configuration values already defined)
 
-**Found in:** Layer 2 Code Review (2025-10-06)
+**Found in:** Layer 2 Review
 
 ---
 
@@ -62,30 +51,9 @@ Post-commit review by testing-expert identified optional coverage improvement. L
 **File:** `backend/deep_agent/integrations/mcp_clients/perplexity.py:347`
 **Test File:** `tests/integration/test_mcp_integration/test_perplexity.py`
 
-**Missing Test:**
-```python
-async def test_format_results_handles_empty_results(
-    self,
-    mock_settings: Settings,
-) -> None:
-    """Test formatting empty results returns helpful message."""
-    from backend.deep_agent.integrations.mcp_clients.perplexity import (
-        PerplexityClient,
-    )
-
-    client = PerplexityClient(settings=mock_settings)
-    empty_results = {"results": [], "query": "test query", "sources": 0}
-
-    # Act
-    formatted = client.format_results_for_agent(empty_results)
-
-    # Assert
-    assert 'No results found for "test query"' in formatted
-```
-
 **Impact:** VERY LOW - Current 89.89% coverage exceeds 80% requirement. This is an optional quality improvement.
 
-**Found in:** Layer 4 Post-Commit Review (2025-10-07, commit 647498c)
+**Found in:** Layer 4 Post-Commit Review
 
 ---
 
@@ -103,109 +71,9 @@ All three agent models (`AgentRunInfo`, `HITLApprovalRequest`, `HITLApprovalResp
 - `backend/deep_agent/models/agents.py:155-166` (HITLApprovalRequest)
 - `backend/deep_agent/models/agents.py:223-234` (HITLApprovalResponse)
 
-**Current Duplication:**
-```python
-@field_validator("run_id", "thread_id", mode="before")
-@classmethod
-def strip_and_validate_string(cls, v: Any) -> str:
-    """Strip whitespace and validate string is not empty."""
-    if not isinstance(v, str):
-        raise ValueError("Value must be a string")
-
-    stripped = v.strip()
-    if not stripped:
-        raise ValueError("Value cannot be empty or whitespace-only")
-
-    return stripped
-```
-
-**Recommended Solution:**
-
-**Option 1:** Create shared validator utility in `backend/deep_agent/models/validators.py`:
-```python
-"""Shared Pydantic validators for Deep Agent models."""
-from typing import Any
-
-from pydantic import field_validator
-
-
-def strip_and_validate_string_field(v: Any) -> str:
-    """
-    Strip whitespace and validate string is not empty.
-
-    Shared validator for string fields across all models.
-
-    Args:
-        v: Value to validate
-
-    Returns:
-        Stripped string
-
-    Raises:
-        ValueError: If value is not a string or is empty/whitespace-only
-    """
-    if not isinstance(v, str):
-        raise ValueError("Value must be a string")
-
-    stripped = v.strip()
-    if not stripped:
-        raise ValueError("Value cannot be empty or whitespace-only")
-
-    return stripped
-```
-
-Then in models:
-```python
-from backend.deep_agent.models.validators import strip_and_validate_string_field
-
-class AgentRunInfo(BaseModel):
-    # ...
-
-    @field_validator("run_id", "thread_id", mode="before")
-    @classmethod
-    def strip_and_validate_string(cls, v: Any) -> str:
-        """Strip whitespace and validate string is not empty."""
-        return strip_and_validate_string_field(v)
-```
-
-**Option 2:** Create base model class (more comprehensive):
-```python
-class BaseAgentModel(BaseModel):
-    """Base model with common validators for agent models."""
-
-    @field_validator("*", mode="before")
-    @classmethod
-    def strip_and_validate_string(cls, v: Any, field: FieldInfo) -> Any:
-        """Strip whitespace and validate string fields are not empty."""
-        if not isinstance(v, str):
-            return v  # Only process strings
-
-        stripped = v.strip()
-        if not stripped and field.is_required():
-            raise ValueError(f"{field.field_name} cannot be empty or whitespace-only")
-
-        return stripped if stripped else v
-
-class AgentRunInfo(BaseAgentModel):
-    # Inherits validator, no need to duplicate
-    ...
-```
-
 **Impact:** LOW - Code duplication exists but doesn't affect functionality. Should be addressed in Phase 1 when broader model refactoring occurs.
 
-**Benefits:**
-- Single source of truth for string validation
-- Easier to enhance validation logic (e.g., add Unicode normalization)
-- Reduces code duplication by ~30 lines
-- Improves maintainability
-
-**Trade-offs:**
-- Option 1: Adds one more import per model file
-- Option 2: More invasive refactoring, affects all models
-
-**Note:** This same duplication exists in `chat.py` models (lines 60-71, 112-123, 179-190, 245-256). Should be addressed consistently across all models.
-
-**Found in:** Agent Models Code Review (2025-10-07)
+**Found in:** Agent Models Review
 
 ---
 
@@ -222,7 +90,7 @@ The current health endpoint only returns `{"status": "healthy"}` without checkin
 
 **Impact:** LOW - Basic health check is sufficient for Phase 0. Enhanced checks recommended for Phase 1 production deployment.
 
-**Found in:** FastAPI App Code Review (2025-10-07)
+**Found in:** FastAPI App Review
 
 ---
 
@@ -239,7 +107,7 @@ The FastAPI app version is hardcoded as `"0.1.0"` instead of being loaded from a
 
 **Impact:** LOW - Minor quality improvement. Hardcoded version is acceptable for Phase 0.
 
-**Found in:** FastAPI App Code Review (2025-10-07)
+**Found in:** FastAPI App Review
 
 ---
 
@@ -254,64 +122,9 @@ The POST /chat/stream endpoint doesn't enforce a timeout, potentially allowing i
 
 **File:** `backend/deep_agent/api/v1/chat.py:220-284`
 
-**Recommended Implementation:**
-```python
-import asyncio
-from backend.deep_agent.config.settings import get_settings
-
-async def event_generator() -> AsyncGenerator[str, None]:
-    """Generate SSE-formatted events from agent stream."""
-    settings = get_settings()
-    
-    try:
-        service = AgentService()
-        
-        # Add timeout protection (default: 5 minutes)
-        timeout_seconds = settings.STREAM_TIMEOUT or 300
-        
-        async with asyncio.timeout(timeout_seconds):
-            async for event in service.stream(
-                message=request_body.message,
-                thread_id=request_body.thread_id,
-            ):
-                event_json = json.dumps(event)
-                yield f"data: {event_json}\n\n"
-                
-    except asyncio.TimeoutError:
-        logger.warning(
-            "Chat stream timeout",
-            request_id=request_id,
-            thread_id=request_body.thread_id,
-            timeout=timeout_seconds,
-        )
-        error_event = {
-            "event_type": "error",
-            "data": {
-                "error": f"Stream timeout exceeded ({timeout_seconds}s)",
-                "status": "timeout"
-            },
-        }
-        yield f"data: {json.dumps(error_event)}\n\n"
-```
-
-**Configuration Addition:**
-```python
-# In backend/deep_agent/config/settings.py
-STREAM_TIMEOUT: int = Field(
-    default=300,
-    description="Maximum duration for SSE streams (seconds)",
-)
-```
-
 **Impact:** MEDIUM - Not critical for Phase 0 single-user dev, important for production.
 
-**Benefits:**
-- Prevents resource exhaustion from stuck/infinite streams
-- Configurable per-environment (dev vs prod)
-- Graceful timeout with error event sent to client
-- Better observability (timeout logged)
-
-**Found in:** Streaming Endpoint Code Review (2025-10-19)
+**Found in:** Streaming Endpoint Review
 
 ---
 
@@ -337,44 +150,9 @@ async for event in service.stream(
     yield f"data: {event_json}\n\n"
 ```
 
-**Suggested Enhancement:**
-```python
-from backend.deep_agent.integrations.ag_ui import transform_to_ag_ui_event
-
-async for event in service.stream(
-    message=request_body.message,
-    thread_id=request_body.thread_id,
-):
-    # Transform LangChain event to AG-UI Protocol format
-    ag_ui_event = transform_to_ag_ui_event(event, thread_id=request_body.thread_id)
-    
-    if ag_ui_event:  # Some events may be filtered
-        event_json = json.dumps(ag_ui_event)
-        yield f"data: {event_json}\n\n"
-```
-
-**Implementation Location:** `backend/deep_agent/integrations/ag_ui.py`
-
-**Required AG-UI Events (per CLAUDE.md):**
-- **Lifecycle:** RunStarted, RunFinished, RunError
-- **Steps:** StepStarted, StepFinished
-- **Messages:** TextMessageStart, TextMessageContent, TextMessageEnd
-- **Tools:** ToolCallStart, ToolCallArgs, ToolCallEnd, ToolCallResult
-- **HITL:** Custom events for approval workflows
-
 **Impact:** MEDIUM - Required for Layer 7 (Frontend AG-UI implementation), not blocking for Layer 6.
 
-**Benefits:**
-- Frontend receives properly formatted events
-- Consistent event structure across UI
-- Enables AG-UI features (progress tracking, tool transparency, HITL)
-- Decouples backend event format from frontend expectations
-
-**Dependencies:**
-- Requires AG-UI SDK integration (Layer 7)
-- Event mapping logic needs LangChain event documentation
-
-**Found in:** Streaming Endpoint Code Review (2025-10-19)
+**Found in:** Streaming Endpoint Review
 
 ---
 
@@ -400,41 +178,6 @@ All Playwright tests in `test_websocket_connection.py` navigate to `http://local
 
 **Impact:** MEDIUM - Tests cannot run until Layer 7 UI components exist. This creates a dependency order issue for TDD workflow.
 
-**Recommended Solutions:**
-
-**Option 1: Skip tests until UI ready (quick fix)**
-```python
-@pytest.mark.skip(reason="Pending Layer 7 UI implementation (ChatInterface)")
-class TestWebSocketConnection:
-    ...
-```
-
-**Option 2: Implement tests alongside UI (TDD best practice)**
-- Create chat interface first (Layer 7 TODO)
-- Implement tests as UI components are built
-- Ensure data-testid attributes match test expectations
-
-**Option 3: Create minimal test harness (compromise)**
-Create `tests/ui/fixtures/websocket_test_page.html`:
-```html
-<!DOCTYPE html>
-<html>
-<body>
-  <div data-testid="ws-status">disconnected</div>
-  <input data-testid="message-input" type="text" />
-  <button data-testid="send-button">Send</button>
-  <div data-testid="chat-history"></div>
-  <div data-testid="ws-error" style="display:none"></div>
-  <script src="useWebSocket-bundle.js"></script>
-</body>
-</html>
-```
-
-**Benefits:**
-- Option 1: Unblocks other testing work
-- Option 2: Follows TDD principles correctly
-- Option 3: Allows hook testing independently of full UI
-
 **Found in:** Playwright WebSocket Tests Review (2025-10-20)
 
 ---
@@ -447,76 +190,6 @@ Create `tests/ui/fixtures/websocket_test_page.html`:
 
 **Description:**
 Playwright UI tests use `page: Page` fixture but there's no `conftest.py` to provide Playwright configuration. Tests need proper setup including browser context, base URL, timeout settings, and screenshot-on-failure.
-
-**Missing File:** `tests/ui/conftest.py`
-
-**Current Impact:** Tests likely won't run or will use default Playwright configuration without project-specific settings.
-
-**Required Configuration:**
-
-```python
-"""Playwright UI test configuration and fixtures."""
-import pytest
-from playwright.sync_api import Browser, BrowserContext, Page
-
-
-@pytest.fixture(scope="session")
-def browser_context_args(browser_context_args):
-    """Configure browser context for all tests."""
-    return {
-        **browser_context_args,
-        "viewport": {"width": 1280, "height": 720},
-        "record_video_dir": "test-results/videos",
-        "record_video_size": {"width": 1280, "height": 720},
-    }
-
-
-@pytest.fixture(scope="session")
-def base_url():
-    """Base URL for frontend application."""
-    return "http://localhost:3000"
-
-
-@pytest.fixture
-def page(page: Page, base_url: str):
-    """Page fixture with base URL configured."""
-    page.set_default_timeout(10000)  # 10s default timeout
-    yield page
-    # Screenshot on failure handled by pytest-playwright
-
-
-@pytest.fixture(scope="session", autouse=True)
-def verify_backend_running():
-    """Ensure backend WebSocket server is running before tests."""
-    import requests
-    import websocket
-
-    try:
-        # Check health endpoint
-        response = requests.get("http://localhost:8000/health", timeout=5)
-        assert response.status_code == 200
-
-        # Test WebSocket connection
-        ws = websocket.create_connection(
-            "ws://localhost:8000/api/v1/ws",
-            timeout=5
-        )
-        ws.close()
-    except Exception as e:
-        pytest.skip(f"Backend server not available: {e}")
-
-
-@pytest.fixture(scope="session", autouse=True)
-def verify_frontend_running(base_url: str):
-    """Ensure frontend is running before tests."""
-    import requests
-
-    try:
-        response = requests.get(base_url, timeout=5)
-        assert response.status_code == 200
-    except Exception as e:
-        pytest.skip(f"Frontend not available at {base_url}: {e}")
-```
 
 **Additional Configuration Files:**
 
@@ -532,13 +205,6 @@ playwright_headed = false
 playwright_slow_mo = 0
 playwright_browser = chromium
 ```
-
-**Benefits:**
-- Proper browser configuration
-- Automatic video recording on failure
-- Backend/frontend availability checks (skip tests if not running)
-- Consistent timeout settings
-- Better test isolation
 
 **Impact:** MEDIUM - Tests can't run reliably without proper configuration.
 
@@ -599,12 +265,6 @@ expect(connection_status).to_have_attribute("data-ready-state", "1")  # OPEN
 # Also verify text for user visibility
 expect(connection_status).to_have_text("connected")
 ```
-
-**Benefits:**
-- Verifies actual WebSocket state (not just UI text)
-- Can differentiate between connection states
-- Catches bugs where UI shows "connected" but WebSocket is broken
-- Tests state machine transitions properly
 
 **Impact:** MEDIUM - Current tests may pass even if WebSocket isn't actually connected.
 
@@ -692,12 +352,6 @@ def test_websocket_receives_events(self, page: Page) -> None:
     expect(chat_history).to_contain_text(/\w+/)  # Assistant response (non-empty)
 ```
 
-**Benefits:**
-- Verifies actual AG-UI Protocol implementation
-- Catches event parsing errors
-- Verifies event order/sequence
-- Tests core framework integration (not just UI text)
-
 **Impact:** MEDIUM - Tests don't verify the core functionality they claim to test.
 
 **Dependencies:** Requires Layer 7 AG-UI integration (Issue #31 - transform LangChain events to AG-UI format)
@@ -740,45 +394,6 @@ def test_websocket_invalid_json_error(self, page: Page) -> None:
 - Test only verifies error indicator hidden during normal operation
 - No actual error handling tested
 - Provides zero coverage of JSON parsing error paths
-
-**Recommended Solutions:**
-
-**Option 1: Remove the test (simplest)**
-```python
-# Delete test_websocket_invalid_json_error() entirely
-# Invalid JSON from backend would be caught by backend tests, not UI tests
-```
-
-**Option 2: Test real error handling via backend mock**
-```python
-def test_websocket_invalid_json_error(self, page: Page) -> None:
-    """Test WebSocket handles invalid JSON gracefully."""
-    # Arrange: Set up route to inject bad JSON
-    page.route("**/api/v1/ws", lambda route: route.fulfill(
-        body="{invalid json}",  # Malformed JSON
-        headers={"Content-Type": "application/json"}
-    ))
-
-    page.goto("http://localhost:3000/chat")
-
-    # Act: Try to connect (will receive invalid JSON)
-
-    # Assert: Error state shown
-    error_indicator = page.locator('[data-testid="ws-error"]')
-    expect(error_indicator).to_be_visible(timeout=5000)
-    expect(error_indicator).to_contain_text("Failed to parse")
-
-    # Connection status should show error
-    expect(page.locator('[data-testid="ws-status"]')).to_have_text("error")
-```
-
-**Option 3: Use console injection (complex, brittle)**
-```python
-# Use page.evaluate() to simulate parse error in WebSocket handler
-# Not recommended - too coupled to implementation details
-```
-
-**Recommendation:** Option 1 (remove test) is best. Invalid JSON errors should be tested at the integration level (backend tests), not UI tests. UI tests should focus on user-visible error states, not low-level parsing errors.
 
 **Impact:** MEDIUM - Test provides zero value and misleads about coverage.
 
@@ -876,12 +491,6 @@ def test_websocket_disconnect_during_reconnection(self, page: Page) -> None:
 ```
 
 **Impact:** LOW - Edge cases unlikely in normal operation but would improve robustness.
-
-**Benefits:**
-- Catches rare but critical bugs
-- Improves production reliability
-- Demonstrates thorough testing
-- Prevents user-facing errors in edge conditions
 
 **Found in:** Playwright WebSocket Tests Review (2025-10-20)
 
@@ -996,17 +605,6 @@ def test_websocket_memory_usage(self, page: Page) -> None:
 
 **Impact:** VERY LOW - Nice to have for performance regression detection, not critical for Phase 0.
 
-**Benefits:**
-- Detects performance regressions early
-- Validates Phase 0 success criteria (latency <2s)
-- Provides baseline metrics for optimization
-- Catches memory leaks before production
-
-**Trade-offs:**
-- Performance tests can be flaky (network variance)
-- May need to run multiple times and average results
-- Thresholds may need adjustment per environment
-
 **Found in:** Playwright WebSocket Tests Review (2025-10-20)
 
 ---
@@ -1060,13 +658,6 @@ def test_websocket_sends_valid_message(self, page: Page) -> None:
     chat_history = page.locator('[data-testid="chat-history"]')
     expect(chat_history).to_contain_text("Hello from test", timeout=3000)
 ```
-
-**Benefits:**
-- Clear separation of test phases
-- Easier to understand test flow at a glance
-- Simplifies debugging (know which phase failed)
-- Better maintainability
-- Consistent with other test files in project
 
 **Pattern to Apply:**
 ```python
@@ -1126,49 +717,6 @@ def test_websocket_cleanup_on_unmount(self, page: Page) -> None:
 - No verification of WebSocket count in browser
 - Comment claims "prevents memory leaks" but test doesn't verify
 
-**Recommended Enhancement:**
-```python
-def test_websocket_cleanup_on_unmount(self, page: Page) -> None:
-    """Test WebSocket connection closes when component unmounts and doesn't leak."""
-    # Arrange: Connect initially
-    page.goto("http://localhost:3000/chat")
-    connection_status = page.locator('[data-testid="ws-status"]')
-    expect(connection_status).to_have_text("connected", timeout=5000)
-
-    # Act: Navigate away (unmount) and back (remount)
-    page.goto("http://localhost:3000/")
-    page.wait_for_timeout(500)  # Ensure cleanup completes
-    page.goto("http://localhost:3000/chat")
-
-    # Assert: Reconnects successfully
-    expect(connection_status).to_have_text("connected", timeout=5000)
-
-    # Assert: No duplicate WebSocket connections
-    # Check performance API for WebSocket connection count
-    ws_connections = page.evaluate("""() => {
-        // Count active WebSocket connections via performance API
-        const entries = performance.getEntriesByType('resource');
-        return entries.filter(e =>
-            e.name.includes('/ws') &&
-            e.initiatorType === 'websocket'
-        ).length;
-    }""")
-
-    assert ws_connections == 1, f"Expected 1 WebSocket, found {ws_connections} (memory leak?)"
-
-    # Assert: No console errors about failed WebSocket cleanup
-    console_logs = []
-    page.on("console", lambda msg: console_logs.append(msg.text()))
-
-    # Do another mount/unmount cycle
-    page.goto("http://localhost:3000/")
-    page.goto("http://localhost:3000/chat")
-
-    # Check for error messages
-    error_logs = [log for log in console_logs if "error" in log.lower()]
-    assert len(error_logs) == 0, f"Found console errors: {error_logs}"
-```
-
 **Alternative Approach (Simpler):**
 ```python
 # Just verify console has no errors and connection works
@@ -1178,22 +726,11 @@ def test_websocket_cleanup_on_unmount(self, page: Page) -> None:
 
 **Impact:** VERY LOW - Memory leaks unlikely with React hooks' built-in cleanup, but good to verify.
 
-**Benefits:**
-- Catches potential useEffect cleanup bugs
-- Verifies WebSocket.close() is called
-- Demonstrates thorough testing
-- Provides confidence in production behavior
-
-**Trade-offs:**
-- Browser WebSocket count APIs are limited
-- May need platform-specific detection
-- More complex test for marginal benefit
-
 **Found in:** Playwright WebSocket Tests Review (2025-10-20)
 
 ---
 
-## Issue 37: Add thread_id validation in createThread action
+## Issue 92: Add thread_id validation in createThread action
 
 **Labels:** `enhancement`, `frontend`, `validation`, `phase-0`
 
@@ -1221,41 +758,13 @@ createThread: (thread_id: string) => {
 },
 ```
 
-**Expected:**
-```typescript
-createThread: (thread_id: string) => {
-  // Validation
-  if (!thread_id || typeof thread_id !== 'string' || thread_id.trim() === '') {
-    console.error('[useAgentState] Invalid thread_id provided to createThread:', thread_id);
-    return;
-  }
-
-  set(
-    (state) => ({
-      threads: {
-        ...state.threads,
-        [thread_id]: createEmptyThread(thread_id),
-      },
-      active_thread_id: thread_id,
-    }),
-    false,
-    'createThread'
-  );
-},
-```
-
 **Impact:** MEDIUM - Empty thread IDs could cause state lookup failures, WebSocket routing errors, and UI displaying wrong thread data.
 
-**Benefits:**
-- Prevents creating invalid thread entries
-- Clearer error messages for debugging
-- Defensive programming against API/WebSocket errors
-
-**Found in:** useAgentState Zustand Store Code Review (2025-10-20)
+**Found in:** useAgentState Zustand Store Review
 
 ---
 
-## Issue 38: Refactor Zustand selectors to prevent unnecessary re-renders
+## Issue 93: Refactor Zustand selectors to prevent unnecessary re-renders
 
 **Labels:** `performance`, `frontend`, `refactor`, `phase-0`
 
@@ -1288,51 +797,13 @@ getMessagesByThread: (thread_id: string) => {
 },
 ```
 
-**Expected:**
-```typescript
-// REMOVE from store definition, create separate hooks:
-
-/**
- * Hook to get the active conversation thread
- */
-export const useActiveThread = () =>
-  useAgentState((state) => {
-    if (!state.active_thread_id) return null;
-    return state.threads[state.active_thread_id] || null;
-  });
-
-/**
- * Hook to get pending HITL request for a thread
- */
-export const usePendingHITL = (thread_id: string) =>
-  useAgentState((state) => {
-    const thread = state.threads[thread_id];
-    return thread?.hitl_request;
-  });
-
-/**
- * Hook to get all messages for a thread
- */
-export const useThreadMessages = (thread_id: string) =>
-  useAgentState((state) => {
-    const thread = state.threads[thread_id];
-    return thread?.messages || [];
-  });
-```
-
 **Impact:** MEDIUM - Poor performance with many messages/tool calls. Components re-render on every state change instead of only when selected data changes.
 
-**Benefits:**
-- Zustand's selector pattern provides automatic shallow equality checks
-- Reduces unnecessary re-renders (better performance)
-- Standard Zustand best practice
-- Better React DevTools profiling
-
-**Found in:** useAgentState Zustand Store Code Review (2025-10-20)
+**Found in:** useAgentState Zustand Store Review
 
 ---
 
-## Issue 39: Add deleteThread action to prevent memory leaks
+## Issue 94: Add deleteThread action to prevent memory leaks
 
 **Labels:** `enhancement`, `frontend`, `memory`, `phase-0`
 
@@ -1364,43 +835,13 @@ clearThread: (thread_id: string) => {
 },
 ```
 
-**Expected:**
-```typescript
-/**
- * Delete a conversation thread completely
- */
-deleteThread: (thread_id: string) => {
-  set(
-    (state) => {
-      const { [thread_id]: deleted, ...remaining } = state.threads;
-
-      return {
-        threads: remaining,
-        // Clear active_thread_id if deleting active thread
-        active_thread_id:
-          state.active_thread_id === thread_id
-            ? null
-            : state.active_thread_id,
-      };
-    },
-    false,
-    'deleteThread'
-  );
-},
-```
-
 **Impact:** MEDIUM - Long-running sessions accumulate threads in memory with no cleanup mechanism. Memory usage grows unbounded.
 
-**Benefits:**
-- Prevents memory leaks in long sessions
-- User control over conversation history
-- Better memory management for production deployments
-
-**Found in:** useAgentState Zustand Store Code Review (2025-10-20)
+**Found in:** useAgentState Zustand Store Review
 
 ---
 
-## Issue 40: Add XSS sanitization for user message content in Zustand store
+## Issue 95: Add XSS sanitization for user message content in Zustand store
 
 **Labels:** `security`, `frontend`, `enhancement`, `phase-0`
 
@@ -1442,58 +883,13 @@ addMessage: (thread_id: string, message: Omit<AgentMessage, 'id' | 'timestamp'>)
 },
 ```
 
-**Expected:**
-```typescript
-import DOMPurify from 'isomorphic-dompurify'; // npm install isomorphic-dompurify
-
-addMessage: (thread_id: string, message: Omit<AgentMessage, 'id' | 'timestamp'>) => {
-  set(
-    (state) => {
-      const thread = state.threads[thread_id];
-      if (!thread) return state;
-
-      // Sanitize content to prevent XSS
-      const sanitizedContent =
-        message.role === 'user'
-          ? DOMPurify.sanitize(message.content, { ALLOWED_TAGS: [] }) // Strip all HTML from user input
-          : message.content; // Trust assistant/system messages
-
-      const newMessage: AgentMessage = {
-        ...message,
-        content: sanitizedContent,
-        id: generateId(),
-        timestamp: new Date().toISOString(),
-      };
-
-      return {
-        threads: {
-          ...state.threads,
-          [thread_id]: {
-            ...thread,
-            messages: [...thread.messages, newMessage],
-            updated_at: new Date().toISOString(),
-          },
-        },
-      };
-    },
-    false,
-    'addMessage'
-  );
-},
-```
-
 **Impact:** LOW - Risk depends on how UI components render messages. Defense-in-depth security principle.
 
-**Benefits:**
-- Prevents XSS if UI components don't sanitize
-- Defense-in-depth security approach
-- Industry best practice for user-generated content
-
-**Found in:** useAgentState Zustand Store Code Review (2025-10-20)
+**Found in:** useAgentState Zustand Store Review
 
 ---
 
-## Issue 41: Add error logging for missing entities in Zustand update actions
+## Issue 96: Add error logging for missing entities in Zustand update actions
 
 **Labels:** `enhancement`, `frontend`, `observability`, `phase-0`
 
@@ -1535,59 +931,13 @@ updateMessage: (
 },
 ```
 
-**Expected:**
-```typescript
-updateMessage: (
-  thread_id: string,
-  message_id: string,
-  updates: Partial<AgentMessage>
-) => {
-  set(
-    (state) => {
-      const thread = state.threads[thread_id];
-      if (!thread) {
-        console.warn(`[useAgentState] Thread ${thread_id} not found in updateMessage`);
-        return state;
-      }
-
-      // Validate that message exists
-      const messageExists = thread.messages.some((msg) => msg.id === message_id);
-      if (!messageExists) {
-        console.warn(`[useAgentState] Message ${message_id} not found in thread ${thread_id}`);
-        return state;
-      }
-
-      return {
-        threads: {
-          ...state.threads,
-          [thread_id]: {
-            ...thread,
-            messages: thread.messages.map((msg) =>
-              msg.id === message_id ? { ...msg, ...updates } : msg
-            ),
-            updated_at: new Date().toISOString(),
-          },
-        },
-      };
-    },
-    false,
-    'updateMessage'
-  );
-},
-```
-
 **Impact:** LOW - Makes debugging easier but doesn't affect functionality when everything works correctly.
 
-**Benefits:**
-- Easier debugging of WebSocket event ordering issues
-- Clearer error messages for development
-- Helps identify race conditions or ID mismatches
-
-**Found in:** useAgentState Zustand Store Code Review (2025-10-20)
+**Found in:** useAgentState Zustand Store Review
 
 ---
 
-## Issue 42: Add JSDoc examples for complex Zustand actions
+## Issue 97: Add JSDoc examples for complex Zustand actions
 
 **Labels:** `documentation`, `frontend`, `good-first-issue`, `phase-0`
 
@@ -1612,13 +962,7 @@ updateMessage: (
 },
 ```
 
-**Expected:**
-```typescript
-/**
- * Update an existing message in a thread
- *
- * @example
- * ```typescript
+typescript
  * // Update message content during streaming
  * updateMessage('thread-123', 'msg-456', {
  *   content: existingContent + newChunk
@@ -1641,17 +985,11 @@ updateMessage: (
 
 **Impact:** LOW - Documentation improvement, no functional change.
 
-**Benefits:**
-- Easier onboarding for new developers
-- Clearer usage patterns
-- Reduces misuse of partial updates
-- Better IDE autocomplete hints
-
-**Found in:** useAgentState Zustand Store Code Review (2025-10-20)
+**Found in:** useAgentState Zustand Store Review
 
 ---
 
-## Issue 43: Make Zustand devtools configurable via environment variable
+## Issue 98: Make Zustand devtools configurable via environment variable
 
 **Labels:** `enhancement`, `frontend`, `developer-experience`, `phase-0`
 
@@ -1670,23 +1008,9 @@ Zustand devtools are always enabled in development mode. It would be helpful to 
 }
 ```
 
-**Expected:**
-```typescript
-{
-  name: 'agent-state',
-  enabled: process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_ENABLE_ZUSTAND_DEVTOOLS !== 'false',
-}
-```
-
 **Impact:** LOW - Developer experience improvement, no functional change.
 
-**Benefits:**
-- Allows disabling devtools for performance testing in dev mode
-- Reduces noise when debugging other issues
-- More control over dev experience
-- Standard practice for optional debugging tools
-
-**Found in:** useAgentState Zustand Store Code Review (2025-10-20)
+**Found in:** useAgentState Zustand Store Review
 
 ---
 
@@ -1712,26 +1036,7 @@ else:
     page.goto("http://localhost:3000/chat?new=true")
 ```
 
-**Recommended Fix:**
-```python
-# Option 1: Explicit assertion (if feature exists)
-new_chat_button = page.locator('[data-testid="new-chat-button"]')
-expect(new_chat_button).to_be_visible(timeout=3000)
-new_chat_button.click()
-
-# Option 2: Skip test if feature not ready (Phase 0)
-@pytest.mark.skip(reason="New chat button not implemented in Phase 0")
-def test_multiple_threads_isolation(self, page: Page) -> None:
-    ...
-```
-
 **Impact:** MEDIUM - Tests may silently pass when features are missing, giving false confidence in test coverage.
-
-**Benefits:**
-- Tests fail explicitly when features missing
-- Clear signal of incomplete implementation
-- More reliable test suite
-- Better test failure debugging
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -1763,29 +1068,7 @@ def test_persist_state_across_page_refresh(self, page: Page) -> None:
     # expect(chat_history).to_contain_text("Persistent message", timeout=5000)
 ```
 
-**Recommended Fix:**
-```python
-# Option 1: If persistence IS implemented
-def test_persist_state_across_page_refresh(self, page: Page) -> None:
-    """Test agent state persists across page refresh."""
-    # ... setup code ...
-    expect(chat_history).to_contain_text("Persistent message", timeout=5000)
-
-# Option 2: If persistence NOT in Phase 0
-@pytest.mark.skip(reason="State persistence not implemented in Phase 0")
-def test_persist_state_across_page_refresh(self, page: Page) -> None:
-    """Test agent state persists across page refresh."""
-    pass
-
-# Option 3: Remove test entirely if not planned
-```
-
 **Impact:** MEDIUM - Test exists but doesn't test anything, reducing actual coverage.
-
-**Benefits:**
-- Clear test outcome (pass/fail/skip)
-- Accurate coverage reporting
-- No confusion about test purpose
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -1811,25 +1094,7 @@ page.click('[data-testid="send-button"]')
 thread_1_id = page.locator('[data-testid="thread-id"]').inner_text()
 ```
 
-**Recommended Fix:**
-```python
-# Thread 1
-page.fill('[data-testid="message-input"]', "Thread 1 content")
-page.click('[data-testid="send-button"]')
-
-# Wait for thread ID to be visible and populated
-thread_id_element = page.locator('[data-testid="thread-id"]')
-expect(thread_id_element).to_be_visible(timeout=5000)
-expect(thread_id_element).not_to_be_empty()
-thread_1_id = thread_id_element.inner_text()
-```
-
 **Impact:** MEDIUM - Test may fail intermittently due to race condition.
-
-**Benefits:**
-- Eliminates race condition
-- More reliable test execution
-- Clear assertion of prerequisite state
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -1852,29 +1117,7 @@ def test_create_new_thread(self, page: Page) -> None:
     page.goto("http://localhost:3000/chat")
 ```
 
-**Recommended Fix:**
-```python
-# In tests/ui/conftest.py
-import os
-import pytest
-
-@pytest.fixture(scope="session")
-def base_url() -> str:
-    """Get base URL for frontend from environment."""
-    return os.getenv("FRONTEND_URL", "http://localhost:3000")
-
-# In tests
-def test_create_new_thread(self, page: Page, base_url: str) -> None:
-    page.goto(f"{base_url}/chat")
-```
-
 **Impact:** MEDIUM - Tests can't run against different environments without code changes.
-
-**Benefits:**
-- Tests work in CI/CD pipelines
-- Can test against staging/production
-- Docker-friendly testing
-- Standard testing practice
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -1891,49 +1134,7 @@ Zustand store has `updateMessage` and `updateToolCall` actions, but no UI tests 
 
 **File:** `tests/ui/test_agent_state.py`
 
-**Suggested Test:**
-```python
-def test_update_existing_message_content(self, page: Page) -> None:
-    """Test updating an existing message's content."""
-    # Send message
-    page.fill('[data-testid="message-input"]', "Original message")
-    page.click('[data-testid="send-button"]')
-    
-    # Wait for message to appear
-    message = page.locator('[data-testid="message-user"]').first
-    expect(message).to_contain_text("Original message")
-    
-    # Trigger message edit (if UI supports it)
-    edit_button = page.locator('[data-testid="edit-message"]').first
-    if edit_button.is_visible():
-        edit_button.click()
-        page.fill('[data-testid="edit-input"]', "Updated message")
-        page.click('[data-testid="save-edit"]')
-        
-        # Verify update
-        expect(message).to_contain_text("Updated message")
-        expect(message).not_to_contain_text("Original message")
-
-def test_update_tool_call_status(self, page: Page) -> None:
-    """Test tool call status updates from pending -> running -> completed."""
-    # Trigger tool call
-    page.fill('[data-testid="message-input"]', "Search for Python")
-    page.click('[data-testid="send-button"]')
-    
-    tool_call = page.locator('[data-testid="tool-call"]').first
-    
-    # Verify status transitions
-    expect(tool_call).to_have_attribute("data-status", "pending", timeout=3000)
-    expect(tool_call).to_have_attribute("data-status", "running", timeout=5000)
-    expect(tool_call).to_have_attribute("data-status", "completed", timeout=10000)
-```
-
 **Impact:** LOW - Core functionality works, but edge cases for updates not tested.
-
-**Benefits:**
-- Complete test coverage of store actions
-- Catches bugs in partial updates
-- Verifies state immutability
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -1950,37 +1151,7 @@ Zustand store has `addStep` and `updateStep` actions for tracking agent subtasks
 
 **File:** `tests/ui/test_agent_state.py`
 
-**Suggested Test:**
-```python
-def test_track_agent_steps_in_state(self, page: Page) -> None:
-    """Test agent steps/subtasks are tracked and displayed."""
-    page.goto(f"{base_url}/chat")
-    expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected")
-    
-    # Send complex query that triggers multiple steps
-    page.fill('[data-testid="message-input"]', "Research and summarize Python best practices")
-    page.click('[data-testid="send-button"]')
-    
-    # Verify steps appear
-    steps_list = page.locator('[data-testid="agent-steps"]')
-    expect(steps_list).to_be_visible(timeout=5000)
-    
-    # Verify at least one step exists
-    first_step = page.locator('[data-testid="agent-step"]').first
-    expect(first_step).to_be_visible()
-    expect(first_step).to_have_attribute("data-status", /pending|running|completed/)
-
-def test_update_step_status_progression(self, page: Page) -> None:
-    """Test step status updates from pending -> running -> completed."""
-    # ... similar to tool call status test ...
-```
-
 **Impact:** LOW - Subtask tracking is supplementary feature, not core functionality.
-
-**Benefits:**
-- Verifies progress indicator UI works
-- Tests complete AG-UI event handling
-- Better user experience validation
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -1997,61 +1168,7 @@ No tests verify agent state handles errors correctly (failed tool calls, agent e
 
 **File:** `tests/ui/test_agent_state.py`
 
-**Suggested Tests:**
-```python
-def test_agent_error_state_handling(self, page: Page) -> None:
-    """Test agent state transitions to error and displays error message."""
-    page.goto(f"{base_url}/chat")
-    
-    # Trigger error (e.g., invalid query, backend timeout)
-    page.fill('[data-testid="message-input"]', "TRIGGER_ERROR_MODE")
-    page.click('[data-testid="send-button"]')
-    
-    # Verify error state
-    agent_status = page.locator('[data-testid="agent-status"]')
-    expect(agent_status).to_have_text(/error|failed/, timeout=10000)
-    
-    # Verify error message displayed
-    error_message = page.locator('[data-testid="error-message"]')
-    expect(error_message).to_be_visible()
-    expect(error_message).not_to_be_empty()
-
-def test_tool_call_error_state(self, page: Page) -> None:
-    """Test tool call transitions to error state on failure."""
-    page.fill('[data-testid="message-input"]', "Search for INVALID_QUERY_123")
-    page.click('[data-testid="send-button"]')
-    
-    tool_call = page.locator('[data-testid="tool-call"]').first
-    expect(tool_call).to_have_attribute("data-status", "error", timeout=10000)
-    
-    # Verify error details available
-    error_details = tool_call.locator('[data-testid="tool-error"]')
-    expect(error_details).to_be_visible()
-
-def test_recover_from_error_state(self, page: Page) -> None:
-    """Test agent can recover from error state with new message."""
-    # Trigger error
-    page.fill('[data-testid="message-input"]', "TRIGGER_ERROR")
-    page.click('[data-testid="send-button"]')
-    
-    agent_status = page.locator('[data-testid="agent-status"]')
-    expect(agent_status).to_have_text(/error/, timeout=10000)
-    
-    # Send new valid message
-    page.fill('[data-testid="message-input"]', "Hello")
-    page.click('[data-testid="send-button"]')
-    
-    # Verify recovery
-    expect(agent_status).to_have_text(/running|idle/, timeout=10000)
-```
-
 **Impact:** LOW - Error handling is important but tests can be added later.
-
-**Benefits:**
-- Verifies error states work correctly
-- Tests error recovery paths
-- Better reliability validation
-- Prevents error state bugs
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -2068,53 +1185,7 @@ No tests verify agent state handles concurrent operations correctly (multiple to
 
 **File:** `tests/ui/test_agent_state.py`
 
-**Suggested Test:**
-```python
-def test_track_multiple_concurrent_tool_calls(self, page: Page) -> None:
-    """Test state correctly tracks multiple tool calls running simultaneously."""
-    page.goto(f"{base_url}/chat")
-    
-    # Trigger query that uses multiple tools concurrently
-    page.fill('[data-testid="message-input"]', "Search web AND read file AND analyze data")
-    page.click('[data-testid="send-button"]')
-    
-    # Verify multiple tool calls appear
-    tool_calls = page.locator('[data-testid="tool-call"]')
-    expect(tool_calls).to_have_count(3, timeout=10000)  # Or at least 2+
-    
-    # Verify each has correct status
-    for i in range(3):
-        tool_call = tool_calls.nth(i)
-        expect(tool_call).to_have_attribute("data-status", /pending|running|completed/)
-        expect(tool_call).to_have_attribute("data-tool-name")  # Has name
-
-def test_rapid_message_updates(self, page: Page) -> None:
-    """Test state handles rapid streaming message updates."""
-    page.fill('[data-testid="message-input"]', "Generate long response")
-    page.click('[data-testid="send-button"]')
-    
-    assistant_message = page.locator('[data-testid="message-assistant"]').first
-    expect(assistant_message).to_be_visible(timeout=10000)
-    
-    # Verify message content updates rapidly (streaming)
-    # Wait for partial content, then full content
-    expect(assistant_message).to_contain_text(/.+/, timeout=2000)  # Some text
-    
-    # Wait for completion
-    agent_status = page.locator('[data-testid="agent-status"]')
-    expect(agent_status).to_have_text(/completed|idle/, timeout=15000)
-    
-    # Verify final message is complete
-    final_text = assistant_message.inner_text()
-    assert len(final_text) > 50  # Long response
-```
-
 **Impact:** LOW - Concurrent operations are edge cases, core functionality works sequentially.
-
-**Benefits:**
-- Catches race conditions
-- Verifies state immutability under concurrency
-- Better reliability for complex workflows
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -2131,52 +1202,7 @@ No tests verify agent state UI components are accessible (ARIA labels, keyboard 
 
 **File:** `tests/ui/test_agent_state.py`
 
-**Suggested Test:**
-```python
-def test_agent_state_accessibility(self, page: Page) -> None:
-    """Test agent state UI has proper accessibility attributes."""
-    page.goto(f"{base_url}/chat")
-    
-    # Check ARIA labels
-    message_input = page.locator('[data-testid="message-input"]')
-    expect(message_input).to_have_attribute("aria-label", /message|input/)
-    
-    send_button = page.locator('[data-testid="send-button"]')
-    expect(send_button).to_have_attribute("aria-label", /send|submit/)
-    
-    agent_status = page.locator('[data-testid="agent-status"]')
-    expect(agent_status).to_have_attribute("role", "status")
-    expect(agent_status).to_have_attribute("aria-live", "polite")
-    
-    # Check keyboard navigation
-    message_input.focus()
-    page.keyboard.press("Tab")
-    # Verify focus moved to send button
-    expect(send_button).to_be_focused()
-
-def test_screen_reader_announcements(self, page: Page) -> None:
-    """Test important state changes have screen reader announcements."""
-    page.goto(f"{base_url}/chat")
-    
-    # Check for aria-live regions
-    status_region = page.locator('[aria-live="polite"]')
-    expect(status_region).to_be_attached()
-    
-    # Trigger state change
-    page.fill('[data-testid="message-input"]', "Hello")
-    page.click('[data-testid="send-button"]')
-    
-    # Verify status region updates
-    expect(status_region).to_contain_text(/running|processing/, timeout=5000)
-```
-
 **Impact:** LOW - Accessibility is important but can be added incrementally.
-
-**Benefits:**
-- WCAG compliance
-- Better user experience for assistive tech users
-- Legal compliance (ADA, Section 508)
-- Standard best practice
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -2200,29 +1226,7 @@ Tests use inconsistent timeout values (3s, 5s, 10s, 15s) with no clear rationale
 - Agent completion: 15s (line 100)
 - Tool calls: 10s (lines 78, 116)
 
-**Recommended Standard:**
-```python
-# In conftest.py or test constants
-TIMEOUT_WS_CONNECTION = 5000  # WebSocket connection
-TIMEOUT_UI_UPDATE = 3000      # UI element display
-TIMEOUT_AGENT_RESPONSE = 10000  # Agent response generation
-TIMEOUT_TOOL_EXECUTION = 10000  # Tool call completion
-TIMEOUT_AGENT_COMPLETION = 15000  # Full agent run completion
-
-# In tests
-expect(page.locator('[data-testid="ws-status"]')).to_have_text(
-    "connected", 
-    timeout=TIMEOUT_WS_CONNECTION
-)
-```
-
 **Impact:** LOW - Tests work, but inconsistent timeouts reduce clarity.
-
-**Benefits:**
-- Clear timeout rationale
-- Easier to adjust timeouts globally
-- Better test readability
-- Standard testing practice
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -2239,48 +1243,7 @@ Tests verify `clearThread` action (removes messages but keeps thread), but no te
 
 **File:** `tests/ui/test_agent_state.py`
 
-**Suggested Test:**
-```python
-def test_delete_thread_removes_from_store(self, page: Page) -> None:
-    """Test deleting a thread removes it from the store entirely."""
-    page.goto(f"{base_url}/chat")
-    
-    # Create thread and add content
-    page.fill('[data-testid="message-input"]', "Test message")
-    page.click('[data-testid="send-button"]')
-    
-    thread_id_element = page.locator('[data-testid="thread-id"]')
-    expect(thread_id_element).to_be_visible()
-    thread_id = thread_id_element.inner_text()
-    
-    # Delete thread (if UI supports it)
-    delete_button = page.locator('[data-testid="delete-thread-button"]')
-    if delete_button.is_visible():
-        delete_button.click()
-        
-        # Confirm deletion
-        confirm_button = page.locator('[data-testid="confirm-delete"]')
-        if confirm_button.is_visible():
-            confirm_button.click()
-        
-        # Verify thread ID changed (new thread created)
-        new_thread_id_element = page.locator('[data-testid="thread-id"]')
-        expect(new_thread_id_element).to_be_visible(timeout=3000)
-        new_thread_id = new_thread_id_element.inner_text()
-        
-        assert new_thread_id != thread_id  # Different thread
-        
-        # Verify old thread content not visible
-        chat_history = page.locator('[data-testid="chat-history"]')
-        expect(chat_history).not_to_contain_text("Test message")
-```
-
 **Impact:** LOW - Thread deletion is administrative feature, not core workflow.
-
-**Benefits:**
-- Complete coverage of store actions
-- Verifies thread lifecycle management
-- Tests thread isolation
 
 **Found in:** Agent State UI Tests Review (2025-10-20)
 
@@ -2307,13 +1270,6 @@ Agent name "deepAgent" is hardcoded in the CopilotKit provider, preventing flexi
 <CopilotKit runtimeUrl="/api/copilotkit" agent="deepAgent">
 ```
 
-**Recommended Fix:**
-```tsx
-const AGENT_NAME = process.env.NEXT_PUBLIC_AGENT_NAME || 'deepAgent';
-
-<CopilotKit runtimeUrl="/api/copilotkit" agent={AGENT_NAME}>
-```
-
 **Impact:** Minor - limits flexibility but doesn't affect Phase 0 functionality.
 
 ---
@@ -2333,19 +1289,6 @@ Environment variable `NEXT_PUBLIC_API_URL` is not validated on startup, could le
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 ```
 
-**Recommended Fix:**
-```typescript
-const BACKEND_URL = (() => {
-  const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  try {
-    new URL(url); // Validate URL format
-    return url;
-  } catch {
-    throw new Error('Invalid NEXT_PUBLIC_API_URL');
-  }
-})();
-```
-
 **Impact:** Medium - prevents startup with invalid configuration.
 
 ---
@@ -2363,21 +1306,6 @@ Health check endpoint exposes internal backend URL to clients, which could aid r
 **Current Code:**
 ```typescript
 export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    backend: BACKEND_URL,
-    message: 'CopilotKit API Route (Phase 0)',
-  });
-}
-```
-
-**Recommended Fix:**
-```typescript
-export async function GET() {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ status: 'ok' });
-  }
-
   return NextResponse.json({
     status: 'ok',
     backend: BACKEND_URL,
@@ -2412,20 +1340,6 @@ Chat interface labels are hardcoded, making internationalization (i18n) difficul
 />
 ```
 
-**Recommended Fix:**
-```tsx
-const CHAT_LABELS = {
-  title: 'Deep Agent',
-  initial: "Hi! I'm Deep Agent. I can search the web, execute code, manage files, and more. How can I help you today?",
-  placeholder: 'Ask me anything...',
-};
-
-<CopilotChat
-  className="h-full rounded-2xl shadow-xl border border-border"
-  labels={CHAT_LABELS}
-/>
-```
-
 **Impact:** Low - future enhancement for i18n support.
 
 ---
@@ -2439,36 +1353,6 @@ const CHAT_LABELS = {
 
 **Description:**
 ChatPage doesn't wrap useAgentState in error boundary, causing full page crash if store errors occur.
-
-**Recommended Fix:**
-```tsx
-import { ErrorBoundary } from 'react-error-boundary';
-
-function ChatErrorFallback({ error, resetErrorBoundary }: any) {
-  return (
-    <div className="h-screen w-full flex items-center justify-center p-4">
-      <div className="text-center max-w-md">
-        <h2 className="text-xl font-bold mb-2">Chat Unavailable</h2>
-        <p className="text-muted-foreground mb-4">{error.message}</p>
-        <button
-          onClick={resetErrorBoundary}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded"
-        >
-          Try Again
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export default function ChatPage() {
-  return (
-    <ErrorBoundary FallbackComponent={ChatErrorFallback}>
-      <ChatPageContent />
-    </ErrorBoundary>
-  );
-}
-```
 
 **Impact:** Medium - improves UX during failures.
 
@@ -2487,31 +1371,6 @@ Browser alert() is used for JSON validation errors, which is jarring UX and does
 **Current Code:**
 ```tsx
 alert('Invalid JSON. Please fix the syntax.');
-```
-
-**Recommended Fix:**
-```tsx
-import { useToast } from '@/components/ui/use-toast';
-
-function HITLApprovalUI({ ... }) {
-  const { toast } = useToast();
-
-  const handleEdit = () => {
-    try {
-      const parsed = JSON.parse(editedArgs);
-      onApprove?.({
-        approved: true,
-        metadata: { action: 'edit', editedArgs: parsed },
-      });
-    } catch (error) {
-      toast({
-        title: 'Invalid JSON',
-        description: 'Please check your syntax and try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-}
 ```
 
 **Impact:** Medium - better UX consistency.
@@ -2562,18 +1421,6 @@ Extract to `frontend/config/hitl-actions.ts` with configuration array.
 **Description:**
 CSS variables are redefined instead of directly referencing global CSS variables, risking inconsistency.
 
-**Recommended Fix:**
-```css
-.copilotKitChat {
-  /* Reference global CSS variables directly */
-  --copilot-kit-primary-color: var(--primary);
-  --copilot-kit-background-color: var(--background);
-  --copilot-kit-secondary-color: var(--secondary);
-  --copilot-kit-muted-color: var(--muted);
-  --copilot-kit-border-color: var(--border);
-}
-```
-
 **Impact:** Low - theme consistency.
 
 ---
@@ -2588,22 +1435,6 @@ CSS variables are redefined instead of directly referencing global CSS variables
 **Description:**
 Scrollbar styling only works in Chrome/Safari/Edge, Firefox users get default scrollbars.
 
-**Recommended Fix:**
-```css
-/* WebKit browsers (Chrome, Safari, Edge) */
-.copilotKitMessages::-webkit-scrollbar {
-  width: 8px;
-}
-
-/* ... existing WebKit styles ... */
-
-/* Firefox */
-.copilotKitMessages {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));
-}
-```
-
 **Impact:** Low-Medium - better cross-browser UX.
 
 ---
@@ -2617,36 +1448,6 @@ Scrollbar styling only works in Chrome/Safari/Edge, Firefox users get default sc
 
 **Description:**
 Zustand state updates use manual spreading instead of Immer middleware, making code verbose and error-prone.
-
-**Recommended Fix:**
-```typescript
-import { immer } from 'zustand/middleware/immer';
-
-export const useAgentState = create<AgentState>()(
-  devtools(
-    immer((set, get) => ({
-      threads: {},
-      active_thread_id: null,
-
-      addMessage: (thread_id: string, message: Omit<AgentMessage, 'id' | 'timestamp'>) => {
-        set((state) => {
-          const thread = state.threads[thread_id];
-          if (!thread) return;
-
-          const newMessage: AgentMessage = {
-            ...message,
-            id: generateId(),
-            timestamp: new Date().toISOString(),
-          };
-
-          thread.messages.push(newMessage);
-          thread.updated_at = new Date().toISOString();
-        });
-      },
-    }))
-  )
-);
-```
 
 **Impact:** Medium - cleaner code, better performance.
 
@@ -2741,33 +1542,6 @@ Add keyboard event listeners for common shortcuts (Cmd/Ctrl+Enter for approve).
 
 **Description:**
 User loses entire conversation history on page refresh, poor UX for long sessions.
-
-**Recommended Fix:**
-```typescript
-import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-
-export const useAgentState = create<AgentState>()(
-  devtools(
-    persist(
-      (set, get) => ({
-        // ... existing state and actions
-      }),
-      {
-        name: 'agent-state-storage',
-        partialize: (state) => ({
-          threads: state.threads,
-          active_thread_id: state.active_thread_id,
-        }),
-      }
-    ),
-    {
-      name: 'agent-state',
-      enabled: process.env.NODE_ENV === 'development',
-    }
-  )
-);
-```
 
 **Impact:** Medium - significant UX improvement.
 
