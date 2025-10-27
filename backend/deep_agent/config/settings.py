@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     GPT5_DEFAULT_REASONING_EFFORT: Literal["minimal", "low", "medium", "high"] = (
         "medium"
     )
-    GPT5_DEFAULT_VERBOSITY: str = "standard"
+    GPT5_DEFAULT_VERBOSITY: str = "medium"
     GPT5_MAX_TOKENS: int = 4096
     GPT5_TEMPERATURE: float = 0.7
 
