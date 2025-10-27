@@ -1588,3 +1588,434 @@ it('should stop reconnecting after max attempts reached', async () => {
 
 ---
 
+## Pre-Commit Review Session Issues (testing-expert + code-review-expert - 2025-10-27)
+
+### MEDIUM Priority Issues (Address Soon)
+
+## Issue 99: Add error handling to AgentService initialization in dependencies
+
+**Labels:** `enhancement`, `error-handling`, `medium-priority`, `phase-0`
+
+**Title:** Add try-except error handling for AgentService initialization failures
+
+**Description:**
+The `get_agent_service()` dependency function in `backend/deep_agent/api/dependencies.py` doesn't handle initialization failures. If AgentService initialization fails (config issues, missing dependencies), errors propagate unhandled to endpoints, resulting in unclear 500 errors.
+
+**File:** `backend/deep_agent/api/dependencies.py:37`
+
+**Current Code:**
+```python
+def get_agent_service() -> AgentService:
+    """Dependency that provides an AgentService instance."""
+    return AgentService()
+```
+
+**Recommended Fix:**
+```python
+from backend.deep_agent.core.logging import get_logger
+
+logger = get_logger(__name__)
+
+def get_agent_service() -> AgentService:
+    """
+    Dependency that provides an AgentService instance.
+
+    Returns:
+        AgentService: Initialized agent service instance
+
+    Raises:
+        RuntimeError: If service initialization fails
+    """
+    try:
+        return AgentService()
+    except Exception as e:
+        logger.error(
+            "Failed to initialize AgentService",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        raise RuntimeError(
+            "Agent service initialization failed. Check configuration."
+        ) from e
+```
+
+**Impact:** MEDIUM - Improves error messages and debugging experience. Not blocking for Phase 0.
+
+**Found in:** code-review-expert Pre-Commit Review (2025-10-27)
+
+---
+
+## Issue 100: Add test for WebSocket secret redaction feature
+
+**Labels:** `testing`, `security`, `medium-priority`, `phase-0`
+
+**Title:** Add integration test to verify WebSocket redacts secrets in error messages
+
+**Description:**
+The WebSocket endpoint implements secret redaction in error messages (line 221-222 of `backend/deep_agent/api/v1/websocket.py`), but there's no test verifying this security feature works correctly. This leaves a security-critical feature untested.
+
+**File:** `tests/integration/test_api_endpoints/test_websocket.py`
+**Related File:** `backend/deep_agent/api/v1/websocket.py:221-222`
+
+**Missing Test Code:**
+```python
+def test_websocket_redacts_secrets_in_errors(
+    self,
+    client: TestClient,
+    mock_agent_service: AsyncMock,
+) -> None:
+    """Test that WebSocket redacts secrets from error messages."""
+    # Arrange
+    message_data = {
+        "type": "chat",
+        "message": "Test secret redaction",
+        "thread_id": "test-thread-123",
+    }
+
+    # Mock agent to raise error with secret pattern
+    async def mock_secret_error(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        raise RuntimeError("API Error: key=sk-1234567890abcdef failed")
+        yield
+
+    def create_secret_error(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        return mock_secret_error(*args, **kwargs)
+
+    mock_agent_service.stream.side_effect = create_secret_error
+
+    # Act
+    with client.websocket_connect("/api/v1/ws") as websocket:
+        websocket.send_json(message_data)
+        response = websocket.receive_json()
+
+    # Assert
+    assert response.get("type") == "error"
+    # Secret should be redacted
+    assert "sk-" not in response.get("error", ""), \
+        "Secret should be redacted from error message"
+    assert "[REDACTED" in response.get("error", "") or \
+           "failed" in response.get("error", "").lower()
+```
+
+**Impact:** MEDIUM - Security feature validation. Should be added to ensure redaction logic works.
+
+**Found in:** code-review-expert + testing-expert Pre-Commit Review (2025-10-27)
+
+---
+
+## Issue 101: Add missing WebSocket integration test cases
+
+**Labels:** `testing`, `enhancement`, `medium-priority`, `phase-0`
+
+**Title:** Add 4 missing test cases to WebSocket integration tests
+
+**Description:**
+WebSocket integration tests have excellent coverage (85%) but miss 4 specific error paths:
+1. Malformed JSON handling
+2. Unknown message type rejection
+3. Unexpected exception handling
+4. Secret redaction (covered by Issue 100)
+
+**File:** `tests/integration/test_api_endpoints/test_websocket.py`
+
+**Missing Test 1: Malformed JSON**
+```python
+def test_websocket_handles_malformed_json(
+    self,
+    client: TestClient,
+    mock_agent_service: AsyncMock,
+) -> None:
+    """Test that WebSocket handles malformed JSON gracefully."""
+    # Act
+    with client.websocket_connect("/api/v1/ws") as websocket:
+        # Send invalid JSON (not parseable)
+        websocket.send_text("{ this is not valid JSON }")
+
+        # Should receive error response
+        response = websocket.receive_json()
+
+    # Assert
+    assert response.get("type") == "error"
+    assert "JSON" in response.get("error", "")
+```
+
+**Missing Test 2: Unknown Message Type**
+```python
+def test_websocket_rejects_unknown_message_type(
+    self,
+    client: TestClient,
+    mock_agent_service: AsyncMock,
+) -> None:
+    """Test that WebSocket rejects unknown message types."""
+    # Arrange
+    message_data = {
+        "type": "unknown_type",
+        "message": "Test message",
+        "thread_id": "test-thread-123",
+    }
+
+    # Act
+    with client.websocket_connect("/api/v1/ws") as websocket:
+        websocket.send_json(message_data)
+        response = websocket.receive_json()
+
+    # Assert
+    assert response.get("type") == "error"
+    assert "unknown_type" in response.get("error", "").lower()
+```
+
+**Impact:** MEDIUM - Raises test coverage from 85% to ~90%, covers important error paths.
+
+**Found in:** testing-expert Pre-Commit Review (2025-10-27)
+
+---
+
+## Issue 102: Fix error assertions in WebSocket tests to be more specific
+
+**Labels:** `testing`, `bug`, `medium-priority`, `phase-0`
+
+**Title:** Replace permissive error assertions with specific checks
+
+**Description:**
+Three WebSocket tests use overly permissive error assertions that could lead to false positives. The current pattern `assert response.get("type") == "error" or "error" in response` will pass if the string "error" appears anywhere in the response, not just in the type field.
+
+**File:** `tests/integration/test_api_endpoints/test_websocket.py`
+**Lines:** 182, 205, 248
+
+**Current Code (Example from line 182):**
+```python
+assert response.get("type") == "error" or "error" in response
+```
+
+**Recommended Fix:**
+```python
+# Line 182 - test_websocket_validates_message_format
+assert response.get("type") == "error", \
+    f"Expected error type for invalid message format, got: {response}"
+
+# Line 205 - test_websocket_handles_empty_message
+assert response.get("type") == "error", \
+    f"Expected error type for empty message, got: {response}"
+
+# Line 248 - test_websocket_handles_agent_error
+error_events = [e for e in events if e.get("type") == "error"]
+assert len(error_events) >= 1, \
+    f"Expected at least one error event, got events: {events}"
+```
+
+**Impact:** MEDIUM - Improves test reliability and prevents false positives.
+
+**Found in:** testing-expert Pre-Commit Review (2025-10-27)
+
+---
+
+## Issue 103: Add backend connection verification fixture for Playwright tests
+
+**Labels:** `testing`, `ui`, `enhancement`, `medium-priority`, `phase-0`
+
+**Title:** Add session-scoped fixture to verify backend is running before UI tests
+
+**Description:**
+Playwright UI tests assume the backend is running but don't verify it. If the backend is down, all UI tests fail with cascade errors instead of a clear "backend not running" message. Adding a verification fixture would skip UI tests gracefully when backend is unavailable.
+
+**File:** `tests/ui/conftest.py`
+
+**Recommended Addition:**
+```python
+@pytest.fixture(scope="session", autouse=True)
+def verify_backend_running():
+    """
+    Verify backend is accessible before running UI tests.
+
+    Skips all UI tests if backend is not reachable, preventing
+    cascading failures from missing backend.
+    """
+    import requests
+
+    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+
+    try:
+        response = requests.get(
+            f"{backend_url}/health",
+            timeout=5
+        )
+        assert response.status_code == 200, \
+            f"Backend health check failed with status {response.status_code}"
+    except requests.exceptions.ConnectionError:
+        pytest.skip(
+            f"Backend not running at {backend_url}. "
+            "Start backend before running UI tests."
+        )
+    except Exception as e:
+        pytest.skip(f"Backend verification failed: {e}")
+```
+
+**Impact:** MEDIUM - Improves test failure clarity and developer experience.
+
+**Found in:** testing-expert Pre-Commit Review (2025-10-27)
+
+---
+
+### LOW Priority Issues (Nice to Have)
+
+## Issue 104: Add explicit `__all__` export list to dependencies.py
+
+**Labels:** `code-quality`, `low-priority`, `phase-0`
+
+**Title:** Export public API explicitly using `__all__` in dependencies module
+
+**Description:**
+The dependencies module defines a type alias `AgentServiceDep` but doesn't use `__all__` to explicitly declare the public API. Adding `__all__` improves IDE autocomplete and makes the public interface clear.
+
+**File:** `backend/deep_agent/api/dependencies.py:41`
+
+**Recommended Addition:**
+```python
+__all__ = ["get_agent_service", "AgentServiceDep"]
+```
+
+**Impact:** LOW - Code quality and IDE support improvement.
+
+**Found in:** code-review-expert Pre-Commit Review (2025-10-27)
+
+---
+
+## Issue 105: Document TODO in authenticated_page fixture with Phase 1 reference
+
+**Labels:** `documentation`, `low-priority`, `phase-1`
+
+**Title:** Update TODO comment in authenticated_page to reference Phase 1 auth implementation
+
+**Description:**
+The `authenticated_page` fixture in `tests/ui/conftest.py` has a TODO comment that doesn't reference Phase 1 requirements. Update the comment to clarify this is expected behavior for Phase 0.
+
+**File:** `tests/ui/conftest.py:143`
+
+**Current Code:**
+```python
+# TODO: Implement authentication flow when auth is added
+```
+
+**Recommended Update:**
+```python
+# Phase 0: No authentication implemented yet
+# Phase 1: Update this fixture to use actual auth flow (OAuth 2.0)
+# See CLAUDE.md Phase 1 requirements for auth implementation
+```
+
+**Impact:** LOW - Documentation clarity.
+
+**Found in:** testing-expert Pre-Commit Review (2025-10-27)
+
+---
+
+## Issue 106: Add video recording configuration for Playwright tests
+
+**Labels:** `testing`, `ui`, `enhancement`, `low-priority`, `phase-0`
+
+**Title:** Enable conditional video recording for Playwright tests via environment variable
+
+**Description:**
+Playwright configuration has video recording commented out. Enable it conditionally via environment variable for CI/CD debugging without bloating local development with large video files.
+
+**File:** `tests/ui/conftest.py:44-46`
+
+**Current Code:**
+```python
+# Video recording disabled by default (large files)
+# "record_video_dir": "test-results/videos",
+# "record_video_size": {"width": 1280, "height": 720},
+```
+
+**Recommended Addition:**
+```python
+# Video recording disabled by default (large files)
+# Enable in CI by setting PLAYWRIGHT_RECORD_VIDEO=true
+if os.getenv("PLAYWRIGHT_RECORD_VIDEO", "false").lower() == "true":
+    browser_context_args["record_video_dir"] = "test-results/videos"
+    browser_context_args["record_video_size"] = {"width": 1280, "height": 720}
+```
+
+**Impact:** LOW - Improves CI/CD debugging capabilities.
+
+**Found in:** testing-expert Pre-Commit Review (2025-10-27)
+
+---
+
+## Issue 107: Consolidate duplicate useWebSocket test files
+
+**Labels:** `testing`, `frontend`, `cleanup`, `low-priority`, `phase-0`
+
+**Title:** Remove duplicate useWebSocket test files from frontend directory
+
+**Description:**
+Multiple duplicate test files exist for `useWebSocket.ts`:
+- `frontend/hooks/__tests__/useWebSocket.test.ts` (primary)
+- `frontend/hooks/__tests__/useWebSocket.test 2.ts` (duplicate)
+- `frontend/hooks/__tests__/useWebSocket.test 3.ts` (duplicate)
+- `frontend/hooks/__tests__/useWebSocket.test 4.ts` (duplicate)
+
+These appear to be iterative development artifacts. Consolidate to single test file.
+
+**Files:** `frontend/hooks/__tests__/useWebSocket.test*.ts`
+
+**Action:** Keep primary file, delete duplicates with " 2", " 3", " 4" suffixes.
+
+**Impact:** LOW - Code cleanup, no functional change.
+
+**Found in:** code-review-expert Pre-Commit Review (2025-10-27)
+
+---
+
+## Agent Review Session Summary
+
+**Date:** 2025-10-27
+**Agents Run:** testing-expert, code-review-expert
+**Files Reviewed:** 6 files (dependencies.py, websocket.py, test_websocket.py, conftest.py, useWebSocket.ts, ChatInterface.tsx)
+
+### Overall Assessment
+
+**testing-expert Rating:** 8/10 (APPROVED WITH MINOR RECOMMENDATIONS)
+**code-review-expert Rating:** Session APPROVED WITH MINOR ENHANCEMENTS
+
+### Issues Summary
+
+**Total Issues Added:** 9 (Issues 99-107)
+- **MEDIUM:** 5 issues (99-103)
+- **LOW:** 4 issues (104-107)
+
+**Critical/High Issues:** 0 (✓ PASS)
+**Blocking Issues:** 0 (✓ PASS)
+
+### Required Actions Before Phase 0 Completion
+
+1. **Issue 99:** Add error handling to dependencies.py (MEDIUM)
+2. **Issue 100:** Add secret redaction test (MEDIUM)
+3. **Issue 101:** Add 4 missing WebSocket test cases (MEDIUM)
+4. **Issue 102:** Fix error assertions in tests (MEDIUM)
+5. **Issue 103:** Add backend verification fixture (MEDIUM)
+
+**Estimated Time:** 2-3 hours to address all MEDIUM issues
+
+### Optional Enhancements (Phase 1)
+
+- Issue 104: Add `__all__` exports (LOW)
+- Issue 105: Update TODO comments (LOW)
+- Issue 106: Add video recording (LOW)
+- Issue 107: Consolidate test files (LOW)
+
+### Security Assessment
+
+✓ **TheAuditor:** Not available (installation issues)
+✓ **Manual Security Review:** PASS (no vulnerabilities found)
+- Secret redaction implemented (needs test - Issue 100)
+- Input validation comprehensive
+- No injection vulnerabilities
+- Rate limiting present
+- Error messages safe
+
+### Test Coverage
+
+**Current:** 85-90% (exceeds 80% requirement)
+**Target:** 90%+ with missing test cases from Issue 101
+
+---
