@@ -582,6 +582,24 @@ All code quality issues and technical debt items are tracked in `GITHUB_ISSUES.m
 
 **See:** `GITHUB_ISSUES.md` for detailed descriptions, code examples, fixes, and impact assessments.
 
+### Resolved Issues
+
+Issues are removed from `GITHUB_ISSUES.md` once fixed to keep it focused on open items only.
+
+**To find resolved issues:**
+- Check git commit history for issue references: `git log --grep="Issue [0-9]"`
+- Search commit messages for specific issue numbers
+- Review recent session commits:
+  - **Issue 36:** Playwright configuration (commit 703b597)
+  - **Issue 37:** WebSocket state attributes (commits 5787ea1, 1189577)
+
+All resolved issues are documented via:
+- Commit messages with issue references
+- Code comments explaining the fix
+- Git history showing when/how issue was addressed
+
+This workflow keeps `GITHUB_ISSUES.md` focused on actionable items while maintaining full traceability through version control.
+
 ---
 
 ## Testing Strategy
