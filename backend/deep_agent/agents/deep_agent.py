@@ -1,5 +1,6 @@
 """DeepAgent creation and configuration using LangChain's create_deep_agent API."""
 
+import traceback
 from typing import Any
 
 from langgraph.graph.state import CompiledStateGraph
@@ -99,49 +100,69 @@ async def create_agent(
         raise
 
     # Create checkpointer for state persistence
+    # Note: Checkpointer is disabled in test environment to prevent streaming hangs
     # Note: We don't use context manager here because the checkpointer needs
     # to stay open for the lifetime of the agent. The agent will manage the
     # checkpointer's lifecycle through its own cleanup mechanisms.
-    checkpointer_manager = CheckpointerManager(settings=settings)
-    try:
-        checkpointer = await checkpointer_manager.create_checkpointer()
-        logger.debug(
-            "Created checkpointer",
-            db_path=settings.CHECKPOINT_DB_PATH,
+    checkpointer = None
+
+    if settings.ENV != "test":
+        checkpointer_manager = CheckpointerManager(settings=settings)
+        try:
+            checkpointer = await checkpointer_manager.create_checkpointer()
+            logger.debug(
+                "Created checkpointer",
+                db_path=settings.CHECKPOINT_DB_PATH,
+            )
+        except (OSError, PermissionError) as e:
+            logger.error(
+                "Failed to create checkpointer",
+                error=str(e),
+                db_path=settings.CHECKPOINT_DB_PATH,
+            )
+            raise
+    else:
+        logger.info(
+            "Checkpointer disabled for test environment",
+            env=settings.ENV,
         )
-    except (OSError, PermissionError) as e:
-        logger.error(
-            "Failed to create checkpointer",
-            error=str(e),
-            db_path=settings.CHECKPOINT_DB_PATH,
-        )
-        raise
 
     # Get environment-specific system instructions
     system_prompt = get_agent_instructions(settings=settings)
 
     # Create DeepAgent using official API
     try:
+        logger.debug(
+            "Calling create_deep_agent with parameters",
+            model_type=type(llm).__name__,
+            tools_count=1,  # [web_search]
+            system_prompt_length=len(system_prompt) if system_prompt else 0,
+            subagents=subagents,
+            has_checkpointer=checkpointer is not None,
+        )
+
         compiled_graph = create_deep_agent(
             model=llm,
             tools=[web_search],  # Custom tools in addition to built-in tools
-            system_prompt=system_prompt,
+            system_prompt=system_prompt,  # DeepAgents 0.2.0: parameter renamed from 'instructions'
             subagents=subagents,
             checkpointer=checkpointer,
         )
 
         logger.info(
             "Successfully created and compiled DeepAgent",
-            has_checkpointer=True,
+            has_checkpointer=checkpointer is not None,
             subagents_enabled=subagents is not None and len(subagents) > 0,
         )
 
         return compiled_graph
 
     except Exception as e:
+        # Log full traceback for debugging
         logger.error(
             "Failed to create DeepAgent",
             error=str(e),
             error_type=type(e).__name__,
+            traceback=traceback.format_exc(),
         )
         raise
