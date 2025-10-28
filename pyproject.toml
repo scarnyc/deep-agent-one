@@ -15,12 +15,15 @@ pydantic = "^2.10.0"
 pydantic-settings = "^2.6.0"
 python-dotenv = "^1.0.0"
 
-# LangChain & DeepAgents
-langchain = "^0.3.0"
-langchain-openai = "^0.2.0"
-langgraph = "^0.2.0"
-langsmith = "^0.2.0"
-# deepagents = {git = "https://github.com/langchain-ai/deepagents.git", branch = "main"}  # Install manually later
+# LangChain & DeepAgents (Stable 1.0 versions - Oct 2025)
+langchain = "^1.0.0"           # Stable 1.0.2 (Oct 21, 2025)
+langchain-core = "^1.0.0"      # Required by DeepAgents 0.2.0
+langchain-openai = "^0.3.0"    # Compatible with langchain-core 1.0
+langgraph = "^1.0.0"           # Stable 1.0.1 (Oct 20, 2025)
+langgraph-checkpoint = "^2.1.0"  # Compatible with LangGraph 1.0
+langgraph-prebuilt = "^1.0.0"  # Required by LangGraph 1.0.1
+langsmith = "^0.4.0"           # Compatible with LangChain 1.0
+deepagents = "^0.2.0"          # Stable 0.2.0 (Oct 28, 2025) - Released TODAY!
 
 # Database
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.0"}
