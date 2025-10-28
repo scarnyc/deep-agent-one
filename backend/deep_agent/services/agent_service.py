@@ -238,36 +238,106 @@ class AgentService:
             ]
         }
 
-        # Prepare config
+        # Prepare config with stream_mode
         config = {
             "configurable": {
                 "thread_id": thread_id
-            }
+            },
+            "stream_mode": "values",  # Stream state updates instead of low-level events
         }
 
         # Stream events with retry logic for initial connection
-        try:
-            async for attempt in AsyncRetrying(
-                stop=stop_after_attempt(3),
-                wait=wait_exponential(multiplier=1, min=2, max=10),
-                retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
-                reraise=True,
-            ):
-                with attempt:
-                    if attempt.retry_state.attempt_number > 1:
-                        logger.warning(
-                            "Retrying agent streaming",
-                            thread_id=thread_id,
-                            attempt=attempt.retry_state.attempt_number,
-                        )
+        logger.info(
+            "Starting agent streaming",
+            thread_id=thread_id,
+            message_preview=message[:50] if len(message) > 50 else message,
+        )
 
-                    async for event in agent.astream_events(input_data, config, version="v2"):
-                        yield event
+        event_count = 0
+        event_types_seen = set()
+        timeout_seconds = 60  # Timeout for entire streaming operation
+
+        try:
+            # Wrap streaming in timeout to prevent infinite hangs
+            async with asyncio.timeout(timeout_seconds):
+                async for attempt in AsyncRetrying(
+                    stop=stop_after_attempt(3),
+                    wait=wait_exponential(multiplier=1, min=2, max=10),
+                    retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+                    reraise=True,
+                ):
+                    with attempt:
+                        if attempt.retry_state.attempt_number > 1:
+                            logger.warning(
+                                "Retrying agent streaming",
+                                thread_id=thread_id,
+                                attempt=attempt.retry_state.attempt_number,
+                            )
+
+                        # Use astream() with stream_mode="values" (configured in config dict)
+                        # This works with DeepAgents while astream_events() has issues with LLM streaming
+                        async for chunk in agent.astream(input_data, config):
+                            event_count += 1
+
+                            # Transform state chunk into event format
+                            # Chunks contain state updates with "messages" key
+                            if "messages" in chunk:
+                                messages = chunk["messages"]
+                                if messages:
+                                    last_message = messages[-1]
+
+                                    # Create event for message update
+                                    event = {
+                                        "event": "on_message_update",
+                                        "data": {
+                                            "message": {
+                                                "role": getattr(last_message, "role", getattr(last_message, "type", "unknown")),
+                                                "content": getattr(last_message, "content", str(last_message)),
+                                            },
+                                            "message_count": len(messages),
+                                        },
+                                        "metadata": {
+                                            "thread_id": thread_id,
+                                        }
+                                    }
+                                    event_types_seen.add("on_message_update")
+
+                                    # Log progress
+                                    if event_count % 5 == 0:
+                                        logger.debug(
+                                            f"Stream update #{event_count}",
+                                            thread_id=thread_id,
+                                            event_type="on_message_update",
+                                            message_count=len(messages),
+                                        )
+
+                                    yield event
 
             logger.info(
-                "Agent streaming completed",
+                "Agent streaming completed naturally",
                 thread_id=thread_id,
+                total_events=event_count,
+                event_types=list(event_types_seen),
             )
+
+        except asyncio.TimeoutError:
+            logger.error(
+                "Agent streaming timed out",
+                thread_id=thread_id,
+                timeout_seconds=timeout_seconds,
+                events_received=event_count,
+                event_types=list(event_types_seen),
+            )
+            # Yield error event to client before raising
+            yield {
+                "event": "on_error",
+                "data": {
+                    "error": "Agent streaming timed out",
+                    "timeout_seconds": timeout_seconds,
+                    "events_received": event_count,
+                },
+            }
+            raise RuntimeError(f"Agent streaming timed out after {timeout_seconds}s")
 
         except Exception as e:
             logger.error(
