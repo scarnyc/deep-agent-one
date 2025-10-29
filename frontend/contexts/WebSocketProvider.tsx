@@ -40,7 +40,7 @@ type EventHandler = (event: AGUIEvent) => void;
 /**
  * WebSocket context value
  */
-interface WebSocketContextValue {
+export interface WebSocketContextValue {
   // Connection state
   isConnected: boolean;
   connectionStatus: ConnectionStatus;
@@ -56,9 +56,9 @@ interface WebSocketContextValue {
 }
 
 /**
- * WebSocketProvider props
+ * WebSocket Provider props
  */
-interface WebSocketProviderProps {
+export interface WebSocketProviderProps {
   children: React.ReactNode;
   url?: string; // Default: ws://localhost:8000/api/v1/ws
   autoConnect?: boolean; // Default: true
@@ -66,8 +66,9 @@ interface WebSocketProviderProps {
 
 /**
  * WebSocket context (undefined = not initialized)
+ * Exported for use in custom hooks or testing
  */
-const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
+export const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
 /**
  * Hook to access WebSocket context
