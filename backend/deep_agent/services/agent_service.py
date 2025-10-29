@@ -198,14 +198,20 @@ class AgentService:
         thread_id: str,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
-        Stream agent response events for real-time updates.
+        Stream agent response events for real-time updates using astream_events() API.
+
+        This method uses LangGraph's astream_events() API which provides fine-grained
+        event streaming including:
+        - on_chat_model_stream: Individual LLM token streaming
+        - on_tool_start/on_tool_end: Tool execution lifecycle
+        - on_chain_start/on_chain_end: Agent/chain execution lifecycle
 
         Args:
             message: User message to send to the agent.
             thread_id: Thread ID for conversation state persistence.
 
         Yields:
-            Event dictionaries containing streaming updates.
+            Event dictionaries containing streaming updates in LangGraph v2 format.
 
         Raises:
             ValueError: If message is empty or thread_id is invalid.
@@ -214,7 +220,9 @@ class AgentService:
         Example:
             >>> async for event in service.stream("Hello", "user-789"):
             ...     if event["event"] == "on_chat_model_stream":
-            ...         print(event["data"]["chunk"]["content"], end="")
+            ...         chunk = event["data"]["chunk"]
+            ...         if hasattr(chunk, "content"):
+            ...             print(chunk.content, end="")
         """
         if not message or not message.strip():
             raise ValueError("Message cannot be empty")
@@ -238,24 +246,30 @@ class AgentService:
             ]
         }
 
-        # Prepare config with stream_mode
+        # Prepare config (no stream_mode needed for astream_events)
         config = {
             "configurable": {
                 "thread_id": thread_id
-            },
-            "stream_mode": "values",  # Stream state updates instead of low-level events
+            }
         }
+
+        # Get streaming configuration from settings
+        settings = get_settings()
+        allowed_events = set(settings.stream_allowed_events_list)
+        timeout_seconds = settings.STREAM_TIMEOUT_SECONDS
+        stream_version = settings.STREAM_VERSION
 
         # Stream events with retry logic for initial connection
         logger.info(
-            "Starting agent streaming",
+            "Starting agent streaming with astream_events()",
             thread_id=thread_id,
             message_preview=message[:50] if len(message) > 50 else message,
+            stream_version=stream_version,
+            allowed_events=list(allowed_events),
         )
 
         event_count = 0
         event_types_seen = set()
-        timeout_seconds = 60  # Timeout for entire streaming operation
 
         try:
             # Wrap streaming in timeout to prevent infinite hangs
@@ -274,44 +288,30 @@ class AgentService:
                                 attempt=attempt.retry_state.attempt_number,
                             )
 
-                        # Use astream() with stream_mode="values" (configured in config dict)
-                        # This works with DeepAgents while astream_events() has issues with LLM streaming
-                        async for chunk in agent.astream(input_data, config):
+                        # Use astream_events() for fine-grained event streaming
+                        # This provides real-time token streaming and tool execution events
+                        async for event in agent.astream_events(input_data, config, version=stream_version):
                             event_count += 1
+                            event_type = event.get("event", "unknown")
 
-                            # Transform state chunk into event format
-                            # Chunks contain state updates with "messages" key
-                            if "messages" in chunk:
-                                messages = chunk["messages"]
-                                if messages:
-                                    last_message = messages[-1]
+                            # Filter events based on configuration
+                            if event_type in allowed_events:
+                                event_types_seen.add(event_type)
 
-                                    # Create event for message update
-                                    event = {
-                                        "event": "on_message_update",
-                                        "data": {
-                                            "message": {
-                                                "role": getattr(last_message, "role", getattr(last_message, "type", "unknown")),
-                                                "content": getattr(last_message, "content", str(last_message)),
-                                            },
-                                            "message_count": len(messages),
-                                        },
-                                        "metadata": {
-                                            "thread_id": thread_id,
-                                        }
-                                    }
-                                    event_types_seen.add("on_message_update")
+                                # Add metadata to event
+                                if "metadata" not in event:
+                                    event["metadata"] = {}
+                                event["metadata"]["thread_id"] = thread_id
 
-                                    # Log progress
-                                    if event_count % 5 == 0:
-                                        logger.debug(
-                                            f"Stream update #{event_count}",
-                                            thread_id=thread_id,
-                                            event_type="on_message_update",
-                                            message_count=len(messages),
-                                        )
+                                # Log progress periodically
+                                if event_count % 10 == 0:
+                                    logger.debug(
+                                        f"Stream event #{event_count}",
+                                        thread_id=thread_id,
+                                        event_type=event_type,
+                                    )
 
-                                    yield event
+                                yield event
 
             logger.info(
                 "Agent streaming completed naturally",

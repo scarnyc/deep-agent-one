@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     )
 
     # Environment Configuration
-    ENV: Literal["local", "dev", "staging", "prod"] = "local"
+    ENV: Literal["local", "dev", "staging", "prod", "test"] = "local"
     DEBUG: bool = False
 
     # GPT-5 Configuration
@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     # Checkpointer Configuration (LangGraph State Persistence)
     CHECKPOINT_DB_PATH: str = "data/checkpoints.db"
     CHECKPOINT_CLEANUP_DAYS: int = 30
+
+    # Streaming Configuration
+    STREAM_VERSION: Literal["v1", "v2"] = "v2"
+    STREAM_TIMEOUT_SECONDS: int = 60
+    STREAM_ALLOWED_EVENTS: str = "on_chat_model_stream,on_tool_start,on_tool_end,on_chain_start,on_chain_end"
 
     # Redis Cache (Phase 2)
     REDIS_URL: Optional[str] = None
@@ -143,6 +148,11 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         """Parse CORS origins from comma-separated string."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+
+    @property
+    def stream_allowed_events_list(self) -> list[str]:
+        """Parse allowed stream events from comma-separated string."""
+        return [event.strip() for event in self.STREAM_ALLOWED_EVENTS.split(",")]
 
     @field_validator("TRIGGER_PHRASES", mode="before")
     @classmethod
