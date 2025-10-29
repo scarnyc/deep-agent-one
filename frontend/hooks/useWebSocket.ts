@@ -140,10 +140,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       const ws = new WebSocket(wsUrl);
 
       // Issue 49 fix: Add connection timeout protection
-      const CONNECTION_TIMEOUT = 10000; // 10 seconds
+      // Increased to 30s to allow for cold start agent initialization (~10s)
+      const CONNECTION_TIMEOUT = 30000; // 30 seconds
       const connectionTimeoutId = setTimeout(() => {
         if (ws.readyState === WebSocket.CONNECTING) {
-          const timeoutError = new Error('WebSocket connection timeout (10s)');
+          const timeoutError = new Error('WebSocket connection timeout (30s)');
           console.error('[useWebSocket]', timeoutError);
           setError(timeoutError);
           setConnectionStatus('error');
@@ -170,7 +171,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         try {
           const data = JSON.parse(event.data) as AGUIEvent;
 
-          // Call event callback if provided
+          // Filter custom backend events that aren't part of AG-UI Protocol
+          // These are connection lifecycle events, not agent events
+          const customEvents = ['connection_established', 'processing_started'];
+
+          if (customEvents.includes(data.event)) {
+            // Log custom events for visibility but don't pass to AG-UI handler
+            if (DEBUG) {
+              console.log('[useWebSocket] Custom event:', data.event, data.data);
+            }
+            return; // Don't pass to AG-UI handler
+          }
+
+          // Only pass standard AG-UI Protocol events to handler
           if (onEventRef.current) {
             onEventRef.current(data);
           }

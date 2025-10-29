@@ -53,21 +53,16 @@ def create_gpt5_llm(
     if config is None:
         config = GPT5Config()
 
-    # Build reasoning parameter for ChatOpenAI
-    # LangChain expects: reasoning={"effort": "medium", "summary": "auto"}
-    reasoning_param = {
-        "effort": config.reasoning_effort.value,
-        "summary": "auto",
-    }
-
     # Prepare ChatOpenAI parameters
+    # GPT-5 uses reasoning_effort parameter and max_completion_tokens (not max_tokens)
+    # GPT-5 only supports temperature=1.0 - must explicitly set to override ChatOpenAI's default of 0.7
     llm_params = {
         "model": kwargs.get("model", config.model_name),
         "api_key": api_key,
-        "temperature": kwargs.get("temperature", config.temperature),
-        "max_tokens": kwargs.get("max_tokens", config.max_tokens),
-        "reasoning": reasoning_param,
-        "verbosity": config.verbosity.value,
+        "max_completion_tokens": kwargs.get("max_completion_tokens", config.max_tokens),
+        "reasoning_effort": config.reasoning_effort.value,
+        "temperature": 1.0,  # GPT-5 requirement: must be 1.0 (overrides ChatOpenAI's default 0.7)
+        "streaming": True,  # Enable streaming for real-time responses
     }
 
     # Add any additional kwargs (allows overriding config values)
@@ -79,9 +74,7 @@ def create_gpt5_llm(
         "Creating GPT-5 LLM",
         model=llm_params["model"],
         reasoning_effort=config.reasoning_effort.value,
-        verbosity=config.verbosity.value,
-        temperature=llm_params["temperature"],
-        max_tokens=llm_params["max_tokens"],
+        max_completion_tokens=llm_params["max_completion_tokens"],
     )
 
     return ChatOpenAI(**llm_params)
