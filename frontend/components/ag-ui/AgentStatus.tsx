@@ -15,7 +15,7 @@
  */
 
 import { useAgentState } from '@/hooks/useAgentState';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useWebSocketContext } from '@/hooks/useWebSocketContext';
 import { AgentStatus as AgentStatusType } from '@/types/agent';
 import {
   Card,
@@ -161,7 +161,7 @@ function getReasoningEffortColor(
  */
 export default function AgentStatus() {
   const { active_thread_id, threads } = useAgentState();
-  const { connectionStatus } = useWebSocket();
+  const { connectionStatus } = useWebSocketContext();
 
   // Get thread data
   const thread = active_thread_id ? threads[active_thread_id] : null;

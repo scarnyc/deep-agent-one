@@ -17,7 +17,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAgentState } from '@/hooks/useAgentState';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useWebSocketContext } from '@/hooks/useWebSocketContext';
 import { AgentMessage, MessageRole } from '@/types/agent';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -151,7 +151,7 @@ function MessageItem({ message }: { message: AgentMessage }) {
  */
 export default function ChatInterface() {
   const { active_thread_id, threads, addMessage } = useAgentState();
-  const { sendMessage, isConnected, connectionStatus, readyState } = useWebSocket();
+  const { sendMessage, isConnected, connectionStatus, readyState } = useWebSocketContext();
 
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);

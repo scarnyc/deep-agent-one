@@ -16,9 +16,9 @@
  * - error → Update agent status to "error", show error message
  */
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useAgentState } from './useAgentState';
-import { useWebSocket } from './useWebSocket';
+import { useWebSocketContext } from './useWebSocketContext';
 import {
   AGUIEvent,
   RunStartedEvent,
@@ -323,11 +323,14 @@ export function useAGUIEventHandler(threadId: string) {
     }
   };
 
+  // Get WebSocket context (shared connection)
+  const { addEventListener } = useWebSocketContext();
+
   // Register event handler with WebSocket
-  useWebSocket({
-    onEvent: handleEvent,
-    autoConnect: true,
-  });
+  useEffect(() => {
+    const unsubscribe = addEventListener(handleEvent);
+    return unsubscribe; // Cleanup on unmount
+  }, [addEventListener, handleEvent]);
 
   return {
     handleEvent,
