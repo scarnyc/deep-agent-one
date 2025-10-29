@@ -5,25 +5,25 @@ set -e
 
 echo "🔒 Running TheAuditor security scan..."
 
-# Check if TheAuditor is installed
-if ! command -v aud &> /dev/null; then
-    echo "❌ TheAuditor not found. Installing..."
-    git clone https://github.com/TheAuditorTool/Auditor /tmp/auditor
-    cd /tmp/auditor
-    pip install -e .
-    cd -
-    echo "✅ TheAuditor installed"
+# Use local auditor venv
+AUD_BIN="./.auditor_venv/bin/aud"
+
+# Check if TheAuditor is installed in local venv
+if [ ! -f "$AUD_BIN" ]; then
+    echo "❌ TheAuditor not found in .auditor_venv. Please install it."
+    echo "Run: ./.auditor_venv/bin/pip install -e /path/to/Auditor"
+    exit 1
 fi
 
 # Initialize if needed
 if [ ! -d ".pf" ]; then
     echo "🔧 Initializing TheAuditor..."
-    aud init
+    $AUD_BIN init
 fi
 
 # Run full security audit
 echo "🔍 Running full security audit..."
-aud full
+$AUD_BIN full
 
 # Display results
 echo ""
