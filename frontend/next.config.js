@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // Phase 0: Disable strict mode to prevent WebSocket connection issues
+  // React Strict Mode causes double-mounting in development, creating
+  // multiple WebSocket connections that exhaust backend resources (400 errors)
+  // TODO Phase 1: Re-enable after implementing singleton WebSocket pattern
+  reactStrictMode: false,
 
   // Enable WebSocket support for AG-UI Protocol
   webpack: (config) => {
