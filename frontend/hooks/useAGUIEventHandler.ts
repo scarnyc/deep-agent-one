@@ -19,6 +19,7 @@
 import { useRef, useEffect } from 'react';
 import { useAgentState } from './useAgentState';
 import { useWebSocketContext } from './useWebSocketContext';
+import { validateAGUIEvent, getEventCategory } from '@/lib/eventValidator';
 import {
   AGUIEvent,
   RunStartedEvent,
@@ -316,7 +317,29 @@ export function useAGUIEventHandler(threadId: string) {
           break;
 
         default:
-          console.log('[AG-UI] Unhandled event type:', event.event);
+          // Validate and provide detailed logging for unhandled events
+          const validation = validateAGUIEvent(event);
+          const category = getEventCategory(event.event);
+
+          if (!validation.isValid) {
+            console.error(
+              '[AG-UI] Received invalid event:',
+              validation.error,
+              event
+            );
+          } else if (validation.isCustomEvent) {
+            console.warn(
+              `[AG-UI] Custom event should have been filtered:`,
+              `${category} event "${event.event}"`,
+              validation.warning || 'This event is not part of AG-UI Protocol'
+            );
+          } else {
+            console.warn(
+              `[AG-UI] Unhandled ${category} event:`,
+              event.event,
+              'This is a valid AG-UI event but no handler is implemented yet.'
+            );
+          }
       }
     } catch (error) {
       console.error('[AG-UI] Error handling event:', error, event);
