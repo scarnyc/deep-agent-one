@@ -4,12 +4,17 @@
  * This component wraps the app with an error boundary for graceful error handling.
  * Uses native AG-UI Protocol components instead of CopilotKit.
  *
+ * Provider hierarchy:
+ * 1. ErrorBoundary - Catch and display errors gracefully
+ * 2. WebSocketProvider - Singleton WebSocket connection for entire app
+ *
  * Separated from layout.tsx to maintain server component benefits.
  */
 
 'use client';
 
 import { ErrorBoundary } from 'react-error-boundary';
+import { WebSocketProvider } from '@/contexts/WebSocketProvider';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -64,7 +69,9 @@ function handleError(error: Error, errorInfo: { componentStack?: string | null }
 export function Providers({ children }: ProvidersProps) {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onError={handleError}>
-      {children}
+      <WebSocketProvider>
+        {children}
+      </WebSocketProvider>
     </ErrorBoundary>
   );
 }
