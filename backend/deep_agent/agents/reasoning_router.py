@@ -1,6 +1,6 @@
 """Reasoning router for determining optimal GPT-5 reasoning effort."""
-from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.models.gpt5 import ReasoningEffort
+from deep_agent.core.logging import get_logger
+from deep_agent.models.gpt5 import ReasoningEffort
 
 logger = get_logger(__name__)
 

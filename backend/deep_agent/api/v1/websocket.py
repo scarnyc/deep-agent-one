@@ -13,9 +13,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from backend.deep_agent.api.dependencies import AgentServiceDep
-from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.core.serialization import serialize_event
+from deep_agent.api.dependencies import AgentServiceDep
+from deep_agent.core.logging import get_logger
+from deep_agent.core.serialization import serialize_event
 
 logger = get_logger(__name__)
 

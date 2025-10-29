@@ -6,8 +6,8 @@ from typing import Optional
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-from backend.deep_agent.config.settings import Settings, get_settings
-from backend.deep_agent.core.logging import get_logger
+from deep_agent.config.settings import Settings, get_settings
+from deep_agent.core.logging import get_logger
 
 logger = get_logger(__name__)
 

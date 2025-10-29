@@ -8,9 +8,9 @@ send traces to LangSmith when environment variables are configured.
 
 import os
 
-from backend.deep_agent.config.settings import Settings, get_settings
-from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.core.security import mask_api_key
+from deep_agent.config.settings import Settings, get_settings
+from deep_agent.core.logging import get_logger
+from deep_agent.core.security import mask_api_key
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ def setup_langsmith(settings: Settings | None = None) -> None:
             is verified when actual tracing occurs (lazy validation).
 
     Example:
-        >>> from backend.deep_agent.integrations.langsmith import setup_langsmith
+        >>> from deep_agent.integrations.langsmith import setup_langsmith
         >>> setup_langsmith()  # Uses settings from environment
         >>> # All subsequent LangChain/LangGraph operations will be traced
 

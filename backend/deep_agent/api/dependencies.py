@@ -8,7 +8,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from backend.deep_agent.services.agent_service import AgentService
+from deep_agent.services.agent_service import AgentService
 
 
 def get_agent_service() -> AgentService:

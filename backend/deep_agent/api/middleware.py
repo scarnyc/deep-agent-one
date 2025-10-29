@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from backend.deep_agent.core.logging import get_logger
+from deep_agent.core.logging import get_logger
 
 logger = get_logger(__name__)
 

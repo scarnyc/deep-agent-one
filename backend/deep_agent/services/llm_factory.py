@@ -3,8 +3,8 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.models.gpt5 import GPT5Config
+from deep_agent.core.logging import get_logger
+from deep_agent.models.gpt5 import GPT5Config
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ def create_gpt5_llm(
         ValueError: If API key is empty
 
     Example:
-        >>> from backend.deep_agent.models.gpt5 import GPT5Config, ReasoningEffort
+        >>> from deep_agent.models.gpt5 import GPT5Config, ReasoningEffort
         >>> config = GPT5Config(reasoning_effort=ReasoningEffort.HIGH)
         >>> llm = create_gpt5_llm(api_key="sk-...", config=config)
         >>> # Use with DeepAgents:

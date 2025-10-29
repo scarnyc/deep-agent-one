@@ -6,8 +6,8 @@ Provides web search capabilities to agents via the Perplexity MCP client.
 
 from langchain_core.tools import tool
 
-from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.integrations.mcp_clients.perplexity import PerplexityClient
+from deep_agent.core.logging import get_logger
+from deep_agent.integrations.mcp_clients.perplexity import PerplexityClient
 
 logger = get_logger(__name__)
 

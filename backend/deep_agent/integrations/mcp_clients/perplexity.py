@@ -18,9 +18,9 @@ from tenacity import (
     retry_if_exception_type,
 )
 
-from backend.deep_agent.config.settings import Settings, get_settings
-from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.core.security import mask_api_key
+from deep_agent.config.settings import Settings, get_settings
+from deep_agent.core.logging import get_logger
+from deep_agent.core.security import mask_api_key
 
 logger = get_logger(__name__)
 

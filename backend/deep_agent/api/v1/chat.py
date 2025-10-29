@@ -12,9 +12,9 @@ from fastapi.responses import StreamingResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.models.chat import ChatRequest, ChatResponse, Message, MessageRole, ResponseStatus
-from backend.deep_agent.services.agent_service import AgentService
+from deep_agent.core.logging import get_logger
+from deep_agent.models.chat import ChatRequest, ChatResponse, Message, MessageRole, ResponseStatus
+from deep_agent.services.agent_service import AgentService
 
 logger = get_logger(__name__)
 
@@ -133,7 +133,7 @@ async def chat(
     except Exception as e:
         # Agent execution errors
         # Sanitize error message before logging (security)
-        from backend.deep_agent.core.security import sanitize_error_message
+        from deep_agent.core.security import sanitize_error_message
 
         error_msg = sanitize_error_message(str(e))
 
@@ -269,7 +269,7 @@ async def chat_stream(
         except Exception as e:
             # Agent execution errors
             # Sanitize error message before logging (security)
-            from backend.deep_agent.core.security import sanitize_error_message
+            from deep_agent.core.security import sanitize_error_message
 
             error_msg = sanitize_error_message(str(e))
 

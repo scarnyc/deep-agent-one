@@ -5,7 +5,7 @@ Environment-specific prompts for DeepAgents framework with version tracking.
 Uses base prompt + environment appendices for maintainability.
 """
 
-from backend.deep_agent.config.settings import Settings, get_settings
+from deep_agent.config.settings import Settings, get_settings
 
 # Prompt version for tracking changes (semantic versioning)
 PROMPT_VERSION = "1.0.0"
@@ -99,7 +99,7 @@ def get_agent_instructions(
         >>> instructions = get_agent_instructions(env="prod")
 
         >>> # Get instructions from settings
-        >>> from backend.deep_agent.config.settings import get_settings
+        >>> from deep_agent.config.settings import get_settings
         >>> settings = get_settings()
         >>> instructions = get_agent_instructions(settings=settings)
 

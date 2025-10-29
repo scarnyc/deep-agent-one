@@ -7,14 +7,14 @@ from langgraph.graph.state import CompiledStateGraph
 
 from deepagents import create_deep_agent
 
-from backend.deep_agent.agents.checkpointer import CheckpointerManager
-from backend.deep_agent.agents.prompts import get_agent_instructions
-from backend.deep_agent.config.settings import Settings, get_settings
-from backend.deep_agent.core.logging import get_logger
-from backend.deep_agent.integrations.langsmith import setup_langsmith
-from backend.deep_agent.models.gpt5 import GPT5Config, ReasoningEffort, Verbosity
-from backend.deep_agent.services.llm_factory import create_gpt5_llm
-from backend.deep_agent.tools.web_search import web_search
+from deep_agent.agents.checkpointer import CheckpointerManager
+from deep_agent.agents.prompts import get_agent_instructions
+from deep_agent.config.settings import Settings, get_settings
+from deep_agent.core.logging import get_logger
+from deep_agent.integrations.langsmith import setup_langsmith
+from deep_agent.models.gpt5 import GPT5Config, ReasoningEffort, Verbosity
+from deep_agent.services.llm_factory import create_gpt5_llm
+from deep_agent.tools.web_search import web_search
 
 logger = get_logger(__name__)
 
@@ -42,7 +42,7 @@ async def create_agent(
         RuntimeError: If graph compilation fails
 
     Example:
-        >>> from backend.deep_agent.agents.deep_agent import create_agent
+        >>> from deep_agent.agents.deep_agent import create_agent
         >>> agent = await create_agent()
         >>> result = await agent.ainvoke(
         ...     {"messages": [{"role": "user", "content": "Hello"}]},

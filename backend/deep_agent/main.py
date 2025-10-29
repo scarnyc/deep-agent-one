@@ -18,10 +18,10 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from starlette.responses import Response
 
-from backend.deep_agent.api.middleware import TimeoutMiddleware
-from backend.deep_agent.config.settings import Settings, get_settings
-from backend.deep_agent.core.errors import ConfigurationError, DeepAgentError
-from backend.deep_agent.core.logging import LogLevel, get_logger, setup_logging
+from deep_agent.api.middleware import TimeoutMiddleware
+from deep_agent.config.settings import Settings, get_settings
+from deep_agent.core.errors import ConfigurationError, DeepAgentError
+from deep_agent.core.logging import LogLevel, get_logger, setup_logging
 
 logger = get_logger(__name__)
 
@@ -300,7 +300,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "healthy"}
 
     # Include API routers
-    from backend.deep_agent.api.v1 import agents, chat, websocket
+    from deep_agent.api.v1 import agents, chat, websocket
 
     app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
     app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])

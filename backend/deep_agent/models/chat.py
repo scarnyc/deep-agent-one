@@ -199,7 +199,7 @@ class ChatResponse(BaseModel):
         error: Optional error message if status is ERROR
 
     Example:
-        >>> from backend.deep_agent.models.chat import Message, MessageRole, ResponseStatus
+        >>> from deep_agent.models.chat import Message, MessageRole, ResponseStatus
         >>> msg = Message(role=MessageRole.ASSISTANT, content="Hello")
         >>> resp = ChatResponse(
         ...     messages=[msg],
