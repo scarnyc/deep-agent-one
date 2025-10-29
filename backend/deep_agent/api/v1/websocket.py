@@ -6,6 +6,7 @@ agent interaction with AG-UI event streaming.
 """
 import json
 import uuid
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from backend.deep_agent.api.dependencies import AgentServiceDep
 from backend.deep_agent.core.logging import get_logger
+from backend.deep_agent.core.serialization import serialize_event
 
 logger = get_logger(__name__)
 
@@ -133,6 +135,12 @@ async def websocket_endpoint(
         connection_id=connection_id,
     )
 
+    # NOTE: We don't send a connection_established event here because:
+    # 1. AG-UI Protocol doesn't define such an event
+    # 2. WebSocket.accept() is sufficient - frontend knows connection is ready
+    # 3. Sending non-standard events can cause frontend handler errors
+    # Connection state is managed by the WebSocket lifecycle itself.
+
     try:
         while True:
             # Receive message from client
@@ -183,21 +191,57 @@ async def websocket_endpoint(
             # Process chat message
             if message.type == "chat":
                 try:
+                    logger.info(
+                        "Starting WebSocket streaming",
+                        connection_id=connection_id,
+                        request_id=request_id,
+                        thread_id=message.thread_id,
+                        message_preview=message.message[:50] if len(message.message) > 50 else message.message,
+                    )
+
+                    # CUSTOM EVENT: processing_started
+                    # This is NOT part of AG-UI Protocol - it's a custom event for UX feedback
+                    # during cold starts (8-10s). Frontend must filter this event before passing
+                    # to AG-UI handler to prevent "unknown event" errors.
+                    await websocket.send_json({
+                        "event": "processing_started",
+                        "data": {
+                            "message": "Agent initializing...",
+                            "request_id": request_id,
+                            "timestamp": datetime.utcnow().isoformat() + "Z"
+                        }
+                    })
+
+                    event_count = 0
                     # Stream agent responses using injected service
                     async for event in service.stream(
                         message=message.message,
                         thread_id=message.thread_id,
                     ):
+                        event_count += 1
+
                         # Add request_id to event for tracking
                         event["request_id"] = request_id
 
+                        # Serialize event to JSON-safe format (handles LangChain objects)
+                        serialized_event = serialize_event(event)
+
                         # Send event to client
-                        await websocket.send_json(event)
+                        await websocket.send_json(serialized_event)
+
+                        # Log progress every 10 events
+                        if event_count % 10 == 0:
+                            logger.debug(
+                                f"WebSocket sent {event_count} events",
+                                connection_id=connection_id,
+                                request_id=request_id,
+                            )
 
                     logger.info(
                         "WebSocket message processing completed",
                         connection_id=connection_id,
                         request_id=request_id,
+                        total_events_sent=event_count,
                     )
 
                 except ValueError as e:
