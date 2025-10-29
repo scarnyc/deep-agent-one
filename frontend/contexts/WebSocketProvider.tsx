@@ -202,7 +202,23 @@ export function WebSocketProvider({
    * Connect to WebSocket
    */
   const connect = useCallback(() => {
-    // Clean up existing connection
+    // GUARD: Don't create new connection if one is already open
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      if (DEBUG) {
+        console.log('[WebSocketProvider] Connection already open, skipping reconnect');
+      }
+      return;
+    }
+
+    // GUARD: Don't create new connection if one is connecting
+    if (wsRef.current && wsRef.current.readyState === WebSocket.CONNECTING) {
+      if (DEBUG) {
+        console.log('[WebSocketProvider] Connection already connecting, skipping');
+      }
+      return;
+    }
+
+    // Clean up existing connection (only if CLOSING or CLOSED)
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -334,7 +350,21 @@ export function WebSocketProvider({
     }
 
     try {
-      wsRef.current.send(JSON.stringify(message));
+      // DEBUG: Enhanced logging to understand what's being sent
+      console.log('[DEBUG WebSocketProvider] sendMessage called with:');
+      console.log('[DEBUG WebSocketProvider]   message type:', typeof message);
+      console.log('[DEBUG WebSocketProvider]   message value:', message);
+      console.log('[DEBUG WebSocketProvider]   arguments.length:', arguments.length);
+      if (arguments.length > 1) {
+        console.log('[DEBUG WebSocketProvider]   EXTRA ARGUMENTS:', Array.from(arguments).slice(1));
+      }
+
+      const jsonString = JSON.stringify(message);
+      console.log('[DEBUG WebSocketProvider]   JSON string to send:', jsonString);
+      console.log('[DEBUG WebSocketProvider]   WebSocket readyState:', wsRef.current.readyState);
+
+      wsRef.current.send(jsonString);
+
       if (DEBUG) {
         console.log('[WebSocketProvider] Sent message:', message);
       }
@@ -382,7 +412,8 @@ export function WebSocketProvider({
       // Clear all event handlers
       eventHandlersRef.current.clear();
     };
-  }, [autoConnect, connect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoConnect]); // Only depend on autoConnect, not connect function
 
   // Context value
   const value: WebSocketContextValue = {

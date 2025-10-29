@@ -18,6 +18,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAgentState } from '@/hooks/useAgentState';
 import { useWebSocketContext } from '@/hooks/useWebSocketContext';
+import type { WebSocketMessage } from '@/types/websocket';
 import { AgentMessage, MessageRole } from '@/types/agent';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -188,8 +189,21 @@ export default function ChatInterface() {
         content: messageText,
       });
 
-      // Send message via WebSocket
-      sendMessage(messageText, active_thread_id);
+      // DEBUG: Log what we're about to send
+      const messageObject: WebSocketMessage = {
+        type: 'chat',
+        message: messageText,
+        thread_id: active_thread_id,
+      };
+      console.log('[DEBUG ChatInterface] About to call sendMessage with:');
+      console.log('[DEBUG ChatInterface]   messageText:', messageText);
+      console.log('[DEBUG ChatInterface]   active_thread_id:', active_thread_id);
+      console.log('[DEBUG ChatInterface]   messageObject:', messageObject);
+      console.log('[DEBUG ChatInterface]   readyState:', readyState);
+      console.log('[DEBUG ChatInterface]   sendMessage type:', typeof sendMessage);
+
+      // Send message via WebSocket (FIXED: pass complete message object)
+      sendMessage(messageObject);
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
