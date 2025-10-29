@@ -28,6 +28,7 @@ import React, {
   useState,
 } from 'react';
 import type { AGUIEvent, ConnectionStatus } from '@/types/ag-ui';
+import { validateAGUIEvent, shouldFilterEvent, getEventCategory } from '@/lib/eventValidator';
 
 // Development logging (disabled in production)
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -114,9 +115,6 @@ export function WebSocketProvider({
   const MAX_RECONNECT_INTERVAL = 30000; // 30s
   const CONNECTION_TIMEOUT = 30000; // 30s (allows for cold start)
 
-  // Custom events to filter (not part of AG-UI Protocol)
-  const CUSTOM_EVENTS = ['connection_established', 'processing_started'];
-
   /**
    * Get WebSocket URL from props or environment
    */
@@ -160,15 +158,34 @@ export function WebSocketProvider({
 
   /**
    * Broadcast event to all subscribers
-   * Filters out custom backend events before broadcasting
+   * Validates and filters events using comprehensive event validator
    */
   const broadcastEvent = useCallback((event: AGUIEvent) => {
+    // Validate event structure and type
+    const validation = validateAGUIEvent(event);
+
+    if (!validation.isValid) {
+      console.error('[WebSocketProvider] Invalid event received:', validation.error, event);
+      return; // Don't broadcast invalid events
+    }
+
     // Filter custom backend events (not part of AG-UI Protocol)
-    if (CUSTOM_EVENTS.includes(event.event)) {
+    if (shouldFilterEvent(event.event)) {
       if (DEBUG) {
-        console.log('[WebSocketProvider] Filtered custom event:', event.event, event);
+        const category = getEventCategory(event.event);
+        console.log(
+          `[WebSocketProvider] Filtered ${category} event:`,
+          event.event,
+          validation.warning || 'Custom backend event'
+        );
       }
       return; // Don't broadcast custom events
+    }
+
+    // Log standard AG-UI events in development
+    if (DEBUG) {
+      const category = getEventCategory(event.event);
+      console.log(`[WebSocketProvider] Broadcasting ${category} event:`, event.event);
     }
 
     // Broadcast to all subscribers
