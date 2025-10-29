@@ -552,6 +552,7 @@ echo "✅ Live API tests complete!"
 - **Code Review:** testing-expert and code-review-expert agents (run before every commit)
 - **Version Control:** Git with semantic commits
 - **CI/CD:** GitHub Actions
+- **Debugging:** debugging-expert when prompt identifies there's an issue, crash, bug or defect that needs triaging
 
 ### MCP Servers
 - **Playwright MCP:** UI testing automation
@@ -675,6 +676,7 @@ This workflow keeps `GITHUB_ISSUES.md` focused on actionable items while maintai
 
 **Throughout Phase 0:**
 - Commit every logical unit of work immediately
+- Use the debugging-expert when a bug or issue is identified
 - **MANDATORY: Run testing-expert and code-review-expert agents before EVERY commit**
 
 ### Commit Message Convention
@@ -1012,3 +1014,4 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - **Pre-commit workflow:** Run code-review-expert and testing-expert agents before EVERY commit
 - **Issue tracking:** Both agents must log non-critical issues to GITHUB_ISSUES.md for future work
 - **Code Doc Context:** Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
+- **Debugging workflow:** Run debugging-expert agent when a bug or issue is identified

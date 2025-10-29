@@ -587,14 +587,38 @@ alembic upgrade head
 
 ### Run Development Server
 
+Deep Agent AGI supports two development modes depending on your workflow:
+
+#### HTTP Development Mode (with hot-reload)
+Use this for developing HTTP endpoints, services, and general backend code. Code changes trigger automatic restart.
+
 ```bash
-# Start backend (FastAPI)
-poetry run uvicorn backend.deep_agent.main:app --reload --port 8000
+# Start backend with hot-reload
+./backend/scripts/dev.sh
 
 # Start frontend (Next.js) - in separate terminal
 cd frontend
 npm run dev
 ```
+
+**Trade-off:** WebSocket connections will be killed on each reload.
+
+#### WebSocket Development Mode (no hot-reload)
+Use this for developing WebSocket functionality, streaming responses, and real-time features. Connections remain stable.
+
+```bash
+# Start backend without hot-reload
+./backend/scripts/dev-ws.sh
+
+# Start frontend (Next.js) - in separate terminal
+cd frontend
+npm run dev
+```
+
+**Trade-off:** Manual backend restart required for code changes.
+
+**Why Two Modes?**
+Uvicorn's `--reload` flag monitors file changes and restarts the server automatically. This restart kills all active WebSocket connections (Close Code 1006), making WebSocket development difficult. The two modes allow you to choose the right tool for your current task.
 
 ### Run Tests
 
