@@ -255,6 +255,100 @@ describe('useAgentState', () => {
       expect(updatedMessages[0].id).not.toBe(updatedMessages[1].id);
     });
 
+    it('should return the generated message ID from addMessage', () => {
+      // Arrange
+      const { result } = renderHook(() => useAgentState());
+      act(() => {
+        result.current.createThread('thread-return-id');
+      });
+
+      // Act
+      let returnedId: string = '';
+      act(() => {
+        returnedId = result.current.addMessage('thread-return-id', {
+          role: 'assistant',
+          content: 'Test message',
+        });
+      });
+
+      // Assert
+      expect(returnedId).toBeDefined();
+      expect(typeof returnedId).toBe('string');
+      expect(returnedId.length).toBeGreaterThan(0);
+
+      // Verify the returned ID matches the message in the store
+      const messages = result.current.threads['thread-return-id'].messages;
+      expect(messages[0].id).toBe(returnedId);
+    });
+
+    it('should support streaming message updates using returned ID (regression test for bug)', () => {
+      // Arrange - Simulates the bug where only first token rendered
+      const { result } = renderHook(() => useAgentState());
+      act(() => {
+        result.current.createThread('thread-streaming');
+      });
+
+      // Act - Simulate streaming tokens like AG-UI event handler does
+      let messageId: string = '';
+
+      // First token - create message and capture returned ID
+      act(() => {
+        messageId = result.current.addMessage('thread-streaming', {
+          role: 'assistant',
+          content: 'Hello',
+          metadata: { streaming: true },
+        });
+      });
+
+      // Verify first token rendered
+      let messages = result.current.threads['thread-streaming'].messages;
+      expect(messages).toHaveLength(1);
+      expect(messages[0].content).toBe('Hello');
+      expect(messages[0].id).toBe(messageId);
+
+      // Subsequent tokens - update using returned ID
+      act(() => {
+        result.current.updateMessage('thread-streaming', messageId, {
+          content: 'Hello!',
+        });
+      });
+
+      messages = result.current.threads['thread-streaming'].messages;
+      expect(messages[0].content).toBe('Hello!');
+
+      act(() => {
+        result.current.updateMessage('thread-streaming', messageId, {
+          content: 'Hello! How',
+        });
+      });
+
+      messages = result.current.threads['thread-streaming'].messages;
+      expect(messages[0].content).toBe('Hello! How');
+
+      act(() => {
+        result.current.updateMessage('thread-streaming', messageId, {
+          content: 'Hello! How can I help you today?',
+        });
+      });
+
+      // Assert - Full message should be present
+      messages = result.current.threads['thread-streaming'].messages;
+      expect(messages).toHaveLength(1); // Still only one message
+      expect(messages[0].content).toBe('Hello! How can I help you today?'); // Full content
+      expect(messages[0].id).toBe(messageId); // Same ID throughout
+
+      // Mark streaming complete
+      act(() => {
+        result.current.updateMessage('thread-streaming', messageId, {
+          metadata: { streaming: false, completed: true },
+        });
+      });
+
+      messages = result.current.threads['thread-streaming'].messages;
+      expect(messages[0].metadata?.streaming).toBe(false);
+      expect(messages[0].metadata?.completed).toBe(true);
+    });
+
     it('should set ISO timestamp correctly on message', () => {
       // Arrange
       const { result } = renderHook(() => useAgentState());

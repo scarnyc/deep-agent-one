@@ -93,8 +93,12 @@ export const useAgentState = create<AgentState>()(
 
       /**
        * Add a message to a thread
+       * @returns The ID of the newly created message
        */
-      addMessage: (thread_id: string, message: Omit<AgentMessage, 'id' | 'timestamp'>) => {
+      addMessage: (thread_id: string, message: Omit<AgentMessage, 'id' | 'timestamp'>): string => {
+        // Generate ID before set() so we can return it
+        const messageId = generateId();
+
         set(
           (state) => {
             const thread = state.threads[thread_id];
@@ -102,7 +106,7 @@ export const useAgentState = create<AgentState>()(
 
             const newMessage: AgentMessage = {
               ...message,
-              id: generateId(),
+              id: messageId,
               timestamp: new Date().toISOString(),
             };
 
@@ -120,6 +124,8 @@ export const useAgentState = create<AgentState>()(
           false,
           'addMessage'
         );
+
+        return messageId;
       },
 
       /**

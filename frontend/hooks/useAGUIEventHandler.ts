@@ -105,11 +105,10 @@ export function useAGUIEventHandler(threadId: string) {
 
     // If no streaming message exists, create one
     if (!streamingMessageIdRef.current) {
-      const messageId = `msg-${Date.now()}`;
-      streamingMessageIdRef.current = messageId;
       streamingContentRef.current = token;
 
-      addMessage(threadId, {
+      // addMessage now returns the actual ID that was generated
+      const generatedId = addMessage(threadId, {
         role: 'assistant',
         content: token,
         metadata: {
@@ -117,11 +116,14 @@ export function useAGUIEventHandler(threadId: string) {
           streaming: true,
         },
       });
+
+      // Store the ACTUAL ID returned from addMessage
+      streamingMessageIdRef.current = generatedId;
     } else {
       // Append token to existing message
       streamingContentRef.current += token;
 
-      // Find and update the streaming message
+      // Now this ID matches the one in the store
       updateMessage(threadId, streamingMessageIdRef.current, {
         content: streamingContentRef.current,
       });

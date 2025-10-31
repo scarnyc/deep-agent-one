@@ -138,7 +138,7 @@ export interface AgentState {
   // Actions
   setActiveThread: (thread_id: string) => void;
   createThread: (thread_id: string) => void;
-  addMessage: (thread_id: string, message: Omit<AgentMessage, 'id' | 'timestamp'>) => void;
+  addMessage: (thread_id: string, message: Omit<AgentMessage, 'id' | 'timestamp'>) => string;
   updateMessage: (thread_id: string, message_id: string, updates: Partial<AgentMessage>) => void;
   addToolCall: (thread_id: string, tool_call: ToolCall) => void;
   updateToolCall: (thread_id: string, tool_call_id: string, updates: Partial<ToolCall>) => void;
