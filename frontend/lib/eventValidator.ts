@@ -52,6 +52,7 @@ export const STANDARD_AGUI_EVENTS = {
 
   // Error Events
   ERROR: 'error',
+  ON_ERROR: 'on_error',
 } as const;
 
 /**
@@ -283,6 +284,7 @@ export function isErrorEvent(eventType: string): boolean {
     STANDARD_AGUI_EVENTS.CHAIN_ERROR,
     STANDARD_AGUI_EVENTS.LLM_ERROR,
     STANDARD_AGUI_EVENTS.ERROR,
+    STANDARD_AGUI_EVENTS.ON_ERROR,
   ].includes(eventType as any);
 }
 
