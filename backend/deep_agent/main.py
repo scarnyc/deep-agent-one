@@ -25,7 +25,7 @@ from deep_agent.api.dependencies import AgentServiceDep
 from deep_agent.api.middleware import TimeoutMiddleware
 from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.errors import ConfigurationError, DeepAgentError
-from deep_agent.core.logging import LogLevel, get_logger, setup_logging
+from deep_agent.core.logging import LogLevel, generate_langsmith_url, get_logger, setup_logging
 from deep_agent.core.serialization import serialize_event
 
 logger = get_logger(__name__)
@@ -495,12 +495,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         })
 
                         event_count = 0
+                        trace_id = None
                         # Stream agent responses using injected service
                         async for event in service.stream(
                             message=message.message,
                             thread_id=message.thread_id,
                         ):
                             event_count += 1
+
+                            # Capture trace_id from first event metadata if available
+                            if trace_id is None and "metadata" in event:
+                                trace_id = event["metadata"].get("trace_id")
 
                             # Add request_id to event for tracking
                             event["request_id"] = request_id
@@ -517,12 +522,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                     f"WebSocket sent {event_count} events",
                                     connection_id=connection_id,
                                     request_id=request_id,
+                                    trace_id=trace_id,
                                 )
 
                         logger.info(
                             "WebSocket message processing completed",
                             connection_id=connection_id,
                             request_id=request_id,
+                            thread_id=message.thread_id,
+                            trace_id=trace_id,
                             total_events_sent=event_count,
                         )
 
@@ -532,13 +540,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             "WebSocket agent validation error",
                             connection_id=connection_id,
                             request_id=request_id,
+                            thread_id=message.thread_id,
                             error=str(e),
                         )
                         await websocket.send_json({
                             "type": "error",
                             "error": str(e),
                             "request_id": request_id,
+                            "thread_id": message.thread_id,
                         })
+
+                    except asyncio.CancelledError:
+                        # Client disconnected or task cancelled
+                        # Get trace_id if available
+                        captured_trace_id = trace_id if 'trace_id' in locals() else None
+                        captured_event_count = event_count if 'event_count' in locals() else 0
+
+                        logger.info(
+                            "WebSocket streaming cancelled (client disconnect or timeout)",
+                            connection_id=connection_id,
+                            request_id=request_id,
+                            thread_id=message.thread_id,
+                            trace_id=captured_trace_id,
+                            events_sent=captured_event_count,
+                            reason="client_disconnect_or_task_cancelled",
+                        )
+                        # Do NOT send error to client (connection likely closed)
+                        # Do NOT re-raise (expected behavior)
+                        # Continue to next message in the while loop
 
                     except Exception as e:
                         # Agent execution errors
@@ -547,10 +576,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         if any(pattern in error_msg for pattern in ["sk-", "lsv2_", "key=", "token=", "password="]):
                             error_msg = "[REDACTED: Potential secret in error message]"
 
+                        # Get trace_id if available
+                        captured_trace_id = trace_id if 'trace_id' in locals() else None
+
                         logger.error(
                             "WebSocket agent execution failed",
                             connection_id=connection_id,
                             request_id=request_id,
+                            thread_id=message.thread_id,
+                            trace_id=captured_trace_id,
+                            langsmith_url=generate_langsmith_url(captured_trace_id) if captured_trace_id else None,
                             error=error_msg,
                             error_type=type(e).__name__,
                         )
@@ -558,6 +593,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             "type": "error",
                             "error": "Agent execution failed",
                             "request_id": request_id,
+                            "thread_id": message.thread_id,
+                            "trace_id": captured_trace_id,
                         })
 
                 else:

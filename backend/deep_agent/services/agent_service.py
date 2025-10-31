@@ -9,6 +9,7 @@ import asyncio
 from typing import Any, AsyncGenerator, Optional
 
 from langgraph.graph.state import CompiledStateGraph
+from langsmith import get_current_run_tree
 from tenacity import (
     AsyncRetrying,
     stop_after_attempt,
@@ -18,7 +19,7 @@ from tenacity import (
 
 from deep_agent.agents.deep_agent import create_agent
 from deep_agent.config.settings import Settings, get_settings
-from deep_agent.core.logging import get_logger
+from deep_agent.core.logging import generate_langsmith_url, get_logger
 
 logger = get_logger(__name__)
 
@@ -175,18 +176,44 @@ class AgentService:
 
                     result = await agent.ainvoke(input_data, config)
 
+            # Capture trace_id from LangSmith for debugging
+            trace_id = None
+            try:
+                run_tree = get_current_run_tree()
+                if run_tree:
+                    trace_id = str(run_tree.trace_id)
+            except Exception:
+                # Don't fail if trace_id capture fails
+                pass
+
             logger.info(
                 "Agent invocation completed",
                 thread_id=thread_id,
+                trace_id=trace_id,
                 message_count=len(result.get("messages", [])),
             )
+
+            # Add trace_id to result for downstream use
+            if trace_id:
+                result["trace_id"] = trace_id
 
             return result
 
         except Exception as e:
+            # Attempt to capture trace_id even on error
+            trace_id = None
+            try:
+                run_tree = get_current_run_tree()
+                if run_tree:
+                    trace_id = str(run_tree.trace_id)
+            except Exception:
+                pass
+
             logger.error(
                 "Agent invocation failed",
                 thread_id=thread_id,
+                trace_id=trace_id,
+                langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
                 error=str(e),
                 error_type=type(e).__name__,
             )
@@ -270,6 +297,7 @@ class AgentService:
 
         event_count = 0
         event_types_seen = set()
+        trace_id = None
 
         try:
             # Wrap streaming in timeout to prevent infinite hangs
@@ -294,6 +322,16 @@ class AgentService:
                             event_count += 1
                             event_type = event.get("event", "unknown")
 
+                            # Capture trace_id from first event if not already captured
+                            if trace_id is None and event_count == 1:
+                                try:
+                                    run_tree = get_current_run_tree()
+                                    if run_tree:
+                                        trace_id = str(run_tree.trace_id)
+                                except Exception:
+                                    # Don't fail if trace_id capture fails
+                                    pass
+
                             # Filter events based on configuration
                             if event_type in allowed_events:
                                 event_types_seen.add(event_type)
@@ -302,12 +340,15 @@ class AgentService:
                                 if "metadata" not in event:
                                     event["metadata"] = {}
                                 event["metadata"]["thread_id"] = thread_id
+                                if trace_id:
+                                    event["metadata"]["trace_id"] = trace_id
 
                                 # Log progress periodically
                                 if event_count % 10 == 0:
                                     logger.debug(
                                         f"Stream event #{event_count}",
                                         thread_id=thread_id,
+                                        trace_id=trace_id,
                                         event_type=event_type,
                                     )
 
@@ -316,6 +357,7 @@ class AgentService:
             logger.info(
                 "Agent streaming completed naturally",
                 thread_id=thread_id,
+                trace_id=trace_id,
                 total_events=event_count,
                 event_types=list(event_types_seen),
             )
@@ -324,6 +366,8 @@ class AgentService:
             logger.error(
                 "Agent streaming timed out",
                 thread_id=thread_id,
+                trace_id=trace_id,
+                langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
                 timeout_seconds=timeout_seconds,
                 events_received=event_count,
                 event_types=list(event_types_seen),
@@ -336,13 +380,50 @@ class AgentService:
                     "timeout_seconds": timeout_seconds,
                     "events_received": event_count,
                 },
+                "metadata": {
+                    "thread_id": thread_id,
+                    "trace_id": trace_id,
+                },
             }
             raise RuntimeError(f"Agent streaming timed out after {timeout_seconds}s")
+
+        except asyncio.CancelledError:
+            # Handle cancellation gracefully (client disconnect, task cancelled, etc.)
+            logger.warning(
+                "Agent streaming cancelled",
+                thread_id=thread_id,
+                trace_id=trace_id,
+                langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
+                events_received=event_count,
+                event_types=list(event_types_seen),
+                reason="client_disconnect_or_timeout",
+            )
+            # Yield cancellation event to client (if connection still alive)
+            try:
+                yield {
+                    "event": "on_error",
+                    "data": {
+                        "error": "Agent execution was cancelled",
+                        "reason": "client_disconnect_or_timeout",
+                        "events_received": event_count,
+                    },
+                    "metadata": {
+                        "thread_id": thread_id,
+                        "trace_id": trace_id,
+                    },
+                }
+            except Exception:
+                # Connection already closed, ignore
+                pass
+            # Do NOT re-raise - cancellation is expected behavior
+            return
 
         except Exception as e:
             logger.error(
                 "Agent streaming failed",
                 thread_id=thread_id,
+                trace_id=trace_id,
+                langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
                 error=str(e),
                 error_type=type(e).__name__,
             )
