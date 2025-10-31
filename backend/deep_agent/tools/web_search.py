@@ -4,6 +4,8 @@ Web Search Tool for DeepAgents.
 Provides web search capabilities to agents via the Perplexity MCP client.
 """
 
+import asyncio
+
 from langchain_core.tools import tool
 
 from deep_agent.core.logging import get_logger
@@ -124,6 +126,18 @@ async def web_search(
             error=error_str,
             is_rate_limit="rate limit" in error_str.lower(),
         )
+        return error_msg
+
+    except asyncio.CancelledError:
+        # Handle task cancellation gracefully (client disconnect or timeout)
+        error_msg = "Search was cancelled (client disconnected or request timed out)"
+        logger.warning(
+            "Search cancelled during execution",
+            query=query,
+            reason="task_cancellation",
+        )
+        # Return error message instead of propagating cancellation
+        # This allows agent to continue gracefully with error context
         return error_msg
 
     except Exception as e:

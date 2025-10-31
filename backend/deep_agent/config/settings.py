@@ -92,6 +92,11 @@ class Settings(BaseSettings):
     MCP_PERPLEXITY_TIMEOUT: int = 30
     MCP_PLAYWRIGHT_TIMEOUT: int = 60
 
+    # Tool Execution Timeouts
+    # NOTE: Tool timeout must be < STREAM_TIMEOUT_SECONDS to prevent race conditions
+    TOOL_EXECUTION_TIMEOUT: int = 45  # 45s per tool call (< 60s stream timeout)
+    WEB_SEARCH_TIMEOUT: int = 30  # Perplexity search timeout (matches MCP_PERPLEXITY_TIMEOUT)
+
     # Security Configuration
     SECRET_KEY: Optional[str] = None
     JWT_SECRET: Optional[str] = None

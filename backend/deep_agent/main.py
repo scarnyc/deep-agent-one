@@ -4,6 +4,7 @@ FastAPI application entry point for Deep Agent AGI.
 Provides HTTP API with CORS, rate limiting, structured logging,
 and global exception handling.
 """
+import asyncio
 import json
 import uuid
 from collections.abc import Awaitable, Callable
@@ -437,8 +438,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         error=str(e),
                     )
                     await websocket.send_json({
-                        "type": "error",
-                        "error": "Invalid JSON format",
+                        "event": "on_error",
+                        "data": {
+                            "error": "Invalid JSON format",
+                            "error_type": "JSONDecodeError",
+                        },
+                        "metadata": {
+                            "connection_id": connection_id,
+                        },
                     })
                     continue
 
@@ -464,9 +471,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         errors=e.errors(),
                     )
                     await websocket.send_json({
-                        "type": "error",
-                        "error": f"Validation error: {str(e)}",
-                        "request_id": request_id,
+                        "event": "on_error",
+                        "data": {
+                            "error": f"Validation error: {str(e)}",
+                            "error_type": "ValidationError",
+                            "request_id": request_id,
+                        },
+                        "metadata": {
+                            "connection_id": connection_id,
+                        },
                     })
                     continue
 
@@ -513,8 +526,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             # Serialize event to JSON-safe format (handles LangChain objects)
                             serialized_event = serialize_event(event)
 
-                            # Send event to client
-                            await websocket.send_json(serialized_event)
+                            # Send event to client with disconnect detection
+                            try:
+                                await websocket.send_json(serialized_event)
+                            except (WebSocketDisconnect, RuntimeError) as send_error:
+                                # Client disconnected mid-stream
+                                logger.info(
+                                    "Client disconnected during streaming",
+                                    connection_id=connection_id,
+                                    request_id=request_id,
+                                    thread_id=message.thread_id,
+                                    trace_id=trace_id,
+                                    events_sent=event_count,
+                                    error=str(send_error),
+                                )
+                                # Break out of stream to stop agent execution
+                                break
 
                             # Log progress every 10 events
                             if event_count % 10 == 0:
@@ -544,10 +571,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             error=str(e),
                         )
                         await websocket.send_json({
-                            "type": "error",
-                            "error": str(e),
-                            "request_id": request_id,
-                            "thread_id": message.thread_id,
+                            "event": "on_error",
+                            "data": {
+                                "error": str(e),
+                                "error_type": "ValueError",
+                                "request_id": request_id,
+                            },
+                            "metadata": {
+                                "thread_id": message.thread_id,
+                                "connection_id": connection_id,
+                            },
                         })
 
                     except asyncio.CancelledError:
@@ -562,6 +595,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             request_id=request_id,
                             thread_id=message.thread_id,
                             trace_id=captured_trace_id,
+                            langsmith_url=generate_langsmith_url(captured_trace_id) if captured_trace_id else None,
                             events_sent=captured_event_count,
                             reason="client_disconnect_or_task_cancelled",
                         )
@@ -590,11 +624,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             error_type=type(e).__name__,
                         )
                         await websocket.send_json({
-                            "type": "error",
-                            "error": "Agent execution failed",
-                            "request_id": request_id,
-                            "thread_id": message.thread_id,
-                            "trace_id": captured_trace_id,
+                            "event": "on_error",
+                            "data": {
+                                "error": "Agent execution failed",
+                                "error_type": type(e).__name__,
+                                "request_id": request_id,
+                            },
+                            "metadata": {
+                                "thread_id": message.thread_id,
+                                "trace_id": captured_trace_id,
+                                "connection_id": connection_id,
+                            },
                         })
 
                 else:
@@ -606,9 +646,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         message_type=message.type,
                     )
                     await websocket.send_json({
-                        "type": "error",
-                        "error": f"Unknown message type: {message.type}",
-                        "request_id": request_id,
+                        "event": "on_error",
+                        "data": {
+                            "error": f"Unknown message type: {message.type}",
+                            "error_type": "UnknownMessageType",
+                            "request_id": request_id,
+                        },
+                        "metadata": {
+                            "connection_id": connection_id,
+                        },
                     })
 
         except WebSocketDisconnect:

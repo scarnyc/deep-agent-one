@@ -388,6 +388,15 @@ class AgentService:
             raise RuntimeError(f"Agent streaming timed out after {timeout_seconds}s")
 
         except asyncio.CancelledError:
+            # Determine cancellation source for better diagnostics
+            cancellation_reason = "unknown"
+            if event_count == 0:
+                cancellation_reason = "early_cancellation_before_first_event"
+            elif event_count < 10:
+                cancellation_reason = "early_cancellation_during_startup"
+            else:
+                cancellation_reason = "mid_stream_cancellation"
+
             # Handle cancellation gracefully (client disconnect, task cancelled, etc.)
             logger.warning(
                 "Agent streaming cancelled",
@@ -396,25 +405,33 @@ class AgentService:
                 langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
                 events_received=event_count,
                 event_types=list(event_types_seen),
-                reason="client_disconnect_or_timeout",
+                reason=cancellation_reason,
+                last_event_type=list(event_types_seen)[-1] if event_types_seen else None,
             )
+
             # Yield cancellation event to client (if connection still alive)
             try:
                 yield {
                     "event": "on_error",
                     "data": {
                         "error": "Agent execution was cancelled",
-                        "reason": "client_disconnect_or_timeout",
+                        "reason": cancellation_reason,
                         "events_received": event_count,
+                        "last_event": list(event_types_seen)[-1] if event_types_seen else None,
                     },
                     "metadata": {
                         "thread_id": thread_id,
                         "trace_id": trace_id,
                     },
                 }
-            except Exception:
-                # Connection already closed, ignore
-                pass
+            except Exception as e:
+                # Connection likely closed, log and continue
+                logger.debug(
+                    "Failed to send cancellation event (connection closed)",
+                    thread_id=thread_id,
+                    error=str(e),
+                )
+
             # Do NOT re-raise - cancellation is expected behavior
             return
 
