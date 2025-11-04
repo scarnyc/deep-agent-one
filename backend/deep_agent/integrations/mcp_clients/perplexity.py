@@ -6,11 +6,14 @@ for performing web searches and retrieving real-time information.
 """
 
 import asyncio
+import os
 import re
 import threading
 import time
 from typing import Any
 
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -285,31 +288,59 @@ class PerplexityClient:
         try:
             # Enforce timeout (security: MEDIUM-3 fix)
             async with asyncio.timeout(self.timeout):
-                # Phase 0: Placeholder implementation
-                # In production, this would use actual MCP protocol:
-                # - Connect to MCP server using perplexity.json config
-                # - Send search request via MCP protocol
-                # - Parse MCP response
-                #
-                # Example production code:
-                # async with mcp.connect(self.settings) as connection:
-                #     response = await connection.call_tool(
-                #         "search",
-                #         query=query,
-                #         max_results=max_results
-                #     )
-                #     return response
+                # Server configuration from .mcp/perplexity.json
+                server_params = StdioServerParameters(
+                    command="python",
+                    args=["-m", "perplexity_mcp"],
+                    env={
+                        "PERPLEXITY_API_KEY": self.api_key,
+                        "PERPLEXITY_MODEL": os.getenv("PERPLEXITY_MODEL", "sonar"),
+                    },
+                )
 
-                # Simulate async operation
-                await asyncio.sleep(MOCK_DELAY_SECONDS)
+                logger.debug(
+                    "Connecting to Perplexity MCP server",
+                    query=query,
+                    max_results=max_results,
+                )
 
-                # Phase 0: Return mock response for testing
-                # This will be replaced with actual MCP implementation
-                return {
-                    "results": [],
-                    "query": query,
-                    "sources": 0,
-                }
+                # Connect to MCP server via stdio
+                async with stdio_client(server_params) as (read, write):
+                    async with ClientSession(read, write) as session:
+                        # Initialize MCP session
+                        await session.initialize()
+
+                        logger.debug("MCP session initialized, calling tool")
+
+                        # Call perplexity_search_web tool
+                        result = await session.call_tool(
+                            name="perplexity_search_web",
+                            arguments={
+                                "query": query,
+                                "recency": "month",  # Default: last 30 days
+                            },
+                        )
+
+                        # Parse result
+                        if not result.content or len(result.content) == 0:
+                            logger.warning("MCP tool returned empty content")
+                            return {
+                                "results": [],
+                                "query": query,
+                                "sources": 0,
+                            }
+
+                        # Extract text content from MCP response
+                        text_response = result.content[0].text
+
+                        logger.info(
+                            "MCP tool call successful",
+                            query=query,
+                            response_length=len(text_response),
+                        )
+
+                        # Parse Perplexity response
+                        return self._parse_perplexity_response(text_response, query)
 
         except asyncio.TimeoutError:
             logger.error(
@@ -318,6 +349,80 @@ class PerplexityClient:
                 timeout=self.timeout,
             )
             raise TimeoutError(f"MCP request exceeded {self.timeout}s timeout")
+
+        except Exception as e:
+            logger.error(
+                "MCP call failed",
+                query=query,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            raise ConnectionError(f"Failed to connect to Perplexity MCP: {str(e)}")
+
+    def _parse_perplexity_response(
+        self,
+        text: str,
+        query: str,
+    ) -> dict[str, Any]:
+        """
+        Parse Perplexity text response into structured results.
+
+        The perplexity_mcp server returns text with citations in format:
+
+        <main content>
+
+        Citations:
+        [1] https://example.com/source1
+        [2] https://example.com/source2
+
+        Args:
+            text: Raw text response from Perplexity MCP
+            query: Original search query
+
+        Returns:
+            Dictionary with structured results and citations
+        """
+        lines = text.split("\n")
+
+        # Find where citations start
+        citations_start = None
+        for i, line in enumerate(lines):
+            if line.strip().lower() == "citations:":
+                citations_start = i + 1
+                break
+
+        # Extract main content and citations
+        if citations_start:
+            content = "\n".join(lines[: citations_start - 1]).strip()
+            citation_lines = lines[citations_start:]
+        else:
+            content = text.strip()
+            citation_lines = []
+
+        # Parse citations
+        sources = []
+        for line in citation_lines:
+            line = line.strip()
+            if line.startswith("[") and "]" in line:
+                # Format: [1] https://example.com
+                url = line.split("]", 1)[1].strip()
+                sources.append(url)
+
+        # Create single result with all content
+        results = [
+            {
+                "title": f"Perplexity Search: {query[:50]}",
+                "url": sources[0] if sources else "",
+                "snippet": content,
+                "relevance_score": 1.0,
+            }
+        ]
+
+        return {
+            "results": results,
+            "query": query,
+            "sources": len(sources),
+        }
 
     def format_results_for_agent(self, results: dict[str, Any]) -> str:
         """
