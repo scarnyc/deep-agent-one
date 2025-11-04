@@ -13,18 +13,26 @@
  * - hitl_request → Show HITL approval UI
  * - hitl_approval → Resume agent execution
  * - on_chain_end / on_llm_end → Update agent status to "completed"
- * - error → Update agent status to "error", show error message
+ * - on_error / on_chain_error / on_llm_error / error → Update agent status to "error", show error message
+ *
+ * Error Handling:
+ * Supports multiple AI service protocols via normalizeErrorEvent():
+ * - LangChain: on_error with data.error
+ * - AG-UI: on_chain_error, on_llm_error with error.message
+ * - Generic: error with error.message
  */
 
 import { useRef, useEffect } from 'react';
 import { useAgentState } from './useAgentState';
 import { useWebSocketContext } from './useWebSocketContext';
 import { validateAGUIEvent, getEventCategory } from '@/lib/eventValidator';
+import { normalizeErrorEvent } from '@/lib/errorEventAdapter';
 import {
   AGUIEvent,
   RunStartedEvent,
   RunFinishedEvent,
   RunErrorEvent,
+  OnErrorEvent,
   TextMessageContentEvent,
   TextMessageEndEvent,
   ToolCallStartEvent,
@@ -235,35 +243,44 @@ export function useAGUIEventHandler(threadId: string) {
 
   /**
    * Handle run error event
+   *
+   * Supports multiple error event formats:
+   * - LangChain: on_error with data.error
+   * - AG-UI: on_chain_error, on_llm_error with error.message
+   * - Generic: error with error.message
+   *
+   * Uses normalizeErrorEvent() to extract error data consistently.
    */
-  const handleRunError = (event: RunErrorEvent | ErrorEvent) => {
+  const handleRunError = (event: RunErrorEvent | OnErrorEvent | ErrorEvent) => {
     console.error('[AG-UI] Run error:', event);
+
+    // Normalize error data from any format
+    const normalizedError = normalizeErrorEvent(event);
 
     // Update agent status
     setAgentStatus(threadId, 'error');
 
-    // Extract error message
-    const errorMessage = event.error?.message || 'An unknown error occurred';
-
     // Add error message
     addMessage(threadId, {
       role: 'system',
-      content: `Error: ${errorMessage}`,
+      content: `Error: ${normalizedError.message}`,
       metadata: {
         error: true,
-        run_id: event.run_id,
-        error_type: event.error?.type,
+        run_id: normalizedError.run_id,
+        error_type: normalizedError.type,
+        error_code: normalizedError.code,
+        request_id: normalizedError.request_id,
       },
     });
 
     // Update step if exists
-    if (event.run_id) {
-      updateStep(threadId, event.run_id, {
+    if (normalizedError.run_id) {
+      updateStep(threadId, normalizedError.run_id, {
         status: 'error',
         completed_at: new Date().toISOString(),
         metadata: {
-          error: errorMessage,
-          error_type: event.error?.type,
+          error: normalizedError.message,
+          error_type: normalizedError.type,
         },
       });
     }
@@ -314,8 +331,9 @@ export function useAGUIEventHandler(threadId: string) {
 
         case 'on_chain_error':
         case 'on_llm_error':
+        case 'on_error':      // LangChain convention
         case 'error':
-          handleRunError(event as RunErrorEvent | ErrorEvent);
+          handleRunError(event as RunErrorEvent | OnErrorEvent | ErrorEvent);
           break;
 
         default:

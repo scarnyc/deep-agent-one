@@ -132,9 +132,18 @@ async def get_agent_status(request: Request, thread_id: str) -> AgentRunInfo:
 
     except Exception as e:
         # Internal error
+        # Try to extract run_id if state was retrieved
+        run_id = None
+        try:
+            if 'state' in locals():
+                run_id = state["config"]["configurable"].get("checkpoint_id")
+        except Exception:
+            pass
+
         logger.error(
             "Failed to get agent status",
             thread_id=thread_id,
+            run_id=run_id,
             error=str(e),
             error_type=type(e).__name__,
         )
@@ -305,6 +314,7 @@ async def approve_hitl_request(
         logger.error(
             "Failed to process HITL approval",
             thread_id=thread_id,
+            run_id=approval_request.run_id,
             error=str(e),
             error_type=type(e).__name__,
         )

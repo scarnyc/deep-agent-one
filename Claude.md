@@ -504,13 +504,14 @@ echo "✅ Live API tests complete!"
 3. Authentication & IAM (OAuth 2.0, rotating credentials, least-privilege)
 4. Provenance Store (source tracking, citations, confidence scores)
 5. Enhanced AG-UI (reasoning indicators, state events, provenance display)
-6. **Custom TypeScript Components** - Explore building custom AG-UI components on top of SDK:
+6. **Custom TypeScript Components** - Explore UI redesign with custom AG-UI components on top of SDK:
    - Custom chat components using `@ag-ui/react` hooks for full UI control
    - Advanced HITL workflows (multi-step approval, conditional branching)
    - Custom event visualizers (tool call timeline, reasoning display)
    - Company-specific branding, animations, and UX enhancements
    - Use `@ag-ui/core` types and `@ag-ui/react` hooks as building blocks
    - Replace CopilotKit components incrementally as needed
+   - Create ErrorDisplay.tsx component & update WebSocketProvider.tsx to use ErrorDisplay.
 7. Prompt Optimization (Opik) - Auto-prompt optimization, A/B testing infrastructure, prompt versioning
 
 **Key Metrics:** Memory retrieval >90%, auth token refresh >99%, deep reasoning >5% queries, provenance 100% sources, prompt A/B improvement >10%

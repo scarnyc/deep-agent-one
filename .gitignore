@@ -101,8 +101,13 @@ data/
 .mcp/*.local.json
 
 # Logs
-logs/
+# Ignore all log files but keep directory structure
 *.log
+logs/**/*.log
+# Keep .gitkeep files to preserve directory structure
+!logs/.gitkeep
+!logs/backend/.gitkeep
+!logs/frontend/.gitkeep
 
 # OS
 .DS_Store

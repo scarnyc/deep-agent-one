@@ -587,33 +587,33 @@ alembic upgrade head
 
 ### Run Development Server
 
-Deep Agent AGI supports two development modes depending on your workflow:
+Use the provided scripts to start the servers with automatic datetime-stamped logging:
+
+```bash
+# Start both servers (recommended)
+./scripts/start-all.sh
+
+# Or start individually:
+./scripts/start-backend.sh   # Backend only
+./scripts/start-frontend.sh  # Frontend only
+```
+
+All logs are automatically written to `logs/{service}/YYYY-MM-DD-HH-MM-SS.log` for easy debugging and tracking.
+
+**Access Points:**
+- Backend API: http://127.0.0.1:8000
+- Frontend UI: http://localhost:3000
+- API Docs: http://127.0.0.1:8000/docs
+
+**Development Modes:**
 
 #### HTTP Development Mode (with hot-reload)
 Use this for developing HTTP endpoints, services, and general backend code. Code changes trigger automatic restart.
-
-```bash
-# Start backend with hot-reload
-./backend/scripts/dev.sh
-
-# Start frontend (Next.js) - in separate terminal
-cd frontend
-npm run dev
-```
 
 **Trade-off:** WebSocket connections will be killed on each reload.
 
 #### WebSocket Development Mode (no hot-reload)
 Use this for developing WebSocket functionality, streaming responses, and real-time features. Connections remain stable.
-
-```bash
-# Start backend without hot-reload
-./backend/scripts/dev-ws.sh
-
-# Start frontend (Next.js) - in separate terminal
-cd frontend
-npm run dev
-```
 
 **Trade-off:** Manual backend restart required for code changes.
 
@@ -635,6 +635,55 @@ pytest tests/ui/
 # Security scan (TheAuditor)
 aud init && aud full
 ```
+
+### Logging
+
+All server logs are automatically persisted with datetime-stamped filenames for easy tracking and debugging.
+
+**Log Directory Structure:**
+```
+logs/
+├── backend/
+│   ├── 2025-10-30-15-45-30.log
+│   ├── 2025-10-30-16-20-15.log
+│   └── ...
+└── frontend/
+    ├── 2025-10-30-15-45-32.log
+    ├── 2025-10-30-16-20-18.log
+    └── ...
+```
+
+**Viewing Logs:**
+```bash
+# Tail the most recent backend log
+tail -f logs/backend/$(ls -t logs/backend/*.log | head -1)
+
+# Tail the most recent frontend log
+tail -f logs/frontend/$(ls -t logs/frontend/*.log | head -1)
+
+# View specific log file (shown when starting servers)
+tail -f logs/backend/2025-10-30-15-45-30.log
+```
+
+**Log Rotation:**
+```bash
+# Clean up old logs (keeps recent 10, removes files older than 7 days)
+./scripts/cleanup-logs.sh
+```
+
+**Log Format:**
+- **Naming:** `YYYY-MM-DD-HH-MM-SS.log` (e.g., `2025-10-30-15-45-30.log`)
+- **Rotation:** Manual via `cleanup-logs.sh` script
+- **Retention:** Minimum 10 most recent logs, 7-day automatic cleanup available
+
+**Debugging with Logs:**
+All error logs include debugging identifiers:
+- `trace_id` - LangSmith trace URL for execution details
+- `thread_id` - Conversation thread identifier
+- `run_id` - LangGraph checkpoint ID
+- `request_id` - WebSocket request identifier
+
+See `docs/development/debugging.md` for complete debugging guide.
 
 ---
 

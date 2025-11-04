@@ -107,3 +107,32 @@ def get_logger(name: str) -> structlog.stdlib.BoundLogger:
         Configured structlog logger
     """
     return structlog.get_logger(name)
+
+
+def generate_langsmith_url(
+    trace_id: str,
+    project: str = "deep-agent-agi",
+    organization: str | None = None,
+) -> str:
+    """
+    Generate LangSmith trace URL for debugging.
+
+    Args:
+        trace_id: LangSmith trace ID
+        project: LangSmith project name (default: "deep-agent-agi")
+        organization: Optional organization name for cloud-hosted LangSmith
+
+    Returns:
+        Full URL to LangSmith trace viewer
+
+    Example:
+        >>> url = generate_langsmith_url("abc-123-def")
+        >>> print(url)
+        https://smith.langchain.com/public/abc-123-def/r
+    """
+    if not trace_id:
+        return ""
+
+    # LangSmith public trace URL format (works without auth)
+    # Format: https://smith.langchain.com/public/{trace_id}/r
+    return f"https://smith.langchain.com/public/{trace_id}/r"

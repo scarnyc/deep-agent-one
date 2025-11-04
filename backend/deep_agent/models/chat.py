@@ -229,6 +229,14 @@ class ChatResponse(BaseModel):
         default=None,
         description="Optional error message if status is ERROR",
     )
+    trace_id: Optional[str] = Field(
+        default=None,
+        description="LangSmith trace ID for debugging (links to execution trace)",
+    )
+    run_id: Optional[str] = Field(
+        default=None,
+        description="LangGraph checkpoint/run ID for state inspection",
+    )
 
     @field_validator("thread_id", mode="before")
     @classmethod

@@ -13,6 +13,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from deep_agent.core.logging import get_logger
+from deep_agent.core.serialization import serialize_event
 from deep_agent.models.chat import ChatRequest, ChatResponse, Message, MessageRole, ResponseStatus
 from deep_agent.services.agent_service import AgentService
 
@@ -229,9 +230,12 @@ async def chat_stream(
                 message=request_body.message,
                 thread_id=request_body.thread_id,
             ):
+                # Serialize event to JSON-safe format (handles LangChain/LangGraph objects)
+                serialized_event = serialize_event(event)
+
                 # Format event as SSE
                 # SSE format: "data: {json}\n\n"
-                event_json = json.dumps(event)
+                event_json = json.dumps(serialized_event)
                 yield f"data: {event_json}\n\n"
 
             logger.info(

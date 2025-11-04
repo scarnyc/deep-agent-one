@@ -45,6 +45,23 @@ export interface RunErrorEvent extends BaseEvent {
   };
 }
 
+/**
+ * LangChain Error Event (on_error)
+ *
+ * Emitted by LangChain when errors occur during agent execution.
+ * Different structure from RunErrorEvent - error can be in data.error
+ */
+export interface OnErrorEvent extends BaseEvent {
+  event: 'on_error';
+  run_id?: string;
+  data?: {
+    error?: string | { message: string; type?: string; stack?: string };
+    error_type?: string;
+    request_id?: string;
+  };
+  metadata?: Record<string, any>;
+}
+
 export interface StepStartedEvent extends BaseEvent {
   event: 'on_tool_start' | 'on_retriever_start';
   name: string;
@@ -183,6 +200,7 @@ export type AGUIEvent =
   | RunStartedEvent
   | RunFinishedEvent
   | RunErrorEvent
+  | OnErrorEvent
   | StepStartedEvent
   | StepFinishedEvent
   | TextMessageStartEvent

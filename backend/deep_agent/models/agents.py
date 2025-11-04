@@ -6,6 +6,69 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field, field_validator
 
 
+class ErrorResponse(BaseModel):
+    """
+    Generic error response model for API endpoints.
+
+    Provides consistent error structure across all endpoints with debugging identifiers.
+
+    Attributes:
+        error: Human-readable error message
+        detail: Optional detailed error information
+        thread_id: Optional conversation thread identifier
+        trace_id: Optional LangSmith trace ID for debugging
+        run_id: Optional LangGraph checkpoint/run ID
+        request_id: Optional request identifier (for WebSocket/async requests)
+
+    Example:
+        >>> error = ErrorResponse(
+        ...     error="Agent execution failed",
+        ...     thread_id="user-123",
+        ...     trace_id="trace-abc-456"
+        ... )
+        >>> print(error.error, error.trace_id)
+        Agent execution failed trace-abc-456
+    """
+
+    error: str = Field(
+        min_length=1,
+        description="Human-readable error message",
+    )
+    detail: Optional[str] = Field(
+        default=None,
+        description="Optional detailed error information",
+    )
+    thread_id: Optional[str] = Field(
+        default=None,
+        description="Conversation thread identifier",
+    )
+    trace_id: Optional[str] = Field(
+        default=None,
+        description="LangSmith trace ID for debugging (links to execution trace)",
+    )
+    run_id: Optional[str] = Field(
+        default=None,
+        description="LangGraph checkpoint/run ID for state inspection",
+    )
+    request_id: Optional[str] = Field(
+        default=None,
+        description="Request identifier (for WebSocket/async requests)",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "error": "Agent execution failed",
+                "detail": "Connection timeout after 30 seconds",
+                "thread_id": "user-123",
+                "trace_id": "trace-abc-456",
+                "run_id": "run-def-789",
+                "request_id": "req-ghi-012",
+            }
+        }
+    }
+
+
 class AgentRunStatus(str, Enum):
     """
     Agent run status types.
@@ -78,6 +141,10 @@ class AgentRunInfo(BaseModel):
     error: Optional[str] = Field(
         default=None,
         description="Error message if status is ERROR",
+    )
+    trace_id: Optional[str] = Field(
+        default=None,
+        description="LangSmith trace ID for debugging (links to execution trace)",
     )
     metadata: Optional[dict[str, Any]] = Field(
         default=None,
