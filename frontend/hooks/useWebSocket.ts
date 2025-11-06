@@ -140,11 +140,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       const ws = new WebSocket(wsUrl);
 
       // Issue 49 fix: Add connection timeout protection
-      // Increased to 30s to allow for cold start agent initialization (~10s)
-      const CONNECTION_TIMEOUT = 30000; // 30 seconds
+      // Increased to 300s (5 min) to match backend STREAM_TIMEOUT_SECONDS
+      // Supports parallel tool operations that may take several minutes
+      const CONNECTION_TIMEOUT = 300000; // 5 minutes (matches backend)
       const connectionTimeoutId = setTimeout(() => {
         if (ws.readyState === WebSocket.CONNECTING) {
-          const timeoutError = new Error('WebSocket connection timeout (30s)');
+          const timeoutError = new Error('WebSocket connection timeout (5 min)');
           console.error('[useWebSocket]', timeoutError);
           setError(timeoutError);
           setConnectionStatus('error');

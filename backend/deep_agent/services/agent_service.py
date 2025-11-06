@@ -322,6 +322,9 @@ class AgentService:
                             event_count += 1
                             event_type = event.get("event", "unknown")
 
+                            # Track ALL event types for debugging (not just allowed ones)
+                            event_types_seen.add(event_type)
+
                             # Capture trace_id from first event if not already captured
                             if trace_id is None and event_count == 1:
                                 try:
@@ -334,8 +337,6 @@ class AgentService:
 
                             # Filter events based on configuration
                             if event_type in allowed_events:
-                                event_types_seen.add(event_type)
-
                                 # Add metadata to event
                                 if "metadata" not in event:
                                     event["metadata"] = {}
@@ -353,6 +354,17 @@ class AgentService:
                                     )
 
                                 yield event
+                            else:
+                                # Log filtered events for debugging (first 50 only to avoid log spam)
+                                if event_count <= 50:
+                                    logger.debug(
+                                        f"Filtered event (not in allowed_events)",
+                                        thread_id=thread_id,
+                                        trace_id=trace_id,
+                                        event_type=event_type,
+                                        event_name=event.get("name"),
+                                        allowed_events=list(allowed_events),
+                                    )
 
             logger.info(
                 "Agent streaming completed naturally",
@@ -372,7 +384,9 @@ class AgentService:
                 events_received=event_count,
                 event_types=list(event_types_seen),
             )
-            # Yield error event to client before raising
+            # Yield error event to client
+            # NOTE: We return here instead of raising to prevent double error events
+            # Raising would cause WebSocket handler to send another error event
             yield {
                 "event": "on_error",
                 "data": {
@@ -385,7 +399,8 @@ class AgentService:
                     "trace_id": trace_id,
                 },
             }
-            raise RuntimeError(f"Agent streaming timed out after {timeout_seconds}s")
+            # Return gracefully to prevent double error events
+            return
 
         except asyncio.CancelledError:
             # Determine cancellation source for better diagnostics

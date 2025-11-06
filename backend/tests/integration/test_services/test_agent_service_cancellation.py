@@ -60,7 +60,7 @@ async def test_agent_streaming_handles_cancellation_gracefully(mock_settings):
     mock_agent.astream_events = mock_stream_events
 
     # Patch the agent creation to return our mock
-    with patch.object(service, '_create_agent', return_value=mock_agent):
+    with patch.object(service, '_ensure_agent', return_value=mock_agent):
         # Act - Start streaming and collect events
         events_received = []
         cancellation_event_received = False
@@ -93,7 +93,8 @@ async def test_agent_streaming_handles_cancellation_gracefully(mock_settings):
     last_event = events_received[-1]
     assert last_event.get("event") == "on_error"
     assert "cancelled" in last_event.get("data", {}).get("error", "").lower()
-    assert last_event.get("data", {}).get("reason") == "client_disconnect_or_timeout"
+    # Reason will be "early_cancellation_during_startup" since event_count < 10
+    assert last_event.get("data", {}).get("reason") == "early_cancellation_during_startup"
 
 
 @pytest.mark.asyncio
@@ -111,11 +112,14 @@ async def test_agent_streaming_returns_gracefully_on_cancellation(mock_settings)
 
     async def mock_immediate_cancel(*args, **kwargs):
         """Mock stream that gets cancelled immediately."""
+        # Make this an async generator by using yield
+        if False:  # Never execute, but makes it a generator
+            yield
         raise asyncio.CancelledError()
 
     mock_agent.astream_events = mock_immediate_cancel
 
-    with patch.object(service, '_create_agent', return_value=mock_agent):
+    with patch.object(service, '_ensure_agent', return_value=mock_agent):
         # Act
         events = []
         exception_raised = None
@@ -168,29 +172,35 @@ async def test_agent_streaming_logs_cancellation_context(mock_settings):
     mock_agent.astream_events = mock_stream_with_trace
 
     # Mock logger to capture log calls
-    with patch.object(service, '_create_agent', return_value=mock_agent):
+    # Mock get_current_run_tree to return a run tree with trace_id
+    mock_run_tree = MagicMock()
+    mock_run_tree.trace_id = "test-trace-123"
+
+    with patch.object(service, '_ensure_agent', return_value=mock_agent):
         with patch('deep_agent.services.agent_service.logger') as mock_logger:
-            # Act
-            async for event in service.stream(
-                message="Test",
-                thread_id="test-logging-thread"
-            ):
-                pass
+            with patch('deep_agent.services.agent_service.get_current_run_tree', return_value=mock_run_tree):
+                # Act
+                async for event in service.stream(
+                    message="Test",
+                    thread_id="test-logging-thread"
+                ):
+                    pass
 
-            # Assert
-            # Verify warning log was called with proper context
-            mock_logger.warning.assert_called_once()
-            call_args = mock_logger.warning.call_args
+                # Assert
+                # Verify warning log was called with proper context
+                mock_logger.warning.assert_called_once()
+                call_args = mock_logger.warning.call_args
 
-            # Check log message
-            assert "cancelled" in call_args[0][0].lower()
+                # Check log message
+                assert "cancelled" in call_args[0][0].lower()
 
-            # Check log context
-            log_context = call_args[1]
-            assert log_context.get("thread_id") == "test-logging-thread"
-            assert log_context.get("trace_id") == "test-trace-123"
-            assert log_context.get("events_received") >= 1
-            assert log_context.get("reason") == "client_disconnect_or_timeout"
+                # Check log context
+                log_context = call_args[1]
+                assert log_context.get("thread_id") == "test-logging-thread"
+                assert log_context.get("trace_id") == "test-trace-123"
+                assert log_context.get("events_received") >= 1
+                # Reason will be "early_cancellation_during_startup" since event_count = 1 (< 10)
+                assert log_context.get("reason") == "early_cancellation_during_startup"
 
 
 @pytest.mark.asyncio
@@ -222,7 +232,7 @@ async def test_agent_streaming_partial_events_preserved(mock_settings):
 
     mock_agent.astream_events = mock_stream_partial
 
-    with patch.object(service, '_create_agent', return_value=mock_agent):
+    with patch.object(service, '_ensure_agent', return_value=mock_agent):
         # Act
         received_events = []
         async for event in service.stream(

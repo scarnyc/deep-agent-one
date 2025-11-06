@@ -71,8 +71,13 @@ class Settings(BaseSettings):
 
     # Streaming Configuration
     STREAM_VERSION: Literal["v1", "v2"] = "v2"
-    STREAM_TIMEOUT_SECONDS: int = 60
-    STREAM_ALLOWED_EVENTS: str = "on_chat_model_stream,on_tool_start,on_tool_end,on_chain_start,on_chain_end"
+    # Increased from 60s to 300s (5 min) to support parallel tool operations
+    # With 10 parallel tool calls @ 45s each, 60s was insufficient
+    # 300s provides safety margin for rate limits, retries, cold starts
+    STREAM_TIMEOUT_SECONDS: int = 300
+    # Include both LangGraph v1 (on_tool_*) and v2 (on_tool_call_*) event patterns
+    # Plus LLM events for reasoning visibility
+    STREAM_ALLOWED_EVENTS: str = "on_chat_model_stream,on_tool_start,on_tool_end,on_tool_call_start,on_tool_call_end,on_chain_start,on_chain_end,on_llm_start,on_llm_end"
 
     # Redis Cache (Phase 2)
     REDIS_URL: Optional[str] = None
