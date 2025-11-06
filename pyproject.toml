@@ -37,7 +37,8 @@ mcp = "^1.0.0"
 perplexity-mcp = "^0.1.0"
 
 # Monitoring & Observability
-opik = "^0.2.0"
+opik = "^1.7.17"  # Updated to be compatible with opik-optimizer (requires >=1.7.17)
+opik-optimizer = {version = "^2.2.0", python = ">=3.11,<3.14"}
 
 # Prompt Optimization & Statistical Analysis
 scipy = "^1.11.0"

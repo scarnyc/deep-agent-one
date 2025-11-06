@@ -19,54 +19,20 @@ from typing import Any, Dict, List, Optional
 import opik
 from structlog import get_logger
 
+# Real opik-optimizer imports (v2.2.1)
+from opik_optimizer import (
+    ChatPrompt,
+    EvolutionaryOptimizer,
+    FewShotBayesianOptimizer,
+    GepaOptimizer,
+    HierarchicalReflectiveOptimizer,
+    MetaPromptOptimizer,
+    ParameterOptimizer,
+)
+
 from deep_agent.config.settings import Settings, get_settings
 
 logger = get_logger(__name__)
-
-# TODO: opik_optimizer module is not yet available in opik 0.2.0
-# This is a placeholder implementation for Phase 1 development
-# When Opik releases optimizer functionality, replace these with real imports:
-# from opik import optimizers as opik_optimizer
-# For now, we create placeholder classes that match the expected interface
-
-class _PlaceholderOptimizer:
-    """Placeholder optimizer until Opik releases optimizer functionality."""
-    def optimize_prompt(self, prompt: Any, dataset: Any, metric: Any, max_trials: int = 10) -> Any:
-        # Placeholder result
-        result = type('obj', (object,), {
-            'prompt': str(prompt),
-            'score': 0.0,
-            'improvement': 0.0
-        })()
-        logger.warning(
-            "Using placeholder optimizer - opik_optimizer not available",
-            optimizer_type=type(self).__name__,
-        )
-        return result
-
-class _PlaceholderChatPrompt:
-    """Placeholder ChatPrompt until Opik releases optimizer functionality."""
-    def __init__(self, messages: List[Dict[str, str]], model: str, tools: Optional[List] = None, function_map: Optional[Dict] = None):
-        self.messages = messages
-        self.model = model
-        self.tools = tools
-        self.function_map = function_map
-
-    def __str__(self) -> str:
-        return self.messages[0]["content"] if self.messages else ""
-
-# Placeholder module structure
-class _OpikOptimizerPlaceholder:
-    """Placeholder for opik_optimizer module."""
-    HierarchicalReflectiveOptimizer = _PlaceholderOptimizer
-    FewShotBayesianOptimizer = _PlaceholderOptimizer
-    EvolutionaryOptimizer = _PlaceholderOptimizer
-    MetaPromptOptimizer = _PlaceholderOptimizer
-    GepaOptimizer = _PlaceholderOptimizer
-    ParameterOptimizer = _PlaceholderOptimizer
-    ChatPrompt = _PlaceholderChatPrompt
-
-opik_optimizer = _OpikOptimizerPlaceholder()
 
 
 class OptimizerAlgorithm(str, Enum):
@@ -229,28 +195,23 @@ class OpikClient:
         """
         try:
             if algorithm == OptimizerAlgorithm.HIERARCHICAL_REFLECTIVE:
-                optimizer = opik_optimizer.HierarchicalReflectiveOptimizer()
+                optimizer = HierarchicalReflectiveOptimizer()
 
             elif algorithm == OptimizerAlgorithm.FEW_SHOT_BAYESIAN:
-                optimizer = opik_optimizer.FewShotBayesianOptimizer()
+                optimizer = FewShotBayesianOptimizer()
 
             elif algorithm == OptimizerAlgorithm.EVOLUTIONARY:
-                optimizer = opik_optimizer.EvolutionaryOptimizer()
+                optimizer = EvolutionaryOptimizer()
 
             elif algorithm == OptimizerAlgorithm.META_PROMPT:
-                optimizer = opik_optimizer.MetaPromptOptimizer()
+                optimizer = MetaPromptOptimizer()
 
             elif algorithm == OptimizerAlgorithm.GEPA:
-                try:
-                    optimizer = opik_optimizer.GepaOptimizer()
-                except ImportError:
-                    raise ValueError(
-                        "GEPA optimizer requires `pip install gepa`. "
-                        "Install it and try again."
-                    )
+                # GEPA was installed automatically as a dependency of opik-optimizer
+                optimizer = GepaOptimizer()
 
             elif algorithm == OptimizerAlgorithm.PARAMETER:
-                optimizer = opik_optimizer.ParameterOptimizer()
+                optimizer = ParameterOptimizer()
 
             else:
                 raise ValueError(f"Unsupported algorithm: {algorithm}")
@@ -299,7 +260,7 @@ class OpikClient:
         """
         try:
             # Create ChatPrompt object
-            chat_prompt = opik_optimizer.ChatPrompt(
+            chat_prompt = ChatPrompt(
                 messages=[
                     {"role": "system", "content": prompt},
                 ],

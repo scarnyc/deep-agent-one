@@ -3,6 +3,8 @@
 **Version:** 1.0.0
 **Date:** 2025-11-06
 **Status:** Phase 1 Feature (Productionization)
+**Opik Package:** v2.2.1 (opik-optimizer) + v1.9.0 (opik)
+**Benchmarks:** ✅ Verified Real Data
 
 ---
 
@@ -377,31 +379,36 @@ The `evaluate_prompt` tool measures:
 
 ### Issue: `ModuleNotFoundError: No module named 'opik_optimizer'`
 
-**Status:** Expected behavior (as of 2025-11-06)
+**Status:** ✅ RESOLVED (as of 2025-11-06)
 
-The `opik_optimizer` module is not yet available in opik 0.2.0. The current implementation uses placeholder optimizers that match the expected interface.
+The `opik-optimizer` package (v2.2.1) is now installed and working.
 
-**When opik releases optimizer functionality:**
-1. Update imports in `backend/deep_agent/integrations/opik_client.py`:
-   ```python
-   # Replace placeholder with real import
-   from opik import optimizers as opik_optimizer
-   ```
-2. Remove placeholder classes
-3. Run tests to verify integration
+**Package Details:**
+- **Separate package:** `opik-optimizer` ≠ `opik` (base package)
+- **Requires:** `opik >= 1.7.17` (upgraded from 0.2.2 to 1.9.0)
+- **Python constraint:** `>=3.11,<3.14`
+- **GEPA included:** Installed automatically as dependency
 
-**Tracking:** See TODO comments in `opik_client.py` lines 26-29
-
-### Issue: GEPA optimizer fails with ImportError
-
-**Cause:** GEPA package not installed
-
-**Fix:**
-```bash
-pip install gepa
+**Verified Working Imports:**
+```python
+from opik_optimizer import (
+    HierarchicalReflectiveOptimizer,
+    FewShotBayesianOptimizer,
+    EvolutionaryOptimizer,
+    MetaPromptOptimizer,
+    GepaOptimizer,
+    ParameterOptimizer,
+    ChatPrompt
+)
 ```
 
-Or avoid using `optimizer_type="gepa"` until GEPA is installed.
+All 6 optimizers confirmed working ✅
+
+### Issue: GEPA optimizer no longer fails
+
+**Status:** ✅ RESOLVED
+
+GEPA (v0.0.19) is now automatically installed as a dependency of `opik-optimizer`. No separate installation needed.
 
 ### Issue: Low optimization scores
 
