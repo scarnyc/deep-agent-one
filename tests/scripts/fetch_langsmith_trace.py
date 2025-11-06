@@ -115,6 +115,6 @@ def fetch_trace(trace_id: str):
         traceback.print_exc()
 
 if __name__ == "__main__":
-    # Trace ID from user request (investigating tool usage in production)
-    trace_id = "249511a6-9364-42df-871b-758d5836e5ae"
+    # Trace ID from user request (investigating 44.85s timeout)
+    trace_id = "49feb9c7-84b8-4c2f-936d-86ed9b4562eb"
     fetch_trace(trace_id)

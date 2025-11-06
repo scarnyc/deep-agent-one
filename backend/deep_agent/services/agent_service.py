@@ -286,6 +286,14 @@ class AgentService:
         timeout_seconds = settings.STREAM_TIMEOUT_SECONDS
         stream_version = settings.STREAM_VERSION
 
+        # Diagnostic logging for timeout configuration
+        logger.info(
+            "Agent streaming timeout configured",
+            timeout_seconds=timeout_seconds,
+            settings_value=settings.STREAM_TIMEOUT_SECONDS,
+            thread_id=thread_id,
+        )
+
         # Stream events with retry logic for initial connection
         logger.info(
             "Starting agent streaming with astream_events()",

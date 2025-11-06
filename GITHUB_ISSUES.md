@@ -2229,3 +2229,112 @@ Manual code review by code-review-expert agent (includes security analysis) is s
 
 ---
 
+## Issue 113: LangGraph internal 45s timeout causes Agent streaming timeout
+
+**Labels:** `bug`, `performance`, `medium-priority`, `phase-0`, `phase-1`
+
+**Title:** Agent times out at 44.85s due to LangGraph internal per-node timeout
+
+**Description:**
+Agent streaming fails with `CancelledError` after exactly 44.85 seconds when processing queries with multiple parallel tool calls followed by GPT-5 synthesis. Root cause: LangGraph has an internal ~45s timeout per chain/node execution that is **not configurable** through `create_deep_agent()` parameters.
+
+**Trace Analysis:**
+- **Trace ID:** 49feb9c7-84b8-4c2f-936d-86ed9b4562eb
+- **Duration:** 44.85 seconds (15:34:01.797540 to 15:34:46.649133)
+- **Query:** "what are the latest trends in Gen AI?"
+- **Workflow:**
+  1. Agent makes 6 parallel web_search tool calls (completed successfully in ~15s)
+  2. Agent attempts second GPT-5 call to synthesize results
+  3. **FAILS** at 44.85s with `CancelledError`
+  4. Error location: Deep in OpenAI HTTP streaming layer (`httpcore._async.http11`)
+
+**Files:**
+- Configuration: `backend/deep_agent/config/settings.py:74-77` (STREAM_TIMEOUT_SECONDS=180)
+- Service: `backend/deep_agent/services/agent_service.py:304` (asyncio.timeout wrapping)
+- Agent Creation: `backend/deep_agent/agents/deep_agent.py` (create_deep_agent call)
+
+**Current Implementation Status:**
+✅ **STREAM_TIMEOUT_SECONDS increased from 120s to 180s**
+- Prevents overall stream timeout
+- Adds diagnostic logging at agent_service.py:290-295
+- Does NOT fix the root cause (LangGraph's 45s internal timeout)
+
+❌ **TOOL_EXECUTION_TIMEOUT defined but not enforced**
+- Defined in settings.py:102 but never used in codebase
+- LangGraph doesn't support configurable tool/node timeouts via `create_deep_agent()`
+
+**Impact:** MEDIUM - Queries with many parallel tools may timeout before synthesis completes. Affects complex research queries.
+
+**Temporary Workaround (Phase 0):**
+Users can limit parallel tool calls by rephrasing queries to be more specific/targeted.
+
+**Solution Options for Phase 1:**
+
+**Option A: Limit Parallel Tool Calls (Recommended)**
+Modify system prompt to restrict parallel searches:
+```python
+# In backend/deep_agent/agents/prompts.py
+system_prompt += "\n\nIMPORTANT: Limit web searches to 2-3 parallel calls maximum to ensure timely synthesis."
+```
+**Pros:** Simple, immediate fix
+**Cons:** Reduces research thoroughness
+
+**Option B: Increase OpenAI Client Timeout**
+Add explicit timeout to ChatOpenAI configuration:
+```python
+# In backend/deep_agent/services/llm_factory.py
+llm = ChatOpenAI(
+    model=settings.GPT5_MODEL_NAME,
+    temperature=settings.GPT5_TEMPERATURE,
+    max_completion_tokens=settings.GPT5_MAX_TOKENS,
+    reasoning_effort=effort_value,
+    request_timeout=180.0,  # Add explicit timeout
+)
+```
+**Pros:** May override LangGraph timeout
+**Cons:** Not guaranteed to work, depends on LangChain internals
+
+**Option C: Split Synthesis into Chunks**
+Modify agent architecture to synthesize incrementally:
+- After each N tool calls complete, run intermediate synthesis
+- Final synthesis only combines intermediate results
+- Keeps each model call under 45s
+**Pros:** Most robust, handles any number of tools
+**Cons:** Complex implementation, requires agent architecture changes
+
+**Option D: Contact LangGraph Team**
+File issue with LangGraph project requesting configurable timeouts:
+- GitHub: https://github.com/langchain-ai/langgraph
+- Request: Add `node_timeout` parameter to `create_deep_agent()`
+**Pros:** Fixes at framework level
+**Cons:** Depends on external team, unknown timeline
+
+**Recommended Approach (Phase 1):**
+1. Implement **Option A** immediately (system prompt change)
+2. Test **Option B** (request timeout override)
+3. If neither works, implement **Option C** (incremental synthesis)
+4. File issue as **Option D** regardless (helps community)
+
+**Related Configuration:**
+```python
+# Current timeout settings (.env)
+STREAM_TIMEOUT_SECONDS=180          # Overall stream timeout (fixed ✅)
+TOOL_EXECUTION_TIMEOUT=90           # Per-tool timeout (not enforced ❌)
+WEB_SEARCH_TIMEOUT=30               # Perplexity MCP timeout (enforced ✅)
+```
+
+**Documentation Updates:**
+- ✅ .env updated with TOOL_EXECUTION_TIMEOUT
+- ✅ .env.example updated with streaming configuration
+- ✅ Diagnostic logging added to agent_service.py
+- ✅ Trace analysis saved to tests/scripts/trace_49feb9c7_*.json
+
+**Testing:**
+- Test with modified system prompt limiting parallel calls
+- Monitor LangSmith traces for timeout occurrences
+- Track queries that trigger 6+ parallel tools
+
+**Found in:** WebSocket Timeout Investigation (2025-11-06)
+
+---
+
