@@ -39,6 +39,10 @@ perplexity-mcp = "^0.1.0"
 # Monitoring & Observability
 opik = "^0.2.0"
 
+# Prompt Optimization & Statistical Analysis
+scipy = "^1.11.0"
+numpy = "^1.24.0"
+
 # Security
 bcrypt = "^4.2.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
