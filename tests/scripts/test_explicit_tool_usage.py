@@ -82,10 +82,15 @@ async def test_explicit_tool_usage():
                         error_events.append(event)
                         print(f"\n  ❌ ERROR: {event.get('data', {})}\n")
 
-                    # Track chain completion
+                    # Track chain completion (only for main LangGraph chain, not middleware)
                     elif event_type == 'on_chain_end':
-                        print(f"\n  🏁 Chain complete")
-                        complete = True
+                        event_name = event.get('name', '')
+                        if event_name == 'LangGraph':
+                            print(f"\n  🏁 LangGraph chain complete")
+                            complete = True
+                        else:
+                            # Middleware chain ended, continue waiting for main chain
+                            pass
 
                     # Show streaming response
                     elif event_type == 'on_chat_model_stream':

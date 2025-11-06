@@ -313,6 +313,69 @@ The agent's reluctance to use tools is a **separate issue** from the timeout pro
 ---
 
 **Document Owner:** Claude Code
-**Last Updated:** 2025-11-06 08:40 PST
-**Test Duration:** 45 minutes
-**Status:** Fix Complete - Tool Usage Investigation Recommended
+**Last Updated:** 2025-11-06 10:20 PST (CORRECTED)
+**Test Duration:** 2 hours (including debugging)
+**Status:** Fix Complete - Test Scripts Corrected - Agent Tool Usage VALIDATED ✅
+
+---
+
+## ⚠️ CORRECTION (2025-11-06 10:20 PST)
+
+**Original Conclusion Was INCORRECT**
+
+The original test results (08:40 PST) incorrectly concluded that the agent was not using tools due to a behavior change. This was **WRONG**.
+
+### What Actually Happened
+
+**Root Cause:** Test script bug, NOT agent behavior change!
+
+The test scripts (`test_trace_2bdaec5e_replay.py` and `test_explicit_tool_usage.py`) had a bug that caused them to exit on the FIRST `on_chain_end` event (from middleware chains), not waiting for the main LangGraph chain to complete.
+
+**Buggy Code (lines 115-117):**
+```python
+elif event_type == 'on_chain_end':
+    print(f"\n  🏁 Chain complete")
+    complete = True  # ❌ Exits on ANY chain_end!
+```
+
+**Fixed Code:**
+```python
+elif event_type == 'on_chain_end':
+    event_name = event.get('name', '')
+    if event_name == 'LangGraph':  # ✅ Only exit on main chain
+        complete = True
+```
+
+### Re-Test Results (After Fix)
+
+**test_trace_2bdaec5e_replay.py - 10:20 PST:**
+```
+⏱️  Execution Time: 98.22 seconds
+📨 Events Received: 1,399
+🔧 Tool Calls Started: 7
+✅ Tool Calls Completed: 7
+❌ Error Events: 0
+
+✅ PASS: Completed within 300s timeout
+✅ PASS: No CancelledError received
+✅ PASS: Tool calls executed (7 tool calls)
+✅ PASS: All tools completed successfully
+✅ PASS: No duplicate error events
+
+🎉 SUCCESS: Trace 2bdaec5e scenario passed!
+```
+
+### Conclusion Correction
+
+**ORIGINAL (INCORRECT):** "Agent not using tools - possibly GPT-5 model update or DeepAgents framework change"
+
+**CORRECTED:** **Agent IS using tools correctly! The issue was a test script bug that exited before tools could execute.**
+
+Production traces (2bdaec5e with 27 tool calls) confirmed the agent works correctly. The test scripts just weren't waiting long enough to observe tool execution.
+
+---
+
+**Document Owner:** Claude Code
+**Last Updated:** 2025-11-06 10:20 PST (CORRECTED)
+**Test Duration:** 2 hours (including debugging)
+**Status:** Fix Complete - Test Scripts Corrected - Agent Tool Usage VALIDATED ✅

@@ -115,6 +115,6 @@ def fetch_trace(trace_id: str):
         traceback.print_exc()
 
 if __name__ == "__main__":
-    # Trace ID from user request (CancelledError debugging)
-    trace_id = "2bdaec5e-2c4a-4737-964e-2e89e2ddaa92"
+    # Trace ID from user request (investigating tool usage in production)
+    trace_id = "249511a6-9364-42df-871b-758d5836e5ae"
     fetch_trace(trace_id)
