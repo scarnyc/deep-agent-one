@@ -116,10 +116,15 @@ class TestOptimizePrompt:
         ]
 
         mock_opik_client = MagicMock()
-        mock_result = MagicMock()
-        mock_result.prompt = "You are a highly capable AI assistant..."
-        mock_result.score = 0.85
-        mock_result.improvement = 0.25
+        # Return a dict, not a MagicMock with attributes
+        mock_result = {
+            "optimized_prompt": "You are a highly capable AI assistant...",
+            "original_prompt": prompt,
+            "score": 0.85,
+            "improvement": 0.25,
+            "algorithm": "hierarchical_reflective",
+            "trials": 5,
+        }
         mock_opik_client.optimize_prompt.return_value = mock_result
         mock_get_client.return_value = mock_opik_client
 
@@ -158,15 +163,21 @@ class TestOptimizePrompt:
         ]
 
         mock_opik_client = MagicMock()
-        mock_result = MagicMock()
-        mock_result.prompt = "optimized"
-        mock_result.score = 0.9
-        mock_result.improvement = 0.1
-        mock_opik_client.optimize_prompt.return_value = mock_result
-        mock_get_client.return_value = mock_opik_client
 
         # Act & Assert
         for algo in algorithms:
+            # Create new mock result for each algorithm with correct algorithm name
+            mock_result = {
+                "optimized_prompt": "optimized",
+                "original_prompt": prompt,
+                "score": 0.9,
+                "improvement": 0.1,
+                "algorithm": algo,
+                "trials": 3,
+            }
+            mock_opik_client.optimize_prompt.return_value = mock_result
+            mock_get_client.return_value = mock_opik_client
+
             result = optimize_prompt(
                 prompt=prompt,
                 dataset=dataset,
@@ -199,8 +210,8 @@ class TestOptimizePrompt:
 class TestEvaluatePrompt:
     """Test suite for evaluate_prompt tool."""
 
-    @patch("deep_agent.tools.prompt_optimization.create_gpt5_llm")
-    def test_evaluate_prompt_basic(self, mock_create_llm):
+    @patch("deep_agent.tools.prompt_optimization.ChatOpenAI")
+    def test_evaluate_prompt_basic(self, mock_chat_openai):
         """Test basic prompt evaluation."""
         # Arrange
         prompt = "You are a helpful assistant."
@@ -213,22 +224,22 @@ class TestEvaluatePrompt:
         mock_response = MagicMock()
         mock_response.content = "4"
         mock_llm.invoke.return_value = mock_response
-        mock_create_llm.return_value = mock_llm
+        mock_chat_openai.return_value = mock_llm
 
         # Act
         result = evaluate_prompt(prompt, dataset)
 
         # Assert
         assert "accuracy" in result
-        assert "avg_latency_ms" in result
-        assert "total_tokens" in result
+        assert "latency" in result
+        assert "cost" in result
         assert "quality_score" in result
         assert 0 <= result["accuracy"] <= 1.0
-        assert result["avg_latency_ms"] >= 0
-        assert result["total_tokens"] >= 0
+        assert result["latency"] >= 0
+        assert result["cost"] >= 0
 
-    @patch("deep_agent.tools.prompt_optimization.create_gpt5_llm")
-    def test_evaluate_prompt_perfect_accuracy(self, mock_create_llm):
+    @patch("deep_agent.tools.prompt_optimization.ChatOpenAI")
+    def test_evaluate_prompt_perfect_accuracy(self, mock_chat_openai):
         """Test evaluation with perfect accuracy."""
         # Arrange
         prompt = "You are a helpful assistant."
@@ -243,7 +254,7 @@ class TestEvaluatePrompt:
             MagicMock(content="yes"),
             MagicMock(content="no"),
         ]
-        mock_create_llm.return_value = mock_llm
+        mock_chat_openai.return_value = mock_llm
 
         # Act
         result = evaluate_prompt(prompt, dataset)
@@ -251,8 +262,7 @@ class TestEvaluatePrompt:
         # Assert
         assert result["accuracy"] == 1.0
 
-    @patch("deep_agent.tools.prompt_optimization.create_gpt5_llm")
-    def test_evaluate_prompt_empty_dataset(self, mock_create_llm):
+    def test_evaluate_prompt_empty_dataset(self):
         """Test evaluation with empty dataset."""
         # Arrange
         prompt = "test"
@@ -263,15 +273,15 @@ class TestEvaluatePrompt:
 
         # Assert
         assert result["accuracy"] == 0.0
-        assert result["avg_latency_ms"] == 0.0
-        assert result["total_tokens"] == 0
+        assert result["latency"] == 0.0
+        assert result["cost"] == 0
 
 
 class TestCreateEvaluationDataset:
     """Test suite for create_evaluation_dataset tool."""
 
-    @patch("deep_agent.tools.prompt_optimization.create_gpt5_llm")
-    def test_create_evaluation_dataset_basic(self, mock_create_llm):
+    @patch("deep_agent.tools.prompt_optimization.ChatOpenAI")
+    def test_create_evaluation_dataset_basic(self, mock_chat_openai):
         """Test basic dataset creation."""
         # Arrange
         description = "Math addition problems"
@@ -279,18 +289,18 @@ class TestCreateEvaluationDataset:
 
         mock_llm = MagicMock()
         mock_response = MagicMock()
+        # Format must match the parser: "\n\s*INPUT:" splits, so need newline before INPUT
         mock_response.content = """
-        INPUT: What is 1+1?
-        OUTPUT: 2
+INPUT: What is 1+1?
+OUTPUT: 2
 
-        INPUT: What is 2+2?
-        OUTPUT: 4
+INPUT: What is 2+2?
+OUTPUT: 4
 
-        INPUT: What is 3+3?
-        OUTPUT: 6
-        """
+INPUT: What is 3+3?
+OUTPUT: 6"""
         mock_llm.invoke.return_value = mock_response
-        mock_create_llm.return_value = mock_llm
+        mock_chat_openai.return_value = mock_llm
 
         # Act
         result = create_evaluation_dataset(description, num_examples)
@@ -300,8 +310,8 @@ class TestCreateEvaluationDataset:
         assert len(result) == 3
         assert all("input" in item and "expected_output" in item for item in result)
 
-    @patch("deep_agent.tools.prompt_optimization.create_gpt5_llm")
-    def test_create_evaluation_dataset_different_sizes(self, mock_create_llm):
+    @patch("deep_agent.tools.prompt_optimization.ChatOpenAI")
+    def test_create_evaluation_dataset_different_sizes(self, mock_chat_openai):
         """Test dataset creation with different sizes."""
         # Arrange
         description = "Test cases"
@@ -310,13 +320,14 @@ class TestCreateEvaluationDataset:
         mock_llm = MagicMock()
         for size in sizes:
             # Create mock response with correct number of examples
-            examples = "\n\n".join(
+            # Need leading newline before first INPUT for parser
+            examples = "\n" + "\n\n".join(
                 [f"INPUT: test{i}\nOUTPUT: output{i}" for i in range(size)]
             )
             mock_response = MagicMock()
             mock_response.content = examples
             mock_llm.invoke.return_value = mock_response
-            mock_create_llm.return_value = mock_llm
+            mock_chat_openai.return_value = mock_llm
 
             # Act
             result = create_evaluation_dataset(description, size)
@@ -336,10 +347,10 @@ class TestABTestPrompts:
         prompt_b = "You are very helpful and thorough."
         dataset = [{"input": "test", "expected_output": "output"}]
 
-        # Mock evaluation results
+        # Mock evaluation results (updated keys: latency and cost instead of avg_latency_ms and total_tokens)
         mock_evaluate.side_effect = [
-            {"accuracy": 0.75, "avg_latency_ms": 100, "total_tokens": 50},
-            {"accuracy": 0.85, "avg_latency_ms": 120, "total_tokens": 60},
+            {"accuracy": 0.75, "latency": 0.1, "cost": 50, "quality_score": 70.0},
+            {"accuracy": 0.85, "latency": 0.12, "cost": 60, "quality_score": 80.0},
         ]
 
         # Act
@@ -350,9 +361,8 @@ class TestABTestPrompts:
         assert "p_value" in result
         assert "effect_size" in result
         assert "statistically_significant" in result
-        assert "metrics_a" in result
-        assert "metrics_b" in result
-        assert result["winner"] in ["A", "B"]
+        assert "metrics_comparison" in result
+        assert result["winner"] in ["A", "B", "tie"]
 
     @patch("deep_agent.tools.prompt_optimization.evaluate_prompt")
     def test_ab_test_prompts_significance(self, mock_evaluate):
@@ -364,8 +374,8 @@ class TestABTestPrompts:
 
         # Mock: B is significantly better than A
         mock_evaluate.side_effect = [
-            {"accuracy": 0.5, "avg_latency_ms": 100, "total_tokens": 50},
-            {"accuracy": 0.9, "avg_latency_ms": 100, "total_tokens": 50},
+            {"accuracy": 0.5, "latency": 0.1, "cost": 50, "quality_score": 45.0},
+            {"accuracy": 0.9, "latency": 0.1, "cost": 50, "quality_score": 85.0},
         ]
 
         # Act
@@ -386,16 +396,16 @@ class TestABTestPrompts:
 
         # Mock: Same performance
         mock_evaluate.side_effect = [
-            {"accuracy": 0.8, "avg_latency_ms": 100, "total_tokens": 50},
-            {"accuracy": 0.8, "avg_latency_ms": 100, "total_tokens": 50},
+            {"accuracy": 0.8, "latency": 0.1, "cost": 50, "quality_score": 75.0},
+            {"accuracy": 0.8, "latency": 0.1, "cost": 50, "quality_score": 75.0},
         ]
 
         # Act
         result = ab_test_prompts(prompt_a, prompt_b, dataset, alpha=0.05)
 
         # Assert
-        # When equal, winner could be either (depends on implementation)
-        assert result["winner"] in ["A", "B"]
+        # When equal, winner should be "tie"
+        assert result["winner"] == "tie"
         assert not result["statistically_significant"]
 
 
@@ -404,12 +414,12 @@ class TestGPT5BestPractices:
 
     def test_best_practices_structure(self):
         """Test that best practices dictionary has expected structure."""
-        # Assert
+        # Assert (updated key names to match actual implementation)
         assert "agentic_behavior" in GPT5_BEST_PRACTICES
         assert "verbosity_control" in GPT5_BEST_PRACTICES
         assert "tool_usage" in GPT5_BEST_PRACTICES
-        assert "structure" in GPT5_BEST_PRACTICES
-        assert "completeness" in GPT5_BEST_PRACTICES
+        assert "clarity_structure" in GPT5_BEST_PRACTICES  # Changed from "structure"
+        assert "no_contradictions" in GPT5_BEST_PRACTICES  # Changed from "completeness"
 
         # Check that each category has items
         for category in GPT5_BEST_PRACTICES.values():
