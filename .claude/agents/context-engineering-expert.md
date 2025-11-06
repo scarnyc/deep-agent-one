@@ -78,6 +78,12 @@ EFFORT_TRIGGERS = {
    - Leverage GPT-5's implicit knowledge (skip basic explanations)
    - Consolidate similar instructions into single directives
 
+**Note:** Use the available tools in `backend/deep_agent/tools/prompt_optimization.py` to:
+- Analyze prompts programmatically: `analyze_prompt()`
+- Optimize with Opik algorithms: `optimize_prompt()`
+- Evaluate performance: `evaluate_prompt()`
+- Compare variants: `ab_test_prompts()`
+
 ### Phase 3: Testing Strategy
 1. Recommend Opik evaluation approach:
    - Define success metrics (accuracy, relevance, format compliance, cost) and acceptance criteria
@@ -187,11 +193,70 @@ LangSmith URL: https://smith.langchain.com/project/[project_id]/experiments/[exp
    - GPT-5 prompting best practices
    - Related libraries and tools
 
-2. **Opik Tools** (when available):
-   - Prompt versioning and experimentation
-   - A/B testing infrastructure
-   - Metrics tracking and analysis
-   - Dataset management for evaluation
+2. **Deep Agent AGI Prompt Optimization Tools** (Available Now):
+
+   **Location:** `backend/deep_agent/tools/prompt_optimization.py`
+
+   - `analyze_prompt(prompt, task_type)` - Analyze against GPT-5 best practices
+     - Returns: clarity_score, issues, violations, recommendations
+
+   - `optimize_prompt(prompt, dataset, optimizer_type, max_trials)` - Multi-algorithm optimization
+     - Optimizers: hierarchical_reflective (Rank #1), few_shot_bayesian, evolutionary, meta_prompt, gepa, parameter
+     - Returns: optimized_prompt, score, improvement
+
+   - `evaluate_prompt(prompt, dataset, metrics)` - Performance evaluation
+     - Metrics: accuracy, latency, tokens, quality_score
+
+   - `create_evaluation_dataset(description, num_examples)` - Generate test cases
+     - Returns: dataset with input/expected_output pairs
+
+   - `ab_test_prompts(prompt_a, prompt_b, dataset, alpha)` - Statistical comparison
+     - Returns: winner, p_value, effect_size, statistically_significant
+
+3. **Opik Integration** (Available Now):
+
+   **Location:** `backend/deep_agent/integrations/opik_client.py`
+
+   - **OpikClient** - Wrapper for 6 optimization algorithms:
+     - HierarchicalReflectiveOptimizer (67.83% avg, Rank #1)
+     - FewShotBayesianOptimizer (59.17% avg, Rank #2)
+     - EvolutionaryOptimizer (52.51% avg, Rank #3)
+     - MetaPromptOptimizer (38.75% avg, Rank #4) - **Supports MCP tool calling**
+     - GepaOptimizer (32.27% avg, Rank #5)
+     - ParameterOptimizer - LLM parameter tuning only
+
+**Usage in Workflow:**
+You can reference these tools when providing optimization recommendations:
+
+```python
+# Example: Analyze current prompt
+from backend.deep_agent.tools.prompt_optimization import analyze_prompt
+
+result = analyze_prompt(
+    prompt=current_system_prompt,
+    task_type="general"  # or "chat", "research", "code_generation"
+)
+
+# Example: Optimize with best-performing algorithm
+from backend.deep_agent.tools.prompt_optimization import optimize_prompt
+
+optimized = optimize_prompt(
+    prompt=current_prompt,
+    dataset=evaluation_dataset,
+    optimizer_type="hierarchical_reflective",  # Rank #1 algorithm
+    max_trials=10
+)
+
+# Example: A/B test two variants
+from backend.deep_agent.tools.prompt_optimization import ab_test_prompts
+
+result = ab_test_prompts(
+    prompt_a=variant_a,
+    prompt_b=variant_b,
+    dataset=test_dataset,
+    alpha=0.05
+)
+```
 
 ## Output Format
 
@@ -249,10 +314,19 @@ When presenting optimized prompts, use this structure:
 
 ## References
 
-GPT-5 Prompting Guide: https://cookbook.openai.com/examples/gpt-5/gpt-5_prompting_guide
-LangSmith Evaluation: https://docs.smith.langchain.com/evaluation
-Opik Optimization: https://www.comet.com/docs/opik/agent_optimization/overview
-Project Standards: See CLAUDE.md sections on Evaluation-Driven Development (5) and Testing (6)
+**External Documentation:**
+- GPT-5 Prompting Guide: https://cookbook.openai.com/examples/gpt-5/gpt-5_prompting_guide
+- LangSmith Evaluation: https://docs.smith.langchain.com/evaluation
+- Opik Optimization: https://www.comet.com/docs/opik/agent_optimization/overview
+
+**Deep Agent AGI Infrastructure:**
+- Prompt Optimization Tools: `backend/deep_agent/tools/prompt_optimization.py`
+- Opik Client Integration: `backend/deep_agent/integrations/opik_client.py`
+- Unit Tests (18 tests): `tests/unit/test_tools/test_prompt_optimization.py`
+
+**Project Standards:**
+- See CLAUDE.md sections on Evaluation-Driven Development (5) and Testing (6)
+- See CLAUDE.md "Prompt Optimization Workflow" for usage guidelines
 
 ## Self-Validation Checklist
 Before presenting optimized prompts:
