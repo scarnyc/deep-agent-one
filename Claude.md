@@ -513,6 +513,12 @@ echo "✅ Live API tests complete!"
    - Replace CopilotKit components incrementally as needed
    - Create ErrorDisplay.tsx component & update WebSocketProvider.tsx to use ErrorDisplay.
 7. Prompt Optimization (Opik) - Auto-prompt optimization, A/B testing infrastructure, prompt versioning
+8. **WebSocket Reliability Improvements** - Deferred from Phase 0:
+   - Proactive client disconnect monitoring (parallel task using `websocket.wait_closed()`)
+   - Progress events for long-running tools (emit status every 5-10 seconds)
+   - Reconnection logic for network hiccups (automatic retry with backoff)
+   - Tool execution progress tracking (show "Tool X of Y executing..." in UI)
+   - Note: Phase 0 implemented graceful cancellation (✅ complete) and reactive disconnect detection (✅ sufficient for MVP)
 
 **Key Metrics:** Memory retrieval >90%, auth token refresh >99%, deep reasoning >5% queries, provenance 100% sources, prompt A/B improvement >10%
 
