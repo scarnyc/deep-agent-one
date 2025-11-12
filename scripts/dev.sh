@@ -1,5 +1,34 @@
 #!/bin/bash
-# Development environment startup script
+# Development environment setup script
+#
+# Description:
+#   One-time setup script that creates virtual environment, installs dependencies
+#   (Python + Node.js), sets up Playwright browsers, and configures pre-commit hooks.
+#
+# Usage:
+#   ./scripts/dev.sh
+#
+# Requirements:
+#   - Python 3.10+ installed
+#   - Node.js 18+ installed
+#   - Poetry installed (curl -sSL https://install.python-poetry.org | python3 -)
+#
+# What It Does:
+#   1. Creates virtual environment (venv/)
+#   2. Upgrades pip
+#   3. Installs Python dependencies via Poetry
+#   4. Installs Node.js dependencies
+#   5. Installs Playwright browsers (if not already installed)
+#   6. Creates .env from .env.example (if missing)
+#   7. Sets up pre-commit hooks
+#
+# Output:
+#   - Virtual environment: venv/
+#   - .env file created (if missing)
+#   - All dependencies installed
+#
+# Examples:
+#   ./scripts/dev.sh    # First-time setup
 
 set -e
 

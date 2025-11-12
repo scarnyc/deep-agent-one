@@ -1,6 +1,34 @@
 #!/bin/bash
 # Run complete test suite with coverage reporting
-# Usage: ./scripts/run_all_tests.sh
+#
+# Description:
+#   Legacy test runner - runs unit and integration tests with coverage reporting.
+#   For full test suite including UI tests, use ./scripts/test.sh instead.
+#
+# Usage:
+#   ./scripts/run_all_tests.sh
+#
+# Requirements:
+#   - Python 3.11+ (uses hardcoded Python path)
+#   - All dependencies installed (poetry install)
+#
+# Output:
+#   - Coverage Report (HTML): htmlcov/index.html
+#   - Coverage Report (JSON): coverage.json
+#   - Test Report (HTML): reports/test_report.html
+#   - Terminal: Coverage summary
+#
+# Exit Codes:
+#   0 - All tests passed
+#   1 - One or more tests failed
+#
+# Examples:
+#   ./scripts/run_all_tests.sh                # Run unit + integration tests
+#   open htmlcov/index.html                   # View coverage report
+#
+# Note:
+#   This script is being phased out in favor of ./scripts/test.sh which includes
+#   UI tests and uses the virtual environment Python instead of hardcoded path.
 
 set -e
 

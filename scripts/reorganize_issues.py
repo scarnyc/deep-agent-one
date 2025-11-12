@@ -1,11 +1,48 @@
 #!/usr/bin/env python3
-"""
-Reorganize GITHUB_ISSUES.md by migration strategy.
+"""Reorganize GITHUB_ISSUES.md by migration strategy.
 
-This script restructures issues into three categories:
-- DEFERRED: Backend issues to fix during microservices migration
-- OBSOLETE: Frontend issues replaced by UI redesign
+This script restructures issues into three categories based on the planned
+frontend-v2/ UI redesign and microservices backend split:
+
+- DEFERRED: Backend issues to fix during microservices migration (Weeks 3-10)
+- OBSOLETE: Frontend issues replaced by UI redesign (removed from file)
 - TRACKED: Low-priority improvements for later
+
+Categorization saves ~35-42 hours (87% reduction) by avoiding throwaway work
+on code that will be rewritten during the 10-week migration.
+
+Usage:
+    python scripts/reorganize_issues.py
+
+Requirements:
+    - GITHUB_ISSUES.md file exists in project root
+
+What It Does:
+    1. Reads original GITHUB_ISSUES.md
+    2. Categorizes all issues by migration strategy
+    3. Adds migration strategy notes to each issue
+    4. Removes OBSOLETE issues from file (saved in git history)
+    5. Generates new file with DEFERRED and TRACKED sections
+    6. Prints summary statistics
+
+Output:
+    - Updated GITHUB_ISSUES.md with:
+      - Migration strategy header
+      - DEFERRED issues (7 backend issues)
+      - TRACKED issues (10 low-priority issues)
+      - OBSOLETE issues removed (47 frontend issues)
+    - Summary statistics in terminal
+
+Examples:
+    # Reorganize issues
+    python scripts/reorganize_issues.py
+
+    # View obsolete issues in git history
+    git log -p GITHUB_ISSUES.md
+
+Exit Codes:
+    0 - Successfully reorganized
+    1 - File not found or error during processing
 """
 
 # Issue categorization based on migration strategy analysis

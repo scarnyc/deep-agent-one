@@ -1,5 +1,36 @@
 #!/bin/bash
 # Run comprehensive test suite with reporting
+#
+# Description:
+#   Runs complete test suite (unit, integration, UI tests) with coverage reporting
+#   and generates HTML/JSON reports for analysis.
+#
+# Usage:
+#   ./scripts/test.sh [options]
+#
+# Options:
+#   No options currently supported (runs all tests)
+#
+# Requirements:
+#   - Virtual environment activated (source venv/bin/activate)
+#   - All dependencies installed (poetry install)
+#   - Playwright browsers installed (npx playwright install)
+#
+# Output:
+#   - HTML Report: reports/test_report.html
+#   - Coverage Report: reports/coverage/index.html
+#   - JSON Report: reports/report.json
+#   - Playwright Report: playwright-report/index.html
+#   - Terminal: Coverage summary and test results
+#
+# Exit Codes:
+#   0 - All tests passed
+#   1 - One or more tests failed
+#
+# Examples:
+#   ./scripts/test.sh                         # Run all tests
+#   open reports/test_report.html             # View HTML report
+#   open reports/coverage/index.html          # View coverage report
 
 set -e
 

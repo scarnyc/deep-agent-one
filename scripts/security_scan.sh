@@ -1,5 +1,40 @@
 #!/bin/bash
 # Run TheAuditor security scan
+#
+# Description:
+#   Runs TheAuditor security audit tool to detect vulnerabilities, secrets,
+#   and security issues in the codebase. Part of pre-commit security workflow.
+#
+# Usage:
+#   ./scripts/security_scan.sh
+#
+# Requirements:
+#   - TheAuditor installed in .auditor_venv/
+#   - Install: .auditor_venv/bin/pip install -e /path/to/Auditor
+#
+# What It Does:
+#   1. Checks if TheAuditor is installed
+#   2. Initializes .pf/ directory (if first run)
+#   3. Runs full security audit
+#   4. Checks for CRITICAL vulnerabilities
+#   5. Exits with error code if critical issues found
+#
+# Output:
+#   - Security reports: .pf/readthis/ directory
+#   - Terminal: Summary of findings
+#
+# Exit Codes:
+#   0 - No critical vulnerabilities detected
+#   1 - Critical vulnerabilities found OR TheAuditor not installed
+#
+# Examples:
+#   ./scripts/security_scan.sh                # Run security scan
+#   cat .pf/readthis/*                        # View detailed findings
+#
+# Integration:
+#   - Run before EVERY commit (code-review-expert workflow)
+#   - Blocks commit if CRITICAL issues found
+#   - Part of pre-commit hook (future)
 
 set -e
 

@@ -1,5 +1,28 @@
 #!/bin/bash
 # Start both backend and frontend servers with datetime-stamped logging
+#
+# Description:
+#   Starts Deep Agent AGI backend (FastAPI on port 8000) and frontend (Next.js on port 3000)
+#   servers concurrently with automatic log file generation.
+#
+# Usage:
+#   ./scripts/start-all.sh
+#
+# Requirements:
+#   - .env file with API keys (OPENAI_API_KEY, etc.)
+#   - Virtual environment at venv/bin/activate
+#   - Node.js dependencies installed (npm install in frontend/)
+#   - Python dependencies installed (poetry install)
+#
+# Output:
+#   - Backend logs: logs/backend/YYYY-MM-DD-HH-MM-SS.log
+#   - Frontend logs: logs/frontend/YYYY-MM-DD-HH-MM-SS.log
+#   - Both servers run in background, Ctrl+C stops both
+#
+# Examples:
+#   ./scripts/start-all.sh                    # Start both servers
+#   tail -f logs/backend/2025-11-12-*.log     # Watch backend logs
+#   tail -f logs/frontend/2025-11-12-*.log    # Watch frontend logs
 
 set -e
 

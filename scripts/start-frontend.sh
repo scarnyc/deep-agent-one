@@ -1,5 +1,25 @@
 #!/bin/bash
 # Start frontend server with datetime-stamped logging
+#
+# Description:
+#   Starts Deep Agent AGI Next.js frontend on http://localhost:3000 with automatic reload
+#   and datetime-stamped logging.
+#
+# Usage:
+#   ./scripts/start-frontend.sh
+#
+# Requirements:
+#   - Node.js 18+ installed
+#   - Node.js dependencies installed (npm install in frontend/)
+#   - Backend server running (or NEXT_PUBLIC_BACKEND_URL configured)
+#
+# Output:
+#   - Logs to: logs/frontend/YYYY-MM-DD-HH-MM-SS.log
+#   - Server runs on: http://localhost:3000
+#
+# Examples:
+#   ./scripts/start-frontend.sh               # Start frontend
+#   tail -f logs/frontend/2025-11-12-*.log    # Watch logs
 
 set -e
 

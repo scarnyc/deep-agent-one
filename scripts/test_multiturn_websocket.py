@@ -1,13 +1,46 @@
 #!/usr/bin/env python3
-"""
-Multi-turn WebSocket conversation test.
+"""Multi-turn WebSocket conversation test.
 
-Tests the exact user flow that triggered the original CancelledError:
+Tests the exact user flow that triggered the original CancelledError bug:
 1. User asks about weather in Queens, NYC
 2. Agent responds (may ask for approval/clarification)
-3. User confirms with specifics
+3. User confirms with specifics ("yes Fahrenheit Astoria")
 4. Agent executes web_search tool
 5. Verify no CancelledError and proper response streaming
+
+This is a regression test for Issue #37 (WebSocket CancelledError during tool execution).
+
+Usage:
+    python scripts/test_multiturn_websocket.py
+
+Requirements:
+    - Backend server running on ws://localhost:8000/api/v1/ws
+    - websockets library installed (pip install websockets)
+    - Web search tool enabled with Perplexity MCP
+
+What It Validates:
+    - Multi-turn conversation works (same thread_id across turns)
+    - Tool execution completes without CancelledError
+    - Events use correct AG-UI format (event: not type:)
+    - No error events with old broken format
+    - Proper streaming of tool results
+
+Examples:
+    # Run test
+    python scripts/test_multiturn_websocket.py
+
+    # Check backend logs after test
+    tail -f logs/backend/*.log
+
+Output:
+    - Turn-by-turn conversation progress
+    - Tool execution details (name, input, output preview)
+    - Validation results summary
+    - Pass/fail status
+
+Exit Codes:
+    0 - Test passed (no CancelledError, tool executed successfully)
+    1 - Test failed (timeout, error event, or exception)
 """
 
 import asyncio

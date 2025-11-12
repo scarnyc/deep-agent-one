@@ -1,5 +1,41 @@
 #!/bin/bash
 # Cleanup old log files while preserving recent ones
+#
+# Description:
+#   Deletes old log files from logs/backend/ and logs/frontend/ directories
+#   while ensuring a minimum number of recent logs are always kept.
+#
+# Usage:
+#   ./scripts/cleanup-logs.sh
+#
+# Configuration:
+#   DAYS_TO_KEEP=7       # Delete logs older than 7 days
+#   MIN_FILES_TO_KEEP=10 # Always keep at least 10 most recent logs
+#
+# Requirements:
+#   - logs/backend/ and/or logs/frontend/ directories exist
+#
+# Behavior:
+#   - Interactive: Asks for confirmation before deleting
+#   - Shows files to be deleted with size and modification date
+#   - Calculates total space to be freed
+#   - Preserves minimum number of recent files regardless of age
+#
+# Safety:
+#   - Never deletes ALL logs (keeps MIN_FILES_TO_KEEP)
+#   - Shows detailed preview before deletion
+#   - Requires explicit confirmation
+#
+# Output:
+#   - Lists files to be deleted
+#   - Shows total space to be freed
+#   - Summary of remaining logs
+#
+# Examples:
+#   ./scripts/cleanup-logs.sh                 # Interactive cleanup
+#
+# Advanced:
+#   Edit script to change DAYS_TO_KEEP or MIN_FILES_TO_KEEP
 
 set -e
 

@@ -1,14 +1,35 @@
 #!/usr/bin/env python3
-"""
-Manual WebSocket client for testing real-time streaming with live server.
+"""Manual WebSocket client for testing real-time streaming with live server.
 
 This script connects to the FastAPI WebSocket endpoint and displays
-streaming events in real-time with color-coded output.
+streaming events in real-time with color-coded output. It validates
+the on_chat_model_stream event implementation and measures performance metrics.
 
 Usage:
     1. Start backend: uvicorn backend.deep_agent.main:app --reload --port 8000
-    2. Run this script: python test_websocket_client_manual.py
+    2. Run this script: python scripts/test_websocket_streaming.py [optional message]
     3. Observe real-time token streaming
+
+Requirements:
+    - Backend server running on ws://localhost:8000/api/v1/ws
+    - websockets library installed (pip install websockets)
+
+Examples:
+    # Default message
+    python scripts/test_websocket_streaming.py
+
+    # Custom message
+    python scripts/test_websocket_streaming.py "Tell me a joke"
+
+Output:
+    - Real-time streaming tokens with color-coded events
+    - Performance metrics (TTFT, tokens/second, total duration)
+    - Event statistics breakdown
+    - Validation checks summary
+
+Exit Codes:
+    0 - Test passed (all validation checks passed)
+    1 - Connection error or test interrupted
 """
 
 import asyncio

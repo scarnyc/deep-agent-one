@@ -1,5 +1,29 @@
 #!/usr/bin/env python
-"""Environment setup script for Deep Agent AGI."""
+"""Environment setup script for Deep Agent AGI.
+
+This script automates the initial environment setup by:
+- Validating Python 3.10+ and Node.js 18+ are installed
+- Creating necessary directories (data/, reports/, logs/)
+- Creating .env file from .env.example template
+
+Usage:
+    python scripts/setup_env.py
+
+Requirements:
+    - Python 3.10+
+    - Node.js 18+
+
+Examples:
+    # First-time setup
+    python scripts/setup_env.py
+
+    # Check Python version
+    python --version
+
+Exit Codes:
+    0 - Setup completed successfully
+    1 - Python version too old, Node.js missing, or .env.example not found
+"""
 import os
 import sys
 from pathlib import Path

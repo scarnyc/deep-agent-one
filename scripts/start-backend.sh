@@ -1,5 +1,25 @@
 #!/bin/bash
 # Start backend server with datetime-stamped logging
+#
+# Description:
+#   Starts Deep Agent AGI FastAPI backend on http://127.0.0.1:8000 with automatic reload
+#   and datetime-stamped logging.
+#
+# Usage:
+#   ./scripts/start-backend.sh
+#
+# Requirements:
+#   - .env file with API keys (OPENAI_API_KEY, LANGSMITH_API_KEY, etc.)
+#   - Virtual environment at venv/bin/activate
+#   - Python dependencies installed (poetry install)
+#
+# Output:
+#   - Logs to: logs/backend/YYYY-MM-DD-HH-MM-SS.log
+#   - Server runs on: http://127.0.0.1:8000
+#
+# Examples:
+#   ./scripts/start-backend.sh                # Start backend
+#   tail -f logs/backend/2025-11-12-*.log     # Watch logs
 
 set -e
 
