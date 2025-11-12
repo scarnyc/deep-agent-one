@@ -35,7 +35,18 @@ import {
 } from 'lucide-react';
 
 /**
- * Get status icon and color
+ * Get step status display properties.
+ *
+ * Maps step execution status to visual presentation including icon, color, and label.
+ *
+ * @param status - Step execution status (pending, running, completed, error)
+ * @returns Display configuration object with icon, color, and label
+ *
+ * @example
+ * ```tsx
+ * const { icon, color, label } = getStatusDisplay('running');
+ * // Returns: { icon: <Loader2 animate-spin />, color: 'text-blue-500', label: 'Running' }
+ * ```
  */
 function getStatusDisplay(
   status: 'pending' | 'running' | 'completed' | 'error'
@@ -79,7 +90,16 @@ function getStatusDisplay(
 }
 
 /**
- * Format timestamp for display
+ * Format ISO timestamp to localized time string.
+ *
+ * @param timestamp - ISO timestamp string (e.g., "2025-11-12T10:30:00Z")
+ * @returns Localized time string (e.g., "10:30:00 AM")
+ *
+ * @example
+ * ```tsx
+ * const time = formatTimestamp("2025-11-12T10:30:00Z");
+ * // Returns: "10:30:00 AM" (locale-dependent)
+ * ```
  */
 function formatTimestamp(timestamp?: string): string {
   if (!timestamp) return '';
@@ -88,7 +108,19 @@ function formatTimestamp(timestamp?: string): string {
 }
 
 /**
- * Calculate duration between two timestamps
+ * Calculate duration between two timestamps.
+ *
+ * Computes execution time and formats as milliseconds or seconds.
+ *
+ * @param start - Start timestamp (ISO format)
+ * @param end - End timestamp (ISO format)
+ * @returns Formatted duration string (e.g., "500ms" or "2.50s")
+ *
+ * @example
+ * ```tsx
+ * const duration = calculateDuration("2025-11-12T10:30:00Z", "2025-11-12T10:30:02.5Z");
+ * // Returns: "2.50s"
+ * ```
  */
 function calculateDuration(start?: string, end?: string): string {
   if (!start || !end) return '';
@@ -100,6 +132,21 @@ function calculateDuration(start?: string, end?: string): string {
 
 /**
  * Progress Step Item Component
+ *
+ * Displays a single agent execution step with status, timing, and metadata.
+ * Includes visual timeline connector to next step.
+ *
+ * @param props - Component props
+ * @param props.step - Agent step data (status, name, timestamps, metadata)
+ * @param props.isLast - Whether this is the last step in the list
+ *
+ * @example
+ * ```tsx
+ * <ProgressStepItem
+ *   step={{ id: '1', name: 'Read file', status: 'completed', ... }}
+ *   isLast={false}
+ * />
+ * ```
  */
 function ProgressStepItem({
   step,
@@ -175,6 +222,26 @@ function ProgressStepItem({
 
 /**
  * Progress Tracker Component
+ *
+ * Displays real-time agent execution progress with ordered list of steps.
+ * Shows status indicators, timestamps, execution durations, and metadata for each step.
+ *
+ * Features:
+ * - Visual timeline with status icons
+ * - Step counters (completed, running, errors)
+ * - Scrollable step list (max 400px height)
+ * - Metadata display for each step
+ * - Empty state when no steps
+ *
+ * Part of AG-UI Protocol implementation for Phase 0.
+ *
+ * @returns React component displaying progress tracker card
+ *
+ * @example
+ * ```tsx
+ * // In your page or layout
+ * <ProgressTracker />
+ * ```
  */
 export default function ProgressTracker() {
   const { active_thread_id, threads } = useAgentState();

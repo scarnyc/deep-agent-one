@@ -43,7 +43,18 @@ import {
 } from 'lucide-react';
 
 /**
- * Get status badge variant and icon
+ * Get tool call status display properties.
+ *
+ * Maps tool execution status to badge variant and icon.
+ *
+ * @param status - Tool call execution status (pending, running, completed, error)
+ * @returns Display configuration object with icon, badge variant, and label
+ *
+ * @example
+ * ```tsx
+ * const { icon, variant, label } = getStatusDisplay('completed');
+ * // Returns: { icon: <CheckCircle2 />, variant: 'secondary', label: 'Completed' }
+ * ```
  */
 function getStatusDisplay(status: ToolCallStatus): {
   icon: React.ReactNode;
@@ -85,7 +96,16 @@ function getStatusDisplay(status: ToolCallStatus): {
 }
 
 /**
- * Format timestamp for display
+ * Format ISO timestamp to localized time string.
+ *
+ * @param timestamp - ISO timestamp string (e.g., "2025-11-12T10:30:00Z")
+ * @returns Localized time string (e.g., "10:30:00 AM") or "-" if not provided
+ *
+ * @example
+ * ```tsx
+ * const time = formatTimestamp("2025-11-12T10:30:00Z");
+ * // Returns: "10:30:00 AM" (locale-dependent)
+ * ```
  */
 function formatTimestamp(timestamp?: string): string {
   if (!timestamp) return '-';
@@ -95,6 +115,28 @@ function formatTimestamp(timestamp?: string): string {
 
 /**
  * Tool Call Item Component
+ *
+ * Displays a single tool call in an expandable accordion with:
+ * - Tool name and status badge
+ * - JSON-formatted arguments with syntax highlighting
+ * - JSON-formatted result with syntax highlighting
+ * - Error details (if applicable)
+ * - Execution duration
+ * - Copy-to-clipboard functionality
+ *
+ * @param props - Component props
+ * @param props.toolCall - Tool call data (name, args, result, status, timestamps, error)
+ *
+ * @example
+ * ```tsx
+ * <ToolCallItem toolCall={{
+ *   id: '1',
+ *   name: 'read_file',
+ *   args: { path: '/foo/bar.txt' },
+ *   result: 'file contents...',
+ *   status: 'completed'
+ * }} />
+ * ```
  */
 function ToolCallItem({ toolCall }: { toolCall: ToolCall }) {
   const [copiedArgs, setCopiedArgs] = useState(false);
@@ -237,6 +279,29 @@ function ToolCallItem({ toolCall }: { toolCall: ToolCall }) {
 
 /**
  * Tool Call Display Component
+ *
+ * Displays all tool calls from the active agent thread with full transparency.
+ * Provides "inspect source" view of tool arguments, results, and execution metadata.
+ *
+ * Features:
+ * - Collapsible accordion for each tool call
+ * - Syntax-highlighted JSON for args/results
+ * - Copy-to-clipboard functionality
+ * - Status indicators (pending, running, completed, error)
+ * - Error details with type and message
+ * - Execution timing
+ * - Scrollable list (max 600px height)
+ * - Empty state when no tool calls
+ *
+ * Part of AG-UI Protocol implementation for Phase 0.
+ *
+ * @returns React component displaying tool call list card
+ *
+ * @example
+ * ```tsx
+ * // In your page or layout
+ * <ToolCallDisplay />
+ * ```
  */
 export default function ToolCallDisplay() {
   const { active_thread_id, threads } = useAgentState();

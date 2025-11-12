@@ -37,7 +37,18 @@ import {
 } from 'lucide-react';
 
 /**
- * Get status display properties
+ * Get status display properties based on agent execution state.
+ *
+ * Maps agent status to visual presentation including icon, color, and label.
+ *
+ * @param status - Current agent status (idle, running, waiting_for_approval, completed, error)
+ * @returns Display configuration object with icon, colors, label, and animation state
+ *
+ * @example
+ * ```tsx
+ * const { icon, color, label } = getStatusDisplay('running');
+ * // Returns: { icon: <Loader2 />, color: 'text-blue-500', label: 'Running', pulse: true }
+ * ```
  */
 function getStatusDisplay(status: AgentStatusType): {
   icon: React.ReactNode;
@@ -99,7 +110,18 @@ function getStatusDisplay(status: AgentStatusType): {
 }
 
 /**
- * Get connection status display
+ * Get WebSocket connection status display properties.
+ *
+ * Maps WebSocket connection state to visual presentation.
+ *
+ * @param status - WebSocket connection status
+ * @returns Display configuration object with icon, color, and label
+ *
+ * @example
+ * ```tsx
+ * const { icon, color, label } = getConnectionDisplay('connected');
+ * // Returns: { icon: <Wifi />, color: 'text-green-500', label: 'Connected' }
+ * ```
  */
 function getConnectionDisplay(
   status: 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'error'
@@ -139,7 +161,18 @@ function getConnectionDisplay(
 }
 
 /**
- * Get reasoning effort badge color
+ * Get reasoning effort badge color based on GPT-5 reasoning level.
+ *
+ * Maps reasoning effort to color-coded visual indicator.
+ *
+ * @param effort - Reasoning effort level (low, medium, high)
+ * @returns Tailwind CSS classes for badge styling
+ *
+ * @example
+ * ```tsx
+ * const className = getReasoningEffortColor('high');
+ * // Returns: 'bg-red-500/10 text-red-500 border-red-500/20'
+ * ```
  */
 function getReasoningEffortColor(
   effort?: 'low' | 'medium' | 'high'
@@ -158,6 +191,25 @@ function getReasoningEffortColor(
 
 /**
  * Agent Status Component
+ *
+ * Displays comprehensive agent execution status including:
+ * - Current execution state (idle, running, waiting, completed, error)
+ * - WebSocket connection status
+ * - GPT-5 reasoning effort level
+ * - Model information
+ * - Token usage statistics
+ * - Active thread ID
+ *
+ * Part of AG-UI Protocol implementation for Phase 0.
+ * Implements real-time status updates via WebSocket events.
+ *
+ * @returns React component displaying agent status card
+ *
+ * @example
+ * ```tsx
+ * // In your page or layout
+ * <AgentStatus />
+ * ```
  */
 export default function AgentStatus() {
   const { active_thread_id, threads } = useAgentState();

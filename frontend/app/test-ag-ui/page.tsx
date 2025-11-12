@@ -1,10 +1,32 @@
 'use client';
 
 /**
- * AG-UI Components Test Page
+ * AG-UI Components Test Page (Route: `/test-ag-ui`)
  *
- * Test page to verify AG-UI components render correctly
- * and integrate with Zustand store.
+ * @fileoverview Test page for verifying AG-UI Protocol components render correctly
+ * and integrate with Zustand store. Provides manual testing controls for adding
+ * mock data and observing component behavior in isolation.
+ *
+ * Purpose:
+ * - Test ToolCallDisplay, ProgressTracker, AgentStatus components independently
+ * - Verify Zustand store integration (useAgentState)
+ * - Debug component rendering and state updates
+ * - Validate AG-UI event processing
+ *
+ * Features:
+ * - "Add Mock Data" button to populate store with test data
+ * - "Clear Data" button to reset store state
+ * - 3-column grid layout showing all components side-by-side
+ * - Debug info panel showing active thread ID
+ *
+ * @example
+ * // Accessible at http://localhost:3000/test-ag-ui
+ * // Useful during Phase 0 development to test AG-UI components
+ *
+ * @see @/components/ag-ui/ToolCallDisplay.tsx - Tool execution visualization
+ * @see @/components/ag-ui/ProgressTracker.tsx - Subtask progress list
+ * @see @/components/ag-ui/AgentStatus.tsx - Agent state indicator
+ * @see @/hooks/useAgentState.ts - Zustand store for agent state
  */
 
 import { useEffect } from 'react';
@@ -14,6 +36,41 @@ import ProgressTracker from '@/components/ag-ui/ProgressTracker';
 import AgentStatus from '@/components/ag-ui/AgentStatus';
 import { Button } from '@/components/ui/button';
 
+/**
+ * Test page component for AG-UI components
+ *
+ * @returns {JSX.Element} Test page with mock data controls and component grid
+ *
+ * @remarks
+ * Development/testing page that provides:
+ *
+ * State Management:
+ * - Creates test thread on mount ('test-thread-1')
+ * - Sets as active thread for component rendering
+ *
+ * Mock Data Controls:
+ * - handleAddMockData: Populates store with sample messages, tool calls, steps
+ * - handleClearData: Resets store by recreating thread
+ *
+ * Layout:
+ * - 3-column grid (lg:grid-cols-3) showing components side-by-side
+ * - Each column displays one AG-UI component with header
+ * - Debug panel at bottom shows active thread ID
+ *
+ * Mock Data Includes:
+ * - Assistant message with metadata (reasoning_effort, tokens_used, model)
+ * - Tool call (web_search) with args, status, result, timestamps
+ * - Two steps (one completed, one running)
+ * - Agent status set to 'running'
+ *
+ * Usage:
+ * 1. Navigate to /test-ag-ui
+ * 2. Click "Add Mock Data" to populate components
+ * 3. Observe component rendering and state updates
+ * 4. Click "Clear Data" to reset and test again
+ *
+ * @internal This page is for development/testing only, not for production
+ */
 export default function TestAGUIPage() {
   const {
     createThread,

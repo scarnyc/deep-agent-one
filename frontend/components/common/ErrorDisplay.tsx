@@ -13,7 +13,13 @@ import { AlertCircle } from 'lucide-react';
 import { normalizeErrorEvent, NormalizedError } from '@/lib/errorEventAdapter';
 import type { AGUIEvent } from '@/types/ag-ui';
 
+/**
+ * Props for ErrorDisplay component.
+ *
+ * Extends NormalizedError with optional className for styling.
+ */
 export interface ErrorDisplayProps extends NormalizedError {
+  /** Optional CSS class name for styling */
   className?: string;
 }
 
@@ -21,6 +27,24 @@ export interface ErrorDisplayProps extends NormalizedError {
  * Display error information from AG-UI error events
  *
  * Uses errorEventAdapter to normalize error data from multiple protocols.
+ * Shows error type, code, message, and debugging info (run_id, request_id in dev mode).
+ *
+ * @param props - Error display props
+ * @param props.message - Error message to display
+ * @param props.type - Error type (e.g., "WebSocketError", "ValidationError")
+ * @param props.code - Optional error code
+ * @param props.run_id - Optional run ID (shown in development only)
+ * @param props.request_id - Optional request ID (shown in development only)
+ * @param props.className - Optional CSS class name
+ *
+ * @example
+ * ```tsx
+ * <ErrorDisplay
+ *   message="Connection failed"
+ *   type="WebSocketError"
+ *   code="WS_CLOSED"
+ * />
+ * ```
  */
 export function ErrorDisplay({
   message,
