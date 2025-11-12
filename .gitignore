@@ -135,3 +135,7 @@ temp/
 
 # Debugging artifacts
 debug/
+
+# Experimental test code and trace files
+tests/experiments/
+tests/scripts/*.json
