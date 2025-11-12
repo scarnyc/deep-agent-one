@@ -93,14 +93,34 @@ async def chat(
         # Extract messages from result
         messages_data = result.get("messages", [])
 
-        # Convert to Message objects
-        messages = [
-            Message(
-                role=MessageRole(msg.get("role", "assistant")),
-                content=msg.get("content", ""),
-            )
-            for msg in messages_data
-        ]
+        # Convert LangChain message objects to Message objects
+        messages = []
+        for msg in messages_data:
+            # Handle LangChain message objects (have .type and .content attributes)
+            if hasattr(msg, 'type') and hasattr(msg, 'content'):
+                # Map LangChain message types to API MessageRole
+                role_map = {
+                    "ai": "assistant",
+                    "human": "user",
+                    "system": "system"
+                }
+                role = role_map.get(msg.type, "assistant")
+                messages.append(Message(
+                    role=MessageRole(role),
+                    content=msg.content,
+                ))
+            # Fallback for dictionary format (for backward compatibility)
+            elif isinstance(msg, dict):
+                messages.append(Message(
+                    role=MessageRole(msg.get("role", "assistant")),
+                    content=msg.get("content", ""),
+                ))
+            else:
+                # Unknown format, convert to string
+                messages.append(Message(
+                    role=MessageRole("assistant"),
+                    content=str(msg),
+                ))
 
         logger.info(
             "Chat request completed successfully",

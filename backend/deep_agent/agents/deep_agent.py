@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 async def create_agent(
     settings: Settings | None = None,
     subagents: list[Any] | None = None,
+    prompt_variant: str | None = None,
 ) -> CompiledStateGraph:
     """
     Create a DeepAgent with LangGraph using official create_deep_agent() API.
@@ -32,12 +33,15 @@ async def create_agent(
     Args:
         settings: Settings instance with configuration. If None, uses get_settings().
         subagents: Optional list of sub-agents for delegation. Defaults to None.
+        prompt_variant: Optional prompt variant name for A/B testing.
+                       Options: "control", "max_compression", "balanced", "conservative".
+                       If None, uses environment-specific prompt (dev/prod).
 
     Returns:
         CompiledStateGraph ready for invocation with checkpointer attached
 
     Raises:
-        ValueError: If API key is missing or invalid
+        ValueError: If API key is missing or invalid, or prompt_variant is unknown
         OSError: If checkpointer database cannot be created
         RuntimeError: If graph compilation fails
 
@@ -48,6 +52,12 @@ async def create_agent(
         ...     {"messages": [{"role": "user", "content": "Hello"}]},
         ...     {"configurable": {"thread_id": "user-123"}}
         ... )
+
+    A/B Testing Example:
+        >>> # Test with balanced variant
+        >>> agent = await create_agent(prompt_variant="balanced")
+        >>> # Test with max_compression variant
+        >>> agent = await create_agent(prompt_variant="max_compression")
 
     File System Tools:
         DeepAgents includes these file system tools by default:
@@ -127,8 +137,30 @@ async def create_agent(
             env=settings.ENV,
         )
 
-    # Get environment-specific system instructions
-    system_prompt = get_agent_instructions(settings=settings)
+    # Get system prompt
+    # If prompt_variant specified, use variant for A/B testing
+    # Otherwise, use environment-specific prompt (dev/prod)
+    if prompt_variant:
+        from deep_agent.agents.prompts_variants import select_prompt_variant
+
+        try:
+            variant_name, system_prompt = select_prompt_variant(variant_name=prompt_variant)
+            logger.info(
+                "Using prompt variant for A/B testing",
+                variant=variant_name,
+                prompt_length=len(system_prompt),
+            )
+        except ValueError as e:
+            logger.error("Invalid prompt variant", variant=prompt_variant, error=str(e))
+            raise
+    else:
+        # Default: environment-specific instructions
+        system_prompt = get_agent_instructions(settings=settings)
+        logger.debug(
+            "Using environment-specific prompt",
+            env=settings.ENV,
+            prompt_length=len(system_prompt),
+        )
 
     # Create DeepAgent using official API
     try:

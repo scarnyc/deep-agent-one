@@ -34,22 +34,36 @@ class AgentService:
     Attributes:
         settings: Configuration settings for the agent
         agent: Compiled agent graph (created lazily on first use)
+        prompt_variant: Optional prompt variant for A/B testing
 
     Example:
         >>> service = AgentService()
         >>> result = await service.invoke("Hello", thread_id="user-123")
         >>> print(result["messages"][-1]["content"])
+
+    A/B Testing Example:
+        >>> # Test with balanced prompt variant
+        >>> service = AgentService(prompt_variant="balanced")
+        >>> result = await service.invoke("Hello", thread_id="user-123")
     """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(
+        self,
+        settings: Optional[Settings] = None,
+        prompt_variant: Optional[str] = None,
+    ):
         """
         Initialize AgentService.
 
         Args:
             settings: Configuration settings. If None, uses get_settings().
+            prompt_variant: Optional prompt variant name for A/B testing.
+                           Options: "control", "max_compression", "balanced", "conservative".
+                           If None, uses environment-specific prompt (dev/prod).
         """
         self.settings = settings if settings is not None else get_settings()
         self.agent: Optional[CompiledStateGraph] = None
+        self.prompt_variant = prompt_variant
         self._agent_lock = asyncio.Lock()  # Thread-safe lazy initialization
 
         logger.info(
@@ -57,6 +71,7 @@ class AgentService:
             env=self.settings.ENV,
             hitl_enabled=self.settings.ENABLE_HITL,
             subagents_enabled=self.settings.ENABLE_SUB_AGENTS,
+            prompt_variant=prompt_variant,
         )
 
     async def _ensure_agent(self) -> CompiledStateGraph:
@@ -93,13 +108,17 @@ class AgentService:
                 # Phase 1+: would load custom subagents here
                 subagents = None  # DeepAgents handles default general-purpose subagent
 
-            # Create agent
+            # Create agent with optional prompt variant
             self.agent = await create_agent(
                 settings=self.settings,
                 subagents=subagents,
+                prompt_variant=self.prompt_variant,
             )
 
-            logger.info("Agent created and ready for invocations")
+            logger.info(
+                "Agent created and ready for invocations",
+                prompt_variant=self.prompt_variant,
+            )
 
         return self.agent
 
