@@ -1,4 +1,43 @@
-"""Agent Management Pydantic models for run tracking and HITL workflows."""
+"""
+Agent Management Pydantic models for run tracking and HITL workflows.
+
+This module provides models for:
+- Error responses with debugging identifiers (ErrorResponse)
+- Agent run status tracking (AgentRunInfo, AgentRunStatus)
+- Human-in-the-loop (HITL) approval workflows (HITLApprovalRequest, HITLApprovalResponse, HITLAction)
+
+Models:
+    ErrorResponse: Generic error response with trace_id, run_id, request_id for debugging
+    AgentRunStatus: Enum for run states (running, completed, error, interrupted)
+    HITLAction: Enum for human intervention types (accept, respond, edit)
+    AgentRunInfo: Tracks agent execution state, timing, and metadata
+    HITLApprovalRequest: Request model for human approval/rejection/editing
+    HITLApprovalResponse: Response model indicating approval action result
+
+Validation Features:
+    - Non-empty string validation with whitespace stripping
+    - Auto-generated UTC timestamps for run start times
+    - Optional trace_id/run_id linking for debugging with LangSmith/LangGraph
+
+Example:
+    >>> from deep_agent.models.agents import AgentRunInfo, AgentRunStatus
+    >>> run_info = AgentRunInfo(
+    ...     run_id="run-abc-123",
+    ...     thread_id="user-456",
+    ...     status=AgentRunStatus.RUNNING
+    ... )
+    >>> print(run_info.status, run_info.started_at)
+    AgentRunStatus.RUNNING 2025-01-01 12:00:00+00:00
+
+HITL Workflow Example:
+    >>> from deep_agent.models.agents import HITLApprovalRequest, HITLAction
+    >>> approval = HITLApprovalRequest(
+    ...     run_id="run-abc-123",
+    ...     thread_id="user-456",
+    ...     action=HITLAction.ACCEPT
+    ... )
+    >>> # Send to agent service for processing
+"""
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional

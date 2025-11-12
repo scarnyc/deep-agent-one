@@ -1,4 +1,58 @@
-"""Chat API Pydantic models for request/response validation."""
+"""
+Chat API Pydantic models for request/response validation.
+
+This module provides models for:
+- Chat messages with roles and timestamps (Message, MessageRole)
+- Chat API request/response structure (ChatRequest, ChatResponse)
+- Streaming event models for real-time updates (StreamEvent)
+- Response status tracking (ResponseStatus)
+
+Models:
+    MessageRole: Enum for message sender roles (user, assistant, system)
+    ResponseStatus: Enum for response outcomes (success, error, pending)
+    Message: Single message with role, content, and timestamp
+    ChatRequest: User message with thread_id and optional metadata
+    ChatResponse: Agent response with messages list, status, and debugging identifiers
+    StreamEvent: Server-Sent Event (SSE) for streaming agent execution
+
+Validation Features:
+    - Non-empty string validation with whitespace stripping
+    - Auto-generated UTC timestamps for messages and events
+    - Metadata size/depth validation (max 10KB, 5 levels) for DoS prevention
+    - JSON-serializable metadata enforcement
+
+Security Notes:
+    - ChatRequest.metadata is validated for size (10KB max) and depth (5 levels max)
+      to prevent DoS attacks via large payloads or RecursionError from deep nesting
+    - All strings are stripped and validated to prevent empty/whitespace-only inputs
+
+Example:
+    >>> from deep_agent.models.chat import ChatRequest, ChatResponse, Message, MessageRole, ResponseStatus
+    >>> # Create request
+    >>> request = ChatRequest(
+    ...     message="What files are in my project?",
+    ...     thread_id="user-123",
+    ...     metadata={"source": "web"}
+    ... )
+    >>> # Create response
+    >>> msg = Message(role=MessageRole.ASSISTANT, content="Here are your files...")
+    >>> response = ChatResponse(
+    ...     messages=[msg],
+    ...     thread_id="user-123",
+    ...     status=ResponseStatus.SUCCESS,
+    ...     trace_id="trace-abc-456"
+    ... )
+
+Streaming Example:
+    >>> from deep_agent.models.chat import StreamEvent
+    >>> event = StreamEvent(
+    ...     event_type="on_chat_model_stream",
+    ...     data={"content": "Hello"},
+    ...     thread_id="user-123"
+    ... )
+    >>> # Serialize to SSE format
+    >>> print(f"event: {event.event_type}\\ndata: {event.data}\\n\\n")
+"""
 import json
 from datetime import datetime, timezone
 from enum import Enum
