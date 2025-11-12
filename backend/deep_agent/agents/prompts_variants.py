@@ -198,13 +198,43 @@ def select_prompt_variant(
 
 def get_variant_metadata(variant_name: str) -> Dict[str, any]:
     """
-    Get metadata about a prompt variant.
+    Get metadata about a prompt variant for analysis and comparison.
+
+    Provides detailed information about each prompt variant including token estimates,
+    optimization targets, and focus areas. Useful for understanding trade-offs between
+    variants and selecting the right variant for A/B testing experiments.
 
     Args:
-        variant_name: Name of the variant
+        variant_name: Name of the variant to get metadata for.
+                     Options: "control", "max_compression", "balanced", "conservative"
 
     Returns:
-        Dictionary with metadata including estimated tokens, target reduction, etc.
+        Dictionary containing:
+            - description (str): Human-readable variant description
+            - estimated_tokens (int): Approximate token count for the prompt
+            - target_reduction (int): Target reduction percentage vs. control (0-50%)
+            - focus (str): Primary optimization focus of the variant
+
+    Raises:
+        ValueError: If variant_name is not recognized
+
+    Example:
+        >>> from deep_agent.agents.prompts_variants import get_variant_metadata
+        >>>
+        >>> # Get metadata for balanced variant
+        >>> metadata = get_variant_metadata("balanced")
+        >>> print(f"Token estimate: {metadata['estimated_tokens']}")
+        Token estimate: 505
+        >>> print(f"Target reduction: {metadata['target_reduction']}%")
+        Target reduction: 35%
+        >>>
+        >>> # Compare variants
+        >>> for name in ["control", "max_compression", "balanced"]:
+        ...     meta = get_variant_metadata(name)
+        ...     print(f"{name}: {meta['estimated_tokens']} tokens")
+        control: 778 tokens
+        max_compression: 389 tokens
+        balanced: 505 tokens
     """
     metadata = {
         "control": {
