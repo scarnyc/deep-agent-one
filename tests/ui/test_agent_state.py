@@ -16,7 +16,21 @@ class TestAgentStateManagement:
     """Test Zustand agent state management."""
 
     def test_create_new_thread(self, page: Page) -> None:
-        """Test creating a new conversation thread."""
+        """
+        Test creating a new conversation thread.
+
+        UI Element: Thread ID display
+        User Action: Navigate to chat page
+        Expected Behavior: Thread ID is automatically generated and displayed
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - Thread ID element exists and is visible
+            - Thread ID is not empty
+            - Thread is created automatically on page mount
+        """
         # Arrange: Navigate to chat page
         page.goto("http://localhost:3000/chat")
 
@@ -29,7 +43,21 @@ class TestAgentStateManagement:
         expect(thread_id_element).not_to_be_empty()
 
     def test_add_user_message_to_thread(self, page: Page) -> None:
-        """Test adding a user message updates the thread state."""
+        """
+        Test adding a user message updates the thread state.
+
+        UI Element: Message input, send button, chat history
+        User Action: Type message and click send
+        Expected Behavior: Message appears in chat history with user role
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - User message appears in chat history
+            - Message has correct user role indicator
+            - State updates immediately after send
+        """
         # Arrange: Navigate and wait for thread
         page.goto("http://localhost:3000/chat")
         expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
@@ -47,7 +75,21 @@ class TestAgentStateManagement:
         expect(user_message).to_be_visible()
 
     def test_add_assistant_message_to_thread(self, page: Page) -> None:
-        """Test receiving an assistant message updates the thread state."""
+        """
+        Test receiving an assistant message updates the thread state.
+
+        UI Element: Chat history with assistant message
+        User Action: Send message to trigger assistant response
+        Expected Behavior: Assistant response appears via WebSocket AG-UI events
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - Assistant message appears in chat history
+            - Message has assistant role indicator
+            - Response received via streaming WebSocket events
+        """
         # Arrange: Send a message to trigger assistant response
         page.goto("http://localhost:3000/chat")
         expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
@@ -63,7 +105,21 @@ class TestAgentStateManagement:
         expect(assistant_message).not_to_be_empty()
 
     def test_track_tool_calls_in_state(self, page: Page) -> None:
-        """Test tool calls are tracked in agent state."""
+        """
+        Test tool calls are tracked in agent state.
+
+        UI Element: Tool call display with name and status
+        User Action: Send message that triggers tool usage (e.g., web search)
+        Expected Behavior: Tool calls appear with tracking info
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - Tool call element is visible
+            - Tool name is displayed correctly
+            - Tool status tracked (pending/running/completed)
+        """
         # Arrange: Send message that triggers tool usage
         page.goto("http://localhost:3000/chat")
         expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
@@ -81,7 +137,21 @@ class TestAgentStateManagement:
         expect(tool_call).to_have_attribute("data-status", re.compile(r"pending|running|completed"))
 
     def test_update_agent_status(self, page: Page) -> None:
-        """Test agent status updates as agent runs."""
+        """
+        Test agent status updates as agent runs.
+
+        UI Element: Agent status indicator
+        User Action: Send message to trigger agent execution
+        Expected Behavior: Status transitions idle → running → completed
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - Initial status is idle/ready
+            - Status changes to running during execution
+            - Status returns to idle/completed after execution
+        """
         # Arrange: Navigate to chat
         page.goto("http://localhost:3000/chat")
         expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
@@ -101,7 +171,21 @@ class TestAgentStateManagement:
         expect(agent_status).to_have_text(re.compile(r"completed|idle"), timeout=15000)
 
     def test_hitl_request_state(self, page: Page) -> None:
-        """Test HITL approval request updates state."""
+        """
+        Test HITL approval request updates state.
+
+        UI Element: HITL approval dialog
+        User Action: Send message requiring approval (e.g., destructive action)
+        Expected Behavior: Approval UI appears, agent status shows waiting
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - HITL approval dialog is visible
+            - Agent status indicates waiting for approval
+            - User can approve/reject actions
+        """
         # Arrange: Navigate and send message that requires approval
         page.goto("http://localhost:3000/chat")
         expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
@@ -121,7 +205,21 @@ class TestAgentStateManagement:
         expect(agent_status).to_have_text(re.compile(r"waiting.*approval|pending"), timeout=3000)
 
     def test_multiple_threads_isolation(self, page: Page) -> None:
-        """Test multiple threads are isolated in state."""
+        """
+        Test multiple threads are isolated in state.
+
+        UI Element: Thread switcher, chat history
+        User Action: Create multiple threads with different messages
+        Expected Behavior: Each thread maintains separate state
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - Messages in thread 1 don't appear in thread 2
+            - Thread state is properly isolated
+            - Switching threads loads correct messages
+        """
         # Arrange: Create first thread
         page.goto("http://localhost:3000/chat")
         expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
@@ -146,7 +244,21 @@ class TestAgentStateManagement:
         expect(chat_history).not_to_contain_text("Thread 1 message")
 
     def test_clear_thread_state(self, page: Page) -> None:
-        """Test clearing a thread removes all messages and state."""
+        """
+        Test clearing a thread removes all messages and state.
+
+        UI Element: Clear thread button, confirmation dialog
+        User Action: Click clear button and confirm
+        Expected Behavior: All messages removed from chat history
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - Clear button is accessible
+            - Confirmation dialog appears (if implemented)
+            - Chat history is empty after clearing
+        """
         # Arrange: Create thread with messages
         page.goto("http://localhost:3000/chat")
         expect(page.locator('[data-testid="ws-status"]')).to_have_text("connected", timeout=5000)
@@ -171,7 +283,21 @@ class TestAgentStateManagement:
             expect(chat_history).to_be_empty(timeout=3000)
 
     def test_switch_between_threads(self, page: Page) -> None:
-        """Test switching between threads loads correct state."""
+        """
+        Test switching between threads loads correct state.
+
+        UI Element: Thread list/switcher
+        User Action: Create two threads, switch between them
+        Expected Behavior: Each thread shows its own messages
+
+        Args:
+            page: Playwright page fixture
+
+        Verifies:
+            - Thread switching UI is functional
+            - Thread 1 messages appear when selected
+            - Thread 2 messages don't appear in thread 1
+        """
         # Arrange: Create two threads with different messages
         page.goto("http://localhost:3000/chat")
 
