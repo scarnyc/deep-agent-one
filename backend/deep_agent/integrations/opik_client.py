@@ -36,7 +36,24 @@ logger = get_logger(__name__)
 
 
 class OptimizerAlgorithm(str, Enum):
-    """Available optimization algorithms with their characteristics."""
+    """
+    Available Opik optimization algorithms with their characteristics.
+
+    Each algorithm is ranked by average performance across benchmarks:
+    - Arc: Abstract reasoning
+    - GSM8K: Math problem solving
+    - RagBench: Retrieval-augmented generation
+
+    See ALGORITHM_SELECTION_GUIDE for detailed selection criteria.
+
+    Attributes:
+        HIERARCHICAL_REFLECTIVE: Rank #1 (67.83%) - Best for complex prompts
+        FEW_SHOT_BAYESIAN: Rank #2 (59.17%) - Best for few-shot optimization
+        EVOLUTIONARY: Rank #3 (52.51%) - Multi-objective optimization
+        META_PROMPT: Rank #4 (38.75%) - LLM critique + MCP tool support
+        GEPA: Rank #5 (32.27%) - Single-turn tasks
+        PARAMETER: LLM parameter tuning (temperature, top_p)
+    """
 
     HIERARCHICAL_REFLECTIVE = "hierarchical_reflective"  # Rank #1 (67.83%)
     FEW_SHOT_BAYESIAN = "few_shot_bayesian"  # Rank #2 (59.17%)
@@ -105,7 +122,49 @@ class OpikClient:
     Unified Opik client for prompt optimization.
 
     Provides async-safe interface to all 6 Opik optimization algorithms
-    with LangSmith tracing integration.
+    with LangSmith tracing integration. Supports dataset management,
+    algorithm selection, and both sync/async optimization workflows.
+
+    This client is designed for Phase 1 prompt optimization and A/B testing.
+    It integrates with the context-engineering-expert agent for automated
+    prompt improvement workflows.
+
+    Attributes:
+        client: Opik API client instance
+        project_name: Project name for organizing experiments
+        settings: Application settings
+
+    Example:
+        >>> from deep_agent.integrations import OpikClient, OptimizerAlgorithm
+        >>> client = OpikClient()
+        >>>
+        >>> # Create evaluation dataset
+        >>> dataset = client.get_or_create_dataset(
+        ...     name="chat_eval",
+        ...     items=[{"input": "Hello", "expected": "Hi there!"}]
+        ... )
+        >>>
+        >>> # Define metric
+        >>> def accuracy_metric(output, expected):
+        ...     return 1.0 if output == expected else 0.0
+        >>>
+        >>> # Optimize prompt
+        >>> result = await client.optimize_prompt_async(
+        ...     prompt="You are a helpful assistant.",
+        ...     dataset=dataset,
+        ...     metric=accuracy_metric,
+        ...     algorithm=OptimizerAlgorithm.HIERARCHICAL_REFLECTIVE,
+        ...     max_trials=10
+        ... )
+        >>>
+        >>> print(f"Optimized: {result['optimized_prompt']}")
+        >>> print(f"Improvement: {result['improvement']}%")
+
+    Note:
+        - Requires OPIK_API_KEY in environment
+        - All methods support LangSmith tracing
+        - Async methods use thread pool for sync Opik API
+        - Singleton available via get_opik_client()
     """
 
     def __init__(self, settings: Optional[Settings] = None):
@@ -352,11 +411,28 @@ def get_opik_client(settings: Optional[Settings] = None) -> OpikClient:
     """
     Get or create Opik client singleton.
 
+    Provides a singleton instance of OpikClient to avoid multiple
+    API client initializations. Thread-safe for concurrent access.
+
     Args:
         settings: Optional settings. If None, uses get_settings().
 
     Returns:
-        OpikClient instance
+        OpikClient: Singleton instance of Opik client
+
+    Raises:
+        ValueError: If OPIK_API_KEY not configured
+
+    Example:
+        >>> from deep_agent.integrations import get_opik_client
+        >>> client = get_opik_client()
+        >>> # Subsequent calls return same instance
+        >>> same_client = get_opik_client()
+        >>> assert client is same_client
+
+    Note:
+        Singleton pattern ensures single API connection per process.
+        Safe to call multiple times.
     """
     global _opik_client
 
