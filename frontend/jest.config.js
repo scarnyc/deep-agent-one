@@ -1,3 +1,25 @@
+/**
+ * Jest Configuration for Unit and Integration Testing (Phase 0)
+ *
+ * This configuration file sets up Jest for testing Next.js components,
+ * hooks, and utilities. It includes:
+ * - jsdom test environment for React component testing
+ * - Path alias resolution (@/ imports)
+ * - Coverage collection and thresholds (80% minimum)
+ * - Mock setup for Next.js and third-party dependencies
+ *
+ * Usage:
+ * - npm test: Run all tests
+ * - npm run test:watch: Run tests in watch mode
+ * - npm run test:coverage: Generate coverage report
+ *
+ * References:
+ * - https://nextjs.org/docs/testing/jest
+ * - https://jestjs.io/docs/configuration
+ *
+ * @type {import('jest').Config}
+ */
+
 const nextJest = require('next/jest')
 
 const createJestConfig = nextJest({

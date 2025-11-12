@@ -1,4 +1,21 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * Tailwind CSS Configuration (Phase 0)
+ *
+ * This configuration extends Tailwind CSS with:
+ * - shadcn/ui design system tokens (colors, spacing, etc.)
+ * - Custom animations (accordion, cursor blink)
+ * - Dark mode support via class strategy
+ * - Responsive container defaults
+ *
+ * The color palette uses CSS variables defined in app/globals.css,
+ * allowing for dynamic theming and dark mode support.
+ *
+ * References:
+ * - https://tailwindcss.com/docs/configuration
+ * - https://ui.shadcn.com/docs/installation/next
+ *
+ * @type {import('tailwindcss').Config}
+ */
 module.exports = {
   darkMode: ['class'],
   content: [

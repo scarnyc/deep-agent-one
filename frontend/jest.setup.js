@@ -1,3 +1,21 @@
+/**
+ * Jest Setup and Global Mocks (Phase 0)
+ *
+ * This file configures the Jest testing environment with:
+ * - Jest DOM matchers for enhanced assertions
+ * - Mock implementations for Next.js navigation
+ * - Mock implementations for third-party libraries (react-error-boundary)
+ * - Global browser API mocks (matchMedia, IntersectionObserver, etc.)
+ * - Environment variable setup for tests
+ *
+ * This file is automatically run before each test suite via
+ * setupFilesAfterEnv in jest.config.js.
+ *
+ * References:
+ * - https://testing-library.com/docs/react-testing-library/setup
+ * - https://jestjs.io/docs/configuration#setupfilesafterenv-array
+ */
+
 // Import Jest DOM matchers
 import '@testing-library/jest-dom'
 

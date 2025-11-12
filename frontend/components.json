@@ -1,4 +1,23 @@
 {
+  // shadcn/ui Configuration (Phase 0)
+  //
+  // This configuration file is used by the shadcn/ui CLI to manage
+  // component installations and updates. It defines the style system,
+  // import aliases, and Tailwind CSS integration.
+  //
+  // Key Settings:
+  // - style: "new-york" - Component style variant
+  // - rsc: true - React Server Components enabled
+  // - tsx: true - TypeScript with JSX
+  // - cssVariables: true - Use CSS variables for theming
+  // - iconLibrary: "lucide" - Lucide React icons
+  //
+  // Usage:
+  // - npx shadcn@latest add <component-name>
+  //
+  // References:
+  // - https://ui.shadcn.com/docs/installation/next
+  // - https://ui.shadcn.com/docs/components-json
   "$schema": "https://ui.shadcn.com/schema.json",
   "style": "new-york",
   "rsc": true,
