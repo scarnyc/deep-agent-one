@@ -1,4 +1,10 @@
-"""Unit tests for error handling."""
+"""
+Unit tests for error handling.
+
+Tests the custom exception hierarchy for Deep Agent AGI, ensuring proper
+inheritance, error message handling, and raise/catch behavior for all
+exception types.
+"""
 import pytest
 
 from backend.deep_agent.core.errors import (
@@ -13,10 +19,18 @@ from backend.deep_agent.core.errors import (
 
 
 class TestCustomExceptions:
-    """Test custom exception classes."""
+    """Test custom exception classes and inheritance chain."""
 
     def test_deep_agent_error_base_class(self) -> None:
-        """Test base DeepAgentError exception."""
+        """
+        Test base DeepAgentError exception.
+
+        Scenario:
+            Create DeepAgentError with message
+
+        Expected:
+            Error message matches input, inherits from Exception
+        """
         error = DeepAgentError("Test error")
 
         assert str(error) == "Test error"

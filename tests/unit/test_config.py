@@ -1,4 +1,10 @@
-"""Unit tests for configuration management."""
+"""
+Unit tests for configuration management.
+
+Tests the Settings class and get_settings() function, ensuring proper loading
+from environment variables, validation of required fields, default values,
+and singleton pattern behavior.
+"""
 import os
 from pathlib import Path
 import pytest
@@ -9,15 +15,28 @@ from backend.deep_agent.config.settings import Settings, get_settings
 
 @pytest.fixture(autouse=True)
 def clear_settings_cache() -> None:
-    """Clear the settings cache before each test."""
+    """
+    Clear the settings cache before each test.
+
+    Ensures each test starts with a fresh Settings instance by clearing
+    the lru_cache on get_settings().
+    """
     get_settings.cache_clear()
 
 
 class TestSettings:
-    """Test Settings class."""
+    """Test Settings class initialization and validation."""
 
     def test_settings_loads_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test that settings load from environment variables."""
+        """
+        Test that settings load from environment variables.
+
+        Scenario:
+            Set environment variables for all core settings
+
+        Expected:
+            Settings instance reflects environment variable values
+        """
         # Set test environment variables
         monkeypatch.setenv("ENV", "local")
         monkeypatch.setenv("DEBUG", "true")
@@ -34,7 +53,15 @@ class TestSettings:
         assert settings.API_PORT == 8000
 
     def test_settings_required_fields(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """Test that required fields must be provided."""
+        """
+        Test that required fields must be provided.
+
+        Scenario:
+            Create Settings without OPENAI_API_KEY environment variable
+
+        Expected:
+            ValidationError raised with OPENAI_API_KEY in error message
+        """
         # Create empty .env file to prevent reading from actual .env
         empty_env = tmp_path / ".env"
         empty_env.write_text("")
@@ -51,7 +78,15 @@ class TestSettings:
         assert "OPENAI_API_KEY" in str(exc_info.value)
 
     def test_settings_defaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test that default values are applied correctly."""
+        """
+        Test that default values are applied correctly.
+
+        Scenario:
+            Create Settings with only required fields
+
+        Expected:
+            Optional fields use documented default values
+        """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         # Explicitly set to defaults to override any .env file values
         monkeypatch.setenv("ENV", "local")
@@ -70,7 +105,15 @@ class TestSettings:
     def test_settings_reasoning_effort_validation(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test that reasoning effort must be valid value."""
+        """
+        Test that reasoning effort must be valid value.
+
+        Scenario:
+            Set GPT5_DEFAULT_REASONING_EFFORT to invalid value
+
+        Expected:
+            ValidationError raised
+        """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         monkeypatch.setenv("GPT5_DEFAULT_REASONING_EFFORT", "invalid")
 
@@ -80,7 +123,15 @@ class TestSettings:
     def test_settings_cors_origins_parsing(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test that CORS origins are parsed from comma-separated string."""
+        """
+        Test that CORS origins are parsed from comma-separated string.
+
+        Scenario:
+            Set CORS_ORIGINS as comma-separated string
+
+        Expected:
+            cors_origins_list property returns list of URLs
+        """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000")
 
@@ -92,7 +143,15 @@ class TestSettings:
         ]
 
     def test_get_settings_singleton(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test that get_settings returns same instance."""
+        """
+        Test that get_settings returns same instance.
+
+        Scenario:
+            Call get_settings() multiple times
+
+        Expected:
+            Same Settings instance returned (singleton pattern via lru_cache)
+        """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
         settings1 = get_settings()
@@ -103,7 +162,15 @@ class TestSettings:
     def test_settings_log_level_conversion(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test that log level string is converted to uppercase."""
+        """
+        Test that log level string is converted to uppercase.
+
+        Scenario:
+            Set LOG_LEVEL to lowercase string
+
+        Expected:
+            Settings.LOG_LEVEL is uppercase
+        """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         monkeypatch.setenv("LOG_LEVEL", "info")
 
@@ -114,7 +181,15 @@ class TestSettings:
     def test_settings_database_url_format(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test that database URL is properly formatted."""
+        """
+        Test that database URL is properly formatted.
+
+        Scenario:
+            Set DATABASE_URL environment variable
+
+        Expected:
+            Settings.DATABASE_URL matches environment value
+        """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         monkeypatch.setenv(
             "DATABASE_URL", "postgresql://user:pass@localhost:5432/testdb"
@@ -125,7 +200,15 @@ class TestSettings:
         assert settings.DATABASE_URL == "postgresql://user:pass@localhost:5432/testdb"
 
     def test_settings_feature_flags(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test that feature flags parse correctly."""
+        """
+        Test that feature flags parse correctly.
+
+        Scenario:
+            Set boolean feature flag environment variables
+
+        Expected:
+            Settings converts string values to boolean correctly
+        """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         monkeypatch.setenv("ENABLE_HITL", "true")
         monkeypatch.setenv("ENABLE_SUB_AGENTS", "false")
