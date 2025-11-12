@@ -543,6 +543,192 @@ deep-agent-agi/
 
 ---
 
+## 📚 Documentation
+
+This project follows a comprehensive documentation strategy at multiple levels:
+
+1. **Code-level:** Google-style docstrings on all modules, classes, and functions
+2. **Folder-level:** README.md in every directory explaining purpose and usage
+3. **Project-level:** Architecture docs, development guides, and runbooks
+
+### 📖 Documentation Index
+
+#### 🏗️ Architecture & Design
+- **[Documentation Hub](docs/README.md)** - Complete documentation navigation
+- **[Architecture Overview](docs/architecture/README.md)** - System design and patterns
+- **[Technical Decisions](docs/architecture/)** - Architecture Decision Records
+
+#### 💻 Backend Documentation
+- **[Agents](backend/deep_agent/agents/README.md)** - DeepAgent implementations and sub-agents
+- **[API](backend/deep_agent/api/README.md)** - FastAPI routes and endpoints
+- **[API v1](backend/deep_agent/api/v1/README.md)** - Version 1 API specification
+- **[Services](backend/deep_agent/services/README.md)** - Business logic layer
+- **[Integrations](backend/deep_agent/integrations/README.md)** - External services (LangSmith, Opik)
+- **[MCP Clients](backend/deep_agent/integrations/mcp_clients/README.md)** - Perplexity and other MCP servers
+- **[Core](backend/deep_agent/core/README.md)** - Core utilities (logging, errors, security)
+- **[Models](backend/deep_agent/models/README.md)** - Pydantic data models
+- **[Tools](backend/deep_agent/tools/README.md)** - Agent tools (web search, prompt optimization)
+- **[Config](backend/deep_agent/config/README.md)** - Configuration management
+
+#### 🎨 Frontend Documentation
+- **[Frontend](frontend/README.md)** - Next.js application overview
+- **[App Router](frontend/app/README.md)** - Next.js 14 App Router pages
+- **[Components](frontend/components/README.md)** - Reusable UI components
+- **[Utilities](frontend/lib/README.md)** - Helper functions and libraries
+
+#### 🧪 Testing Documentation
+- **[Tests Overview](tests/README.md)** - Testing strategy and guidelines
+- **[Unit Tests](tests/unit/README.md)** - Isolated component testing
+- **[Integration Tests](tests/integration/README.md)** - Multi-component workflows
+- **[E2E Tests](tests/e2e/README.md)** - Complete user journeys
+- **[UI Tests](tests/ui/README.md)** - Playwright browser automation
+- **[Test Fixtures](tests/fixtures/README.md)** - Reusable test data
+- **[Test Mocks](tests/mocks/README.md)** - Mock implementations
+
+#### 🛠️ Developer Resources
+- **[Scripts](scripts/README.md)** - Development and deployment scripts
+- **[Development Guide](docs/development/README.md)** - Setup and workflow
+- **[API Documentation](docs/api/README.md)** - API reference and examples
+- **[Operations](docs/operations/README.md)** - Deployment and monitoring
+
+### 📝 Code Documentation Standards
+
+#### Python Docstrings (Google Style)
+
+All Python code follows Google-style docstrings with comprehensive examples:
+
+**Module level:**
+```python
+"""Brief module description.
+
+Longer description explaining the module's purpose and key concepts.
+
+Typical usage example:
+    from module import Class
+    obj = Class()
+    result = obj.method()
+```
+
+**Class level:**
+```python
+class MyClass:
+    """Brief class description.
+
+    Longer description of the class purpose and behavior.
+
+    Attributes:
+        attr1: Description of attribute
+        attr2: Description of attribute
+
+    Example:
+        >>> obj = MyClass()
+        >>> result = obj.method()
+        True
+    """
+```
+
+**Function level:**
+```python
+def my_function(arg1: str, arg2: int) -> bool:
+    """Brief function description.
+
+    Longer description of what the function does.
+
+    Args:
+        arg1: Description of arg1
+        arg2: Description of arg2
+
+    Returns:
+        Description of return value
+
+    Raises:
+        ValueError: When arg1 is invalid
+        TypeError: When arg2 is wrong type
+
+    Example:
+        >>> result = my_function("test", 42)
+        >>> print(result)
+        True
+    """
+```
+
+#### TypeScript/JSDoc Comments
+
+All TypeScript/React code follows JSDoc standards:
+
+```typescript
+/**
+ * Component description
+ *
+ * @param props - Component props
+ * @param props.message - Message to display
+ * @param props.onSubmit - Submit callback
+ * @returns React component
+ *
+ * @example
+ * ```tsx
+ * <MyComponent message="Hello" onSubmit={handleSubmit} />
+ * ```
+ */
+export function MyComponent({ message, onSubmit }: Props) {
+  // ...
+}
+```
+
+#### Shell Script Documentation
+
+All shell scripts include header comments:
+
+```bash
+#!/bin/bash
+# Script name and brief description
+#
+# Usage: ./script.sh [options]
+#
+# Options:
+#   -h, --help    Show this help message
+#   -v, --verbose Enable verbose output
+#
+# Example:
+#   ./script.sh --verbose
+```
+
+### 🤝 Contributing to Documentation
+
+When contributing code, ensure:
+
+1. **All Python files have module docstrings**
+2. **All public functions/methods have docstrings**
+3. **All classes have docstrings**
+4. **New directories include README.md**
+5. **Examples included in docstrings**
+6. **Update relevant README.md files**
+
+#### Documentation Checklist
+
+- [ ] Module docstring added
+- [ ] All public functions documented
+- [ ] All classes documented
+- [ ] Usage examples included
+- [ ] README.md updated (if applicable)
+- [ ] Related docs updated
+- [ ] Cross-references added
+
+#### Running Documentation Tests
+
+```bash
+# Check docstring coverage
+pydocstyle backend/deep_agent/
+
+# Generate API documentation (optional)
+sphinx-build -b html docs/ docs/_build/
+
+# Lint TypeScript comments
+npm run lint
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
