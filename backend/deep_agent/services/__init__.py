@@ -12,9 +12,11 @@ Architecture:
     The services layer implements a three-tier architecture:
 
     API Layer (FastAPI endpoints)
-        “
+        |
+        v
     Services Layer (business logic, orchestration)
-        “
+        |
+        v
     Agents Layer (LangGraph DeepAgents, tools, integrations)
 
 Design Patterns:
