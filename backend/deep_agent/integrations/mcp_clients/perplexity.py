@@ -289,9 +289,10 @@ class PerplexityClient:
             # Enforce timeout (security: MEDIUM-3 fix)
             async with asyncio.timeout(self.timeout):
                 # Server configuration from .mcp/perplexity.json
+                # Use installed console script (not python -m) - see trace f4a77df6
                 server_params = StdioServerParameters(
-                    command="python",
-                    args=["-m", "perplexity_mcp"],
+                    command="perplexity-mcp",
+                    args=[],
                     env={
                         "PERPLEXITY_API_KEY": self.api_key,
                         "PERPLEXITY_MODEL": os.getenv("PERPLEXITY_MODEL", "sonar"),
@@ -351,13 +352,22 @@ class PerplexityClient:
             raise TimeoutError(f"MCP request exceeded {self.timeout}s timeout")
 
         except Exception as e:
+            # Capture subprocess stderr and nested exceptions for better debugging
+            error_msg = str(e)
+            if hasattr(e, "__cause__") and e.__cause__:
+                error_msg += f" (caused by: {e.__cause__})"
+
             logger.error(
                 "MCP call failed",
                 query=query,
-                error=str(e),
+                error=error_msg,
                 error_type=type(e).__name__,
+                command="perplexity-mcp",  # Log the command for debugging
             )
-            raise ConnectionError(f"Failed to connect to Perplexity MCP: {str(e)}")
+            raise ConnectionError(
+                f"Failed to connect to Perplexity MCP: {error_msg}. "
+                f"Ensure 'perplexity-mcp' command is available and PERPLEXITY_API_KEY is set."
+            )
 
     def _parse_perplexity_response(
         self,

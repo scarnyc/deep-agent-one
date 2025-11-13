@@ -501,3 +501,103 @@ class TestPerplexityWithRealSettings:
             # Assert
             assert client.api_key == "test-key-from-env"
             assert client.timeout == 45
+
+
+class TestPerplexityMCPServerConfiguration:
+    """
+    Test MCP server configuration to prevent regression of trace f4a77df6.
+
+    This test class ensures the MCP server is started with the correct command.
+
+    Regression context: The perplexity-mcp package (v0.1.7) does NOT have a
+    __main__.py module, so it cannot be run with `python -m perplexity_mcp`.
+    It must be run using the installed console script `perplexity-mcp`.
+
+    See trace ID: f4a77df6-82f8-466d-9dd1-478ee55835c0
+    """
+
+    @pytest.mark.asyncio
+    async def test_mcp_server_uses_correct_command(
+        self,
+        mock_settings: Settings,
+    ) -> None:
+        """
+        Test that MCP server is started with 'perplexity-mcp' command.
+
+        Regression test for trace f4a77df6-82f8-466d-9dd1-478ee55835c0.
+        Ensures we use the correct console script command, not python -m.
+        """
+        from backend.deep_agent.integrations.mcp_clients.perplexity import (
+            PerplexityClient,
+        )
+        from mcp import StdioServerParameters
+
+        # Create client
+        client = PerplexityClient(settings=mock_settings)
+
+        # Mock the stdio_client to capture server_params
+        captured_params = None
+
+        async def mock_stdio_client(params):
+            nonlocal captured_params
+            captured_params = params
+            # Return mock context manager
+            class MockContext:
+                async def __aenter__(self):
+                    return (AsyncMock(), AsyncMock())
+                async def __aexit__(self, *args):
+                    pass
+            return MockContext()
+
+        with patch(
+            "backend.deep_agent.integrations.mcp_clients.perplexity.stdio_client",
+            side_effect=mock_stdio_client
+        ):
+            with patch(
+                "backend.deep_agent.integrations.mcp_clients.perplexity.ClientSession"
+            ):
+                try:
+                    await client.search("test query", max_results=1)
+                except:
+                    pass  # We only care about capturing the server params
+
+        # Assert the correct command is used
+        assert captured_params is not None, "Server params should be captured"
+        assert isinstance(captured_params, StdioServerParameters)
+        assert captured_params.command == "perplexity-mcp", (
+            f"Expected command 'perplexity-mcp', got '{captured_params.command}'. "
+            "This likely means the regression in trace f4a77df6 has reoccurred."
+        )
+        assert captured_params.args == [], (
+            f"Expected empty args [], got {captured_params.args}. "
+            "The perplexity-mcp command should not need additional args."
+        )
+
+        # Also verify env vars are passed correctly
+        assert "PERPLEXITY_API_KEY" in captured_params.env
+        assert captured_params.env["PERPLEXITY_API_KEY"] == "test-api-key-12345"
+
+    @pytest.mark.asyncio
+    async def test_mcp_server_command_is_executable(self) -> None:
+        """
+        Test that the perplexity-mcp command is executable in the environment.
+
+        This ensures the command we're trying to run actually exists.
+        """
+        import shutil
+
+        # Check if perplexity-mcp is available in PATH
+        mcp_command = shutil.which("perplexity-mcp")
+
+        assert mcp_command is not None, (
+            "perplexity-mcp command not found in PATH. "
+            "Ensure perplexity-mcp package is installed correctly."
+        )
+
+        # Verify it's in the virtual environment (for development)
+        import sys
+        venv_path = sys.prefix
+        assert venv_path in mcp_command, (
+            f"perplexity-mcp found at {mcp_command}, but expected it in "
+            f"virtual environment at {venv_path}"
+        )

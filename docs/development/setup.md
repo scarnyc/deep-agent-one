@@ -95,6 +95,63 @@ npx playwright --version
 
 context7 is built into Claude Code - no installation required.
 
+#### Perplexity MCP (Web Search)
+
+**IMPORTANT:** The perplexity-mcp package must be installed in your virtual environment and run using the `perplexity-mcp` console script command. Do NOT attempt to run it with `python -m perplexity_mcp` as this will fail.
+
+```bash
+# Activate your virtual environment first
+source venv/bin/activate  # On macOS/Linux
+# OR
+venv\Scripts\activate  # On Windows
+
+# Install perplexity-mcp package
+pip install perplexity-mcp
+
+# Verify installation
+which perplexity-mcp  # Should show path in your venv
+# Example: /path/to/deep-agent-agi/venv/bin/perplexity-mcp
+
+# Test that it can be executed (requires API key)
+perplexity-mcp --help
+```
+
+**Why this matters:** The perplexity-mcp package (v0.1.7+) is installed as a console script entry point, not a runnable Python module. Attempting to run it with `python -m perplexity_mcp` will fail with:
+
+```
+No module named perplexity_mcp.__main__; 'perplexity_mcp' is a package and cannot be directly executed
+```
+
+This configuration is correct in the codebase (see trace f4a77df6-82f8-466d-9dd1-478ee55835c0 for historical context).
+
+**Troubleshooting Perplexity MCP:**
+
+If you see errors like "Connection error: Unable to connect to search service":
+
+1. **Verify command is available:**
+   ```bash
+   which perplexity-mcp
+   # Should output: /path/to/venv/bin/perplexity-mcp
+   ```
+
+2. **Verify API key is set:**
+   ```bash
+   echo $PERPLEXITY_API_KEY
+   # Should output your API key
+   ```
+
+3. **Test command manually:**
+   ```bash
+   PERPLEXITY_API_KEY=your_key perplexity-mcp
+   # Should start the MCP server without errors
+   ```
+
+4. **Check package installation:**
+   ```bash
+   pip show perplexity-mcp
+   # Should show version 0.1.7 or higher
+   ```
+
 ---
 
 ## Configuration

@@ -1,7 +1,7 @@
 {
   "name": "perplexity",
-  "command": "python",
-  "args": ["-m", "perplexity_mcp"],
+  "command": "perplexity-mcp",
+  "args": [],
   "env": {
     "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
   },
