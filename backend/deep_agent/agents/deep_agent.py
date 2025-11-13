@@ -71,7 +71,9 @@ class ToolCallLimitedAgent:
 
         Note:
             Tool calls are counted by monitoring on_tool_* events.
-            After limit is reached, no new tool calls are initiated.
+            After the 10th tool call completes, the agent continues to synthesize
+            results. If the agent attempts an 11th tool call, it is blocked and
+            the agent terminates gracefully.
         """
         self._reset_counter()
 
@@ -82,6 +84,47 @@ class ToolCallLimitedAgent:
                 # Check for tool execution events (LangGraph v1 and v2 patterns)
                 event_name = event.get("event")
                 if event_name in ["on_tool_start", "on_tool_call_start"]:
+                    # Check if we're already at limit BEFORE allowing new tool
+                    if self._tool_call_count >= self.max_tool_calls:
+                        # Agent is attempting 11th+ tool call - block it
+                        logger.warning(
+                            "Blocking tool call beyond limit - agent should synthesize",
+                            attempted_call=self._tool_call_count + 1,
+                            limit=self.max_tool_calls,
+                        )
+
+                        # Add metadata to LangSmith trace for observability
+                        try:
+                            # Lazy import to avoid blocking module load during test collection
+                            from langsmith import get_current_run_tree
+
+                            run_tree = get_current_run_tree()
+                            if run_tree:
+                                run_tree.add_metadata({
+                                    "tool_limit_exceeded": True,
+                                    "blocked_tool_call": self._tool_call_count + 1,
+                                    "max_tool_calls": self.max_tool_calls,
+                                })
+                                logger.debug("Added tool limit block metadata to LangSmith trace")
+                        except Exception as e:
+                            # Don't fail if LangSmith tracing is unavailable
+                            logger.debug(f"Could not add LangSmith metadata: {e}")
+
+                        # Emit termination event - agent exceeded limit
+                        yield {
+                            "event": "on_chain_end",
+                            "data": {
+                                "output": {
+                                    "status": "completed",
+                                    "reason": "tool_call_limit_exceeded",
+                                    "tool_calls": self._tool_call_count,
+                                }
+                            },
+                        }
+                        # Stop iteration - no more events
+                        break
+
+                    # Increment counter for this tool call
                     self._tool_call_count += 1
                     logger.debug(
                         "Tool call tracked",
@@ -89,11 +132,11 @@ class ToolCallLimitedAgent:
                         limit=self.max_tool_calls,
                     )
 
-                    # Check if limit reached (allow current call to complete)
-                    if self._tool_call_count >= self.max_tool_calls:
+                    # If this is the 10th tool, mark limit reached but continue
+                    if self._tool_call_count == self.max_tool_calls:
                         self._limit_reached = True
-                        logger.warning(
-                            "Tool call limit reached - graceful termination after current call",
+                        logger.info(
+                            "Tool call limit reached - allowing synthesis after this tool",
                             count=self._tool_call_count,
                             limit=self.max_tool_calls,
                         )
@@ -115,27 +158,13 @@ class ToolCallLimitedAgent:
                             # Don't fail if LangSmith tracing is unavailable
                             logger.debug(f"Could not add LangSmith metadata: {e}")
 
-            # Yield event to caller
+            # Yield event to caller (including 10th tool events)
             yield event
 
-            # If limit reached and current tool completed, stop iteration
-            if self._should_terminate():
-                logger.info(
-                    "Tool call limit enforced - terminating agent gracefully",
-                    total_calls=self._tool_call_count,
-                )
-                # Emit final status message
-                yield {
-                    "event": "on_chain_end",
-                    "data": {
-                        "output": {
-                            "status": "completed",
-                            "reason": "tool_call_limit_reached",
-                            "tool_calls": self._tool_call_count,
-                        }
-                    },
-                }
-                break
+            # Note: We do NOT terminate here after the 10th tool completes.
+            # The agent needs to continue to synthesize results and generate
+            # a response. We only block and terminate if the agent tries to
+            # make an 11th tool call (handled above).
 
     async def ainvoke(
         self, input: dict[str, Any], config: dict[str, Any] | None = None
@@ -189,8 +218,9 @@ class ToolCallLimitedAgent:
 
         Note:
             Tool calls are counted by monitoring on_tool_* events.
-            After limit is reached, no new tool calls are initiated.
-            The current tool call is allowed to complete gracefully.
+            After the 10th tool call completes, the agent continues to synthesize
+            results. If the agent attempts an 11th tool call, it is blocked and
+            the agent terminates gracefully.
         """
         self._reset_counter()
 
@@ -201,6 +231,47 @@ class ToolCallLimitedAgent:
                 # Check for tool execution events (LangGraph v1 and v2 patterns)
                 event_name = event.get("event")
                 if event_name in ["on_tool_start", "on_tool_call_start"]:
+                    # Check if we're already at limit BEFORE allowing new tool
+                    if self._tool_call_count >= self.max_tool_calls:
+                        # Agent is attempting 11th+ tool call - block it
+                        logger.warning(
+                            "Blocking tool call beyond limit - agent should synthesize",
+                            attempted_call=self._tool_call_count + 1,
+                            limit=self.max_tool_calls,
+                        )
+
+                        # Add metadata to LangSmith trace for observability
+                        try:
+                            # Lazy import to avoid blocking module load during test collection
+                            from langsmith import get_current_run_tree
+
+                            run_tree = get_current_run_tree()
+                            if run_tree:
+                                run_tree.add_metadata({
+                                    "tool_limit_exceeded": True,
+                                    "blocked_tool_call": self._tool_call_count + 1,
+                                    "max_tool_calls": self.max_tool_calls,
+                                })
+                                logger.debug("Added tool limit block metadata to LangSmith trace")
+                        except Exception as e:
+                            # Don't fail if LangSmith tracing is unavailable
+                            logger.debug(f"Could not add LangSmith metadata: {e}")
+
+                        # Emit termination event - agent exceeded limit
+                        yield {
+                            "event": "on_chain_end",
+                            "data": {
+                                "output": {
+                                    "status": "completed",
+                                    "reason": "tool_call_limit_exceeded",
+                                    "tool_calls": self._tool_call_count,
+                                }
+                            },
+                        }
+                        # Stop iteration - no more events
+                        break
+
+                    # Increment counter for this tool call
                     self._tool_call_count += 1
                     logger.debug(
                         "Tool call tracked",
@@ -208,11 +279,11 @@ class ToolCallLimitedAgent:
                         limit=self.max_tool_calls,
                     )
 
-                    # Check if limit reached (allow current call to complete)
-                    if self._tool_call_count >= self.max_tool_calls:
+                    # If this is the 10th tool, mark limit reached but continue
+                    if self._tool_call_count == self.max_tool_calls:
                         self._limit_reached = True
-                        logger.warning(
-                            "Tool call limit reached - graceful termination after current call",
+                        logger.info(
+                            "Tool call limit reached - allowing synthesis after this tool",
                             count=self._tool_call_count,
                             limit=self.max_tool_calls,
                         )
@@ -234,27 +305,13 @@ class ToolCallLimitedAgent:
                             # Don't fail if LangSmith tracing is unavailable
                             logger.debug(f"Could not add LangSmith metadata: {e}")
 
-            # Yield event to caller
+            # Yield event to caller (including 10th tool events)
             yield event
 
-            # If limit reached and current tool completed, stop iteration
-            if self._should_terminate():
-                logger.info(
-                    "Tool call limit enforced - terminating agent gracefully",
-                    total_calls=self._tool_call_count,
-                )
-                # Emit final status message
-                yield {
-                    "event": "on_chain_end",
-                    "data": {
-                        "output": {
-                            "status": "completed",
-                            "reason": "tool_call_limit_reached",
-                            "tool_calls": self._tool_call_count,
-                        }
-                    },
-                }
-                break
+            # Note: We do NOT terminate here after the 10th tool completes.
+            # The agent needs to continue to synthesize results and generate
+            # a response. We only block and terminate if the agent tries to
+            # make an 11th tool call (handled above).
 
     def __getattr__(self, name: str) -> Any:
         """
