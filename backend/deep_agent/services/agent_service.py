@@ -6,18 +6,18 @@ managing state persistence, and handling streaming responses.
 """
 
 import asyncio
-from typing import Any, AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from typing import Any
 
-from langgraph.graph.state import CompiledStateGraph
 from langsmith import get_current_run_tree
 from tenacity import (
     AsyncRetrying,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
-from deep_agent.agents.deep_agent import create_agent
+from deep_agent.agents.deep_agent import ToolCallLimitedAgent, create_agent
 from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.logging import generate_langsmith_url, get_logger
 
@@ -49,8 +49,8 @@ class AgentService:
 
     def __init__(
         self,
-        settings: Optional[Settings] = None,
-        prompt_variant: Optional[str] = None,
+        settings: Settings | None = None,
+        prompt_variant: str | None = None,
     ):
         """
         Initialize AgentService.
@@ -62,7 +62,7 @@ class AgentService:
                            If None, uses environment-specific prompt (dev/prod).
         """
         self.settings = settings if settings is not None else get_settings()
-        self.agent: Optional[CompiledStateGraph] = None
+        self.agent: ToolCallLimitedAgent | None = None
         self.prompt_variant = prompt_variant
         self._agent_lock = asyncio.Lock()  # Thread-safe lazy initialization
 
@@ -74,7 +74,7 @@ class AgentService:
             prompt_variant=prompt_variant,
         )
 
-    async def _ensure_agent(self) -> CompiledStateGraph:
+    async def _ensure_agent(self) -> ToolCallLimitedAgent:
         """
         Ensure agent is created (lazy initialization with thread safety).
 
@@ -83,7 +83,7 @@ class AgentService:
         prevent race conditions during concurrent invocations.
 
         Returns:
-            Compiled agent graph ready for invocation.
+            Tool call limited agent wrapper ready for invocation.
 
         Raises:
             ValueError: If agent creation fails due to invalid configuration.
@@ -385,7 +385,7 @@ class AgentService:
                                 # Log filtered events for debugging (first 50 only to avoid log spam)
                                 if event_count <= 50:
                                     logger.debug(
-                                        f"Filtered event (not in allowed_events)",
+                                        "Filtered event (not in allowed_events)",
                                         thread_id=thread_id,
                                         trace_id=trace_id,
                                         event_type=event_type,
@@ -401,7 +401,7 @@ class AgentService:
                 event_types=list(event_types_seen),
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(
                 "Agent streaming timed out",
                 thread_id=thread_id,
@@ -491,7 +491,7 @@ class AgentService:
     async def get_state(
         self,
         thread_id: str,
-        checkpoint_id: Optional[str] = None,
+        checkpoint_id: str | None = None,
     ) -> dict[str, Any]:
         """
         Get current state from checkpointer for a thread.
@@ -583,7 +583,7 @@ class AgentService:
         self,
         thread_id: str,
         values: dict[str, Any],
-        as_node: Optional[str] = None,
+        as_node: str | None = None,
     ) -> None:
         """
         Update state in checkpointer (for HITL approval).

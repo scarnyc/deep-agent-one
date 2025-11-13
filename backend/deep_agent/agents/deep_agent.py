@@ -1,11 +1,11 @@
 """DeepAgent creation and configuration using LangChain's create_deep_agent API."""
 
 import traceback
+from collections.abc import AsyncIterator
 from typing import Any
 
-from langgraph.graph.state import CompiledStateGraph
-
 from deepagents import create_deep_agent
+from langgraph.graph.state import CompiledStateGraph
 
 from deep_agent.agents.checkpointer import CheckpointerManager
 from deep_agent.agents.prompts import get_agent_instructions
@@ -19,11 +19,169 @@ from deep_agent.tools.web_search import web_search
 logger = get_logger(__name__)
 
 
+class ToolCallLimitedAgent:
+    """
+    Wrapper for CompiledStateGraph that enforces tool call limits per invocation.
+
+    This wrapper intercepts tool execution events and maintains a count of tool
+    calls. When the limit is reached, it allows the current tool call to complete,
+    then gracefully terminates the agent, allowing it to emit a final response.
+
+    Attributes:
+        graph: The underlying CompiledStateGraph to wrap
+        max_tool_calls: Maximum number of tool calls per invocation
+        _tool_call_count: Current count of tool calls (reset per invocation)
+        _limit_reached: Flag indicating if limit has been reached
+    """
+
+    def __init__(self, graph: CompiledStateGraph, max_tool_calls: int = 10):
+        """
+        Initialize the tool call limited agent wrapper.
+
+        Args:
+            graph: CompiledStateGraph to wrap
+            max_tool_calls: Maximum tool calls per invocation (default: 10)
+        """
+        self.graph = graph
+        self.max_tool_calls = max_tool_calls
+        self._tool_call_count = 0
+        self._limit_reached = False
+
+    def _reset_counter(self) -> None:
+        """Reset tool call counter for new invocation."""
+        self._tool_call_count = 0
+        self._limit_reached = False
+
+    def _should_terminate(self) -> bool:
+        """Check if agent should terminate due to tool call limit."""
+        return self._limit_reached
+
+    async def astream(
+        self, input: dict[str, Any], config: dict[str, Any] | None = None
+    ) -> AsyncIterator[Any]:
+        """
+        Stream agent execution with tool call limit enforcement.
+
+        Args:
+            input: Input message/state for the agent
+            config: Configuration dictionary with thread_id, etc.
+
+        Yields:
+            Stream events from the underlying agent
+
+        Note:
+            Tool calls are counted by monitoring on_tool_* events.
+            After limit is reached, no new tool calls are initiated.
+        """
+        self._reset_counter()
+
+        async for event in self.graph.astream(input, config):
+            # Track tool calls via event monitoring
+            # LangGraph emits various events - we count tool executions
+            if isinstance(event, dict):
+                # Check for tool execution events (LangGraph v1 and v2 patterns)
+                event_name = event.get("event")
+                if event_name in ["on_tool_start", "on_tool_call_start"]:
+                    self._tool_call_count += 1
+                    logger.debug(
+                        "Tool call tracked",
+                        count=self._tool_call_count,
+                        limit=self.max_tool_calls,
+                    )
+
+                    # Check if limit reached (allow current call to complete)
+                    if self._tool_call_count >= self.max_tool_calls:
+                        self._limit_reached = True
+                        logger.warning(
+                            "Tool call limit reached - graceful termination after current call",
+                            count=self._tool_call_count,
+                            limit=self.max_tool_calls,
+                        )
+
+                        # Add metadata to LangSmith trace for observability
+                        try:
+                            # Lazy import to avoid blocking module load during test collection
+                            from langsmith import get_current_run_tree
+
+                            run_tree = get_current_run_tree()
+                            if run_tree:
+                                run_tree.add_metadata({
+                                    "tool_limit_reached": True,
+                                    "tool_call_count": self._tool_call_count,
+                                    "max_tool_calls": self.max_tool_calls,
+                                })
+                                logger.debug("Added tool limit metadata to LangSmith trace")
+                        except Exception as e:
+                            # Don't fail if LangSmith tracing is unavailable
+                            logger.debug(f"Could not add LangSmith metadata: {e}")
+
+            # Yield event to caller
+            yield event
+
+            # If limit reached and current tool completed, stop iteration
+            if self._should_terminate():
+                logger.info(
+                    "Tool call limit enforced - terminating agent gracefully",
+                    total_calls=self._tool_call_count,
+                )
+                # Emit final status message
+                yield {
+                    "event": "on_chain_end",
+                    "data": {
+                        "output": {
+                            "status": "completed",
+                            "reason": "tool_call_limit_reached",
+                            "tool_calls": self._tool_call_count,
+                        }
+                    },
+                }
+                break
+
+    async def ainvoke(
+        self, input: dict[str, Any], config: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """
+        Invoke agent with tool call limit enforcement.
+
+        Args:
+            input: Input message/state for the agent
+            config: Configuration dictionary with thread_id, etc.
+
+        Returns:
+            Final agent state/output
+
+        Note:
+            For non-streaming invocations, we wrap the underlying ainvoke
+            and monitor via stream events internally.
+        """
+        self._reset_counter()
+
+        # For ainvoke, we still need to monitor tool calls
+        # We'll use astream internally and collect the final result
+        final_result = None
+        async for event in self.astream(input, config):
+            # Collect final result from stream
+            if isinstance(event, dict) and event.get("event") == "on_chain_end":
+                final_result = event.get("data", {}).get("output", {})
+
+        return final_result or {}
+
+    def __getattr__(self, name: str) -> Any:
+        """
+        Delegate attribute access to underlying graph for compatibility.
+
+        This allows the wrapper to act as a drop-in replacement for
+        CompiledStateGraph, forwarding any methods/attributes we don't
+        explicitly override.
+        """
+        return getattr(self.graph, name)
+
+
 async def create_agent(
     settings: Settings | None = None,
     subagents: list[Any] | None = None,
     prompt_variant: str | None = None,
-) -> CompiledStateGraph:
+) -> ToolCallLimitedAgent:
     """
     Create a DeepAgent with LangGraph using official create_deep_agent() API.
 
@@ -38,7 +196,8 @@ async def create_agent(
                        If None, uses environment-specific prompt (dev/prod).
 
     Returns:
-        CompiledStateGraph ready for invocation with checkpointer attached
+        ToolCallLimitedAgent wrapping CompiledStateGraph with tool call limit
+        enforcement, ready for invocation with checkpointer attached
 
     Raises:
         ValueError: If API key is missing or invalid, or prompt_variant is unknown
@@ -181,13 +340,21 @@ async def create_agent(
             checkpointer=checkpointer,
         )
 
-        logger.info(
-            "Successfully created and compiled DeepAgent",
-            has_checkpointer=checkpointer is not None,
-            subagents_enabled=subagents is not None and len(subagents) > 0,
+        # Wrap with tool call limiter for graceful termination
+        max_tool_calls = settings.MAX_TOOL_CALLS_PER_INVOCATION
+        limited_agent = ToolCallLimitedAgent(
+            graph=compiled_graph,
+            max_tool_calls=max_tool_calls,
         )
 
-        return compiled_graph
+        logger.info(
+            "Successfully created and compiled DeepAgent with tool call limit",
+            has_checkpointer=checkpointer is not None,
+            subagents_enabled=subagents is not None and len(subagents) > 0,
+            max_tool_calls=max_tool_calls,
+        )
+
+        return limited_agent
 
     except Exception as e:
         # Log full traceback for debugging

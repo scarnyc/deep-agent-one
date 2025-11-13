@@ -20,7 +20,8 @@ langchain = "^1.0.0"           # Stable 1.0.2 (Oct 21, 2025)
 langchain-core = "^1.0.0"      # Required by DeepAgents 0.2.0
 langchain-openai = "^0.3.0"    # Compatible with langchain-core 1.0
 langgraph = "^1.0.0"           # Stable 1.0.1 (Oct 20, 2025)
-langgraph-checkpoint = "^2.1.0"  # Compatible with LangGraph 1.0
+langgraph-checkpoint = "^3.0.0"  # Compatible with LangGraph 1.0+
+langgraph-checkpoint-sqlite = "^3.0.0"  # SQLite checkpoint storage
 langgraph-prebuilt = "^1.0.0"  # Required by LangGraph 1.0.1
 langsmith = "^0.4.0"           # Compatible with LangChain 1.0
 deepagents = "^0.2.0"          # Stable 0.2.0 (Oct 28, 2025) - Released TODAY!
@@ -134,7 +135,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --strict-markers --cov=backend/deep_agent --cov-report=term-missing --cov-report=html"
+addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]

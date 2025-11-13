@@ -48,7 +48,8 @@ Related:
     - deep_agent.api: API configuration consumers
 """
 from functools import lru_cache
-from typing import Literal, Optional
+from typing import Literal
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -130,6 +131,7 @@ class Settings(BaseSettings):
 
         TOOL_EXECUTION_TIMEOUT: Tool execution timeout (seconds).
         WEB_SEARCH_TIMEOUT: Web search tool timeout (seconds).
+        MAX_TOOL_CALLS_PER_INVOCATION: Maximum tool calls per agent invocation.
 
         SECRET_KEY: Application secret key (optional).
         JWT_SECRET: JWT signing secret (optional).
@@ -229,24 +231,24 @@ class Settings(BaseSettings):
     ENABLE_CONTEXT_COMPRESSION: bool = True
 
     # Other AI Services
-    PERPLEXITY_API_KEY: Optional[str] = None
+    PERPLEXITY_API_KEY: str | None = None
 
     # Monitoring & Tracing
-    LANGSMITH_API_KEY: Optional[str] = None
+    LANGSMITH_API_KEY: str | None = None
     LANGSMITH_PROJECT: str = "deep-agent-agi"
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
     LANGSMITH_TRACING_V2: bool = True
 
     # Prompt Optimization
-    OPIK_API_KEY: Optional[str] = None
-    OPIK_WORKSPACE: Optional[str] = None
+    OPIK_API_KEY: str | None = None
+    OPIK_WORKSPACE: str | None = None
     OPIK_PROJECT: str = "deep-agent-reasoning"
 
     # Database Configuration (Phase 1)
-    DATABASE_URL: Optional[str] = None
-    POSTGRES_USER: Optional[str] = None
-    POSTGRES_PASSWORD: Optional[str] = None
-    POSTGRES_DB: Optional[str] = None
+    DATABASE_URL: str | None = None
+    POSTGRES_USER: str | None = None
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DB: str | None = None
     ENABLE_PGVECTOR: bool = True
 
     # Checkpointer Configuration (LangGraph State Persistence)
@@ -264,8 +266,8 @@ class Settings(BaseSettings):
     STREAM_ALLOWED_EVENTS: str = "on_chat_model_stream,on_tool_start,on_tool_end,on_tool_call_start,on_tool_call_end,on_chain_start,on_chain_end,on_llm_start,on_llm_end"
 
     # Redis Cache (Phase 2)
-    REDIS_URL: Optional[str] = None
-    REDIS_PASSWORD: Optional[str] = None
+    REDIS_URL: str | None = None
+    REDIS_PASSWORD: str | None = None
     CACHE_TTL: int = 3600
 
     # FastAPI Configuration
@@ -285,10 +287,12 @@ class Settings(BaseSettings):
     # NOTE: Tool timeout must be < STREAM_TIMEOUT_SECONDS to prevent race conditions
     TOOL_EXECUTION_TIMEOUT: int = 45  # 45s per tool call (< 60s stream timeout)
     WEB_SEARCH_TIMEOUT: int = 30  # Perplexity search timeout (matches MCP_PERPLEXITY_TIMEOUT)
+    # Maximum tool calls per agent invocation (graceful limit - agent completes reasoning after Nth call)
+    MAX_TOOL_CALLS_PER_INVOCATION: int = 10
 
     # Security Configuration
-    SECRET_KEY: Optional[str] = None
-    JWT_SECRET: Optional[str] = None
+    SECRET_KEY: str | None = None
+    JWT_SECRET: str | None = None
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     BCRYPT_ROUNDS: int = 12
@@ -329,8 +333,8 @@ class Settings(BaseSettings):
     MOCK_EXTERNAL_APIS: bool = False
 
     # Replit Specific
-    REPL_SLUG: Optional[str] = None
-    REPL_OWNER: Optional[str] = None
+    REPL_SLUG: str | None = None
+    REPL_OWNER: str | None = None
 
     @field_validator("LOG_LEVEL")
     @classmethod
