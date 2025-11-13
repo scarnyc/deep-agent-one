@@ -166,6 +166,96 @@ class ToolCallLimitedAgent:
 
         return final_result or {}
 
+    async def astream_events(
+        self,
+        input: dict[str, Any],
+        config: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[Any]:
+        """
+        Stream agent events with tool call limit enforcement.
+
+        This method is used by AgentService.stream() for production WebSocket
+        streaming. It implements the same tool call limiting logic as astream()
+        but for the astream_events() API.
+
+        Args:
+            input: Input message/state for the agent
+            config: Configuration dictionary with thread_id, etc.
+            **kwargs: Additional arguments (version, include_names, etc.)
+
+        Yields:
+            Stream events from the underlying agent (LangGraph event format)
+
+        Note:
+            Tool calls are counted by monitoring on_tool_* events.
+            After limit is reached, no new tool calls are initiated.
+            The current tool call is allowed to complete gracefully.
+        """
+        self._reset_counter()
+
+        async for event in self.graph.astream_events(input, config, **kwargs):
+            # Track tool calls via event monitoring
+            # LangGraph emits various events - we count tool executions
+            if isinstance(event, dict):
+                # Check for tool execution events (LangGraph v1 and v2 patterns)
+                event_name = event.get("event")
+                if event_name in ["on_tool_start", "on_tool_call_start"]:
+                    self._tool_call_count += 1
+                    logger.debug(
+                        "Tool call tracked",
+                        count=self._tool_call_count,
+                        limit=self.max_tool_calls,
+                    )
+
+                    # Check if limit reached (allow current call to complete)
+                    if self._tool_call_count >= self.max_tool_calls:
+                        self._limit_reached = True
+                        logger.warning(
+                            "Tool call limit reached - graceful termination after current call",
+                            count=self._tool_call_count,
+                            limit=self.max_tool_calls,
+                        )
+
+                        # Add metadata to LangSmith trace for observability
+                        try:
+                            # Lazy import to avoid blocking module load during test collection
+                            from langsmith import get_current_run_tree
+
+                            run_tree = get_current_run_tree()
+                            if run_tree:
+                                run_tree.add_metadata({
+                                    "tool_limit_reached": True,
+                                    "tool_call_count": self._tool_call_count,
+                                    "max_tool_calls": self.max_tool_calls,
+                                })
+                                logger.debug("Added tool limit metadata to LangSmith trace")
+                        except Exception as e:
+                            # Don't fail if LangSmith tracing is unavailable
+                            logger.debug(f"Could not add LangSmith metadata: {e}")
+
+            # Yield event to caller
+            yield event
+
+            # If limit reached and current tool completed, stop iteration
+            if self._should_terminate():
+                logger.info(
+                    "Tool call limit enforced - terminating agent gracefully",
+                    total_calls=self._tool_call_count,
+                )
+                # Emit final status message
+                yield {
+                    "event": "on_chain_end",
+                    "data": {
+                        "output": {
+                            "status": "completed",
+                            "reason": "tool_call_limit_reached",
+                            "tool_calls": self._tool_call_count,
+                        }
+                    },
+                }
+                break
+
     def __getattr__(self, name: str) -> Any:
         """
         Delegate attribute access to underlying graph for compatibility.

@@ -480,6 +480,149 @@ class TestAinvokeMethod:
         assert wrapper._limit_reached is True
 
 
+class TestAstreamEventsMethod:
+    """Test astream_events method with tool call limits (used for production WebSocket streaming)."""
+
+    @pytest.mark.asyncio
+    async def test_astream_events_counts_tool_calls(
+        self, mock_compiled_graph: CompiledStateGraph
+    ) -> None:
+        """Test astream_events method counts tool calls correctly."""
+        # Arrange
+        events = [
+            {"event": "on_tool_start", "data": {}},  # Call 1
+            {"event": "on_tool_end", "data": {}},
+            {"event": "on_tool_start", "data": {}},  # Call 2
+            {"event": "on_tool_end", "data": {}},
+            {"event": "on_tool_start", "data": {}},  # Call 3
+            {"event": "on_tool_end", "data": {}},
+        ]
+        mock_compiled_graph.astream_events = AsyncMock(return_value=mock_astream_generator(events))
+        wrapper = ToolCallLimitedAgent(mock_compiled_graph, max_tool_calls=5)
+
+        # Act
+        collected_events = []
+        async for event in wrapper.astream_events({}, {}):
+            collected_events.append(event)
+
+        # Assert
+        assert wrapper._tool_call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_astream_events_enforces_tool_limit(
+        self, mock_compiled_graph: CompiledStateGraph
+    ) -> None:
+        """Test astream_events enforces tool call limit and terminates gracefully."""
+        # Arrange - 15 tool calls but limit is 10
+        events = []
+        for _i in range(15):
+            events.append({"event": "on_tool_start", "data": {}})
+            events.append({"event": "on_tool_end", "data": {}})
+        events.append({"event": "on_chain_end", "data": {}})
+
+        mock_compiled_graph.astream_events = AsyncMock(return_value=mock_astream_generator(events))
+        wrapper = ToolCallLimitedAgent(mock_compiled_graph, max_tool_calls=10)
+
+        # Act
+        collected_events = []
+        async for event in wrapper.astream_events({}, {}):
+            collected_events.append(event)
+
+        # Assert - should stop after 10th call
+        assert wrapper._tool_call_count == 10
+        assert wrapper._limit_reached is True
+
+        # Verify termination event was emitted
+        final_event = collected_events[-1]
+        assert final_event["event"] == "on_chain_end"
+        assert final_event["data"]["output"]["reason"] == "tool_call_limit_reached"
+        assert final_event["data"]["output"]["tool_calls"] == 10
+
+    @pytest.mark.asyncio
+    async def test_astream_events_counter_resets(
+        self, mock_compiled_graph: CompiledStateGraph
+    ) -> None:
+        """Test astream_events resets counter between invocations."""
+        # Arrange
+        events1 = [
+            {"event": "on_tool_start", "data": {}},
+            {"event": "on_tool_end", "data": {}},
+        ]
+        events2 = [
+            {"event": "on_tool_start", "data": {}},
+            {"event": "on_tool_end", "data": {}},
+        ]
+
+        wrapper = ToolCallLimitedAgent(mock_compiled_graph, max_tool_calls=10)
+
+        # Act - First invocation
+        mock_compiled_graph.astream_events = AsyncMock(return_value=mock_astream_generator(events1))
+        async for _event in wrapper.astream_events({}, {}):
+            pass
+        assert wrapper._tool_call_count == 1
+
+        # Act - Second invocation
+        mock_compiled_graph.astream_events = AsyncMock(return_value=mock_astream_generator(events2))
+        async for _event in wrapper.astream_events({}, {}):
+            pass
+
+        # Assert - counter should reset to 1 (not accumulate to 2)
+        assert wrapper._tool_call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_astream_events_passes_kwargs(
+        self, mock_compiled_graph: CompiledStateGraph
+    ) -> None:
+        """Test astream_events passes kwargs to underlying graph (version, include_names, etc.)."""
+        # Arrange
+        events = [{"event": "on_chain_start", "data": {}}]
+        mock_compiled_graph.astream_events = AsyncMock(return_value=mock_astream_generator(events))
+        wrapper = ToolCallLimitedAgent(mock_compiled_graph, max_tool_calls=10)
+
+        # Act
+        async for _event in wrapper.astream_events(
+            {"messages": []},
+            {"thread_id": "test"},
+            version="v2",
+            include_names=["agent"],
+        ):
+            pass
+
+        # Assert - verify kwargs were passed through
+        mock_compiled_graph.astream_events.assert_called_once()
+        call_args = mock_compiled_graph.astream_events.call_args
+        assert call_args[1]["version"] == "v2"
+        assert call_args[1]["include_names"] == ["agent"]
+
+    @pytest.mark.asyncio
+    @patch("backend.deep_agent.agents.deep_agent.get_current_run_tree")
+    async def test_astream_events_adds_langsmith_metadata(
+        self,
+        mock_get_run_tree: Mock,
+        mock_compiled_graph: CompiledStateGraph,
+    ) -> None:
+        """Test astream_events adds LangSmith metadata when limit reached."""
+        # Arrange
+        mock_run_tree = Mock()
+        mock_run_tree.add_metadata = Mock()
+        mock_get_run_tree.return_value = mock_run_tree
+
+        events = [{"event": "on_tool_start", "data": {}}] * 10
+        mock_compiled_graph.astream_events = AsyncMock(return_value=mock_astream_generator(events))
+        wrapper = ToolCallLimitedAgent(mock_compiled_graph, max_tool_calls=10)
+
+        # Act
+        async for _event in wrapper.astream_events({}, {}):
+            pass
+
+        # Assert - verify metadata was added
+        mock_run_tree.add_metadata.assert_called_once()
+        call_kwargs = mock_run_tree.add_metadata.call_args[0][0]
+        assert call_kwargs["tool_limit_reached"] is True
+        assert call_kwargs["tool_call_count"] == 10
+        assert call_kwargs["max_tool_calls"] == 10
+
+
 class TestAttributeDelegation:
     """Test attribute delegation to underlying graph."""
 

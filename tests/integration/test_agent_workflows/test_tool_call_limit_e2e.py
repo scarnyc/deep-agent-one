@@ -340,3 +340,72 @@ class TestCounterResetBehavior:
             assert len(events2) > 0
             # Both should have completed without hitting limit
             # (2 calls per invocation, limit is 10)
+
+
+class TestWebSocketStreamingWithLimit:
+    """Test WebSocket streaming (astream_events) with tool call limits."""
+
+    @pytest.mark.asyncio
+    async def test_astream_events_enforces_limit_in_production(
+        self,
+        test_settings: Settings,
+    ) -> None:
+        """Test production WebSocket streaming enforces tool call limit."""
+        # Arrange
+        async def mock_astream_events(
+            input: dict[str, Any],
+            config: dict[str, Any] | None,
+            **kwargs: Any,
+        ):
+            """Mock agent astream_events that emits many tool calls."""
+            yield {"event": "on_chain_start", "data": {}}
+            # Emit 15 tool calls (but limit is 3)
+            for i in range(15):
+                yield {"event": "on_tool_start", "data": {"tool": f"tool_{i}"}}
+                yield {"event": "on_tool_end", "data": {"output": f"result_{i}"}}
+            yield {"event": "on_chain_end", "data": {"output": {"status": "completed"}}}
+
+        # Create service with mocked agent that has astream_events
+        with patch("backend.deep_agent.services.agent_service.create_agent") as mock_create:
+            mock_agent = Mock(spec=ToolCallLimitedAgent)
+            mock_agent.max_tool_calls = 3
+            mock_agent.astream_events = mock_astream_events
+            mock_create.return_value = mock_agent
+
+            service = AgentService(settings=test_settings)
+
+            # Act - Stream events (this uses astream_events internally)
+            events = []
+            async for event in service.stream("test message", "thread-123"):
+                events.append(event)
+                # Stop collecting after termination event
+                if (event.get("data", {}).get("output", {}).get("reason") ==
+                    "tool_call_limit_reached"):
+                    break
+
+            # Assert - should have received termination event
+            termination_events = [
+                e for e in events
+                if e.get("data", {}).get("output", {}).get("reason") == "tool_call_limit_reached"
+            ]
+            assert len(termination_events) > 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.integration
+    async def test_real_limited_agent_has_astream_events(
+        self,
+        test_settings: Settings,
+    ) -> None:
+        """Test ToolCallLimitedAgent has astream_events method for WebSocket streaming."""
+        try:
+            from backend.deep_agent.agents.deep_agent import create_agent
+
+            # Act
+            agent = await create_agent(settings=test_settings)
+
+            # Assert - verify astream_events method exists
+            assert hasattr(agent, "astream_events")
+            assert callable(agent.astream_events)
+
+        except (ImportError, NotImplementedError) as e:
+            pytest.skip(f"Skipping real agent test: {e}")
