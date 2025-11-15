@@ -1273,3 +1273,43 @@ These tests will automatically skip if dependencies are not available.
 **Rationale:** Test skip behavior is correct. Documentation would improve developer experience.
 **When to Fix:** When spare time available, not urgent for migration.
 
+## Issue 120: TheAuditor dependency configuration error
+
+**Labels:** `tooling`, `security`, `low-priority`, `phase-0`
+
+**Title:** Fix TheAuditor click module version incompatibility
+
+**Description:**
+TheAuditor security scanning tool encounters a dependency error when running `./scripts/security_scan.sh`. The `click` module in `.auditor_venv` has a version incompatibility causing `AttributeError: module 'click' has no attribute 'Group'`.
+
+**Error:**
+```
+AttributeError: module 'click' has no attribute 'Group'
+```
+
+**Impact:** LOW - Cannot run automated security scans. Manual security review is used as fallback.
+
+**Workaround:** Manual security review (comprehensive reviews completed for all commits)
+
+**Fix:**
+```bash
+# Option 1: Upgrade click in auditor venv
+.auditor_venv/bin/pip install --upgrade click
+
+# Option 2: Reinstall TheAuditor with correct dependencies
+.auditor_venv/bin/pip install -e /path/to/Auditor --force-reinstall
+```
+
+**File:** `.auditor_venv/` environment
+
+**Found in:** code-review-expert pre-commit review (2025-11-15)
+
+---
+
+**📋 TRACKED (LOW PRIORITY)**
+
+**Priority:** NON-BLOCKING
+**Rationale:** Manual security reviews are comprehensive and thorough. Automated tool is nice-to-have but not critical.
+**When to Fix:** When spare time available, not urgent for migration.
+**Workaround:** Continue using manual security reviews (no gaps in coverage).
+

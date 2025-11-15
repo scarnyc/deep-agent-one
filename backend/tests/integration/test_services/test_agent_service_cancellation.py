@@ -178,7 +178,7 @@ async def test_agent_streaming_logs_cancellation_context(mock_settings):
 
     with patch.object(service, '_ensure_agent', return_value=mock_agent):
         with patch('deep_agent.services.agent_service.logger') as mock_logger:
-            with patch('deep_agent.services.agent_service.get_current_run_tree', return_value=mock_run_tree):
+            with patch('deep_agent.services.agent_service._get_current_run_tree', return_value=mock_run_tree):
                 # Act
                 async for event in service.stream(
                     message="Test",
