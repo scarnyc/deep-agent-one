@@ -7,10 +7,10 @@ and global exception handling.
 import asyncio
 import json
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, AsyncGenerator
+from typing import Any
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.exceptions import RequestValidationError
@@ -28,6 +28,7 @@ from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.errors import ConfigurationError, DeepAgentError
 from deep_agent.core.logging import LogLevel, generate_langsmith_url, get_logger, setup_logging
 from deep_agent.core.serialization import serialize_event
+from deep_agent.services.event_transformer import EventTransformer
 
 logger = get_logger(__name__)
 
@@ -192,9 +193,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         logger.debug("CORS enabled", allowed_origins=allowed_origins)
 
-    # Add request timeout middleware
-    app.add_middleware(TimeoutMiddleware, timeout=30)
-    logger.debug("Request timeout middleware enabled", timeout_seconds=30)
+    # Add request timeout middleware (excludes WebSockets)
+    app.add_middleware(
+        TimeoutMiddleware,
+        timeout=30,
+        exclude_paths=["/api/v1/ws"]  # WebSocket endpoint uses its own streaming timeout
+    )
+    logger.debug(
+        "Request timeout middleware enabled",
+        timeout_seconds=30,
+        excluded_paths=["/api/v1/ws"]
+    )
+
+    # Document timeout hierarchy for debugging
+    logger.info(
+        "Timeout configuration summary",
+        http_timeout_seconds=30,
+        websocket_excluded=True,
+        stream_timeout_seconds=settings.STREAM_TIMEOUT_SECONDS,
+        web_search_timeout_seconds=settings.WEB_SEARCH_TIMEOUT,
+        timeout_hierarchy=[
+            "1. HTTP requests: 30s (TimeoutMiddleware)",
+            "2. WebSocket streaming: 180s (STREAM_TIMEOUT_SECONDS)",
+            "3. Web search tool: 30s (WEB_SEARCH_TIMEOUT)",
+            "Note: WebSocket excluded from HTTP timeout"
+        ]
+    )
 
     # Add rate limiting
     app.state.limiter = limiter
@@ -413,6 +437,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Generate connection ID for logging
         connection_id = str(uuid.uuid4())
 
+        # Initialize event transformer for LangGraph → UI event mapping
+        transformer = EventTransformer()
+
         logger.info(
             "WebSocket connection established",
             connection_id=connection_id,
@@ -523,8 +550,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             # Add request_id to event for tracking
                             event["request_id"] = request_id
 
+                            # Transform event for UI compatibility (LangGraph → UI format)
+                            transformed_event = transformer.transform(event)
+
                             # Serialize event to JSON-safe format (handles LangChain objects)
-                            serialized_event = serialize_event(event)
+                            serialized_event = serialize_event(transformed_event)
 
                             # Send event to client with disconnect detection
                             try:

@@ -6,10 +6,11 @@ managing state persistence, and handling streaming responses.
 """
 
 import asyncio
+import time
 from collections.abc import AsyncGenerator
+from datetime import datetime
 from typing import Any
 
-from langsmith import get_current_run_tree
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -22,6 +23,21 @@ from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.logging import generate_langsmith_url, get_logger
 
 logger = get_logger(__name__)
+
+
+def _get_current_run_tree():
+    """
+    Lazy import of get_current_run_tree to avoid blocking at module load time.
+
+    The langsmith import can block when LANGSMITH_TRACING_V2=true,
+    so we defer the import until it's actually needed.
+    """
+    try:
+        from langsmith import get_current_run_tree
+        return get_current_run_tree()
+    except ImportError:
+        logger.warning("langsmith not available, skipping trace context")
+        return None
 
 
 class AgentService:
@@ -198,7 +214,7 @@ class AgentService:
             # Capture trace_id from LangSmith for debugging
             trace_id = None
             try:
-                run_tree = get_current_run_tree()
+                run_tree = _get_current_run_tree()
                 if run_tree:
                     trace_id = str(run_tree.trace_id)
             except Exception:
@@ -222,7 +238,7 @@ class AgentService:
             # Attempt to capture trace_id even on error
             trace_id = None
             try:
-                run_tree = get_current_run_tree()
+                run_tree = _get_current_run_tree()
                 if run_tree:
                     trace_id = str(run_tree.trace_id)
             except Exception:
@@ -325,79 +341,172 @@ class AgentService:
         event_count = 0
         event_types_seen = set()
         trace_id = None
+        last_event_time = time.time()
+
+        # Heartbeat configuration
+        heartbeat_interval = 5  # Send heartbeat every 5 seconds
+        heartbeat_count = 0
 
         try:
             # Wrap streaming in timeout to prevent infinite hangs
             async with asyncio.timeout(timeout_seconds):
-                async for attempt in AsyncRetrying(
-                    stop=stop_after_attempt(3),
-                    wait=wait_exponential(multiplier=1, min=2, max=10),
-                    retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
-                    reraise=True,
-                ):
-                    with attempt:
-                        if attempt.retry_state.attempt_number > 1:
-                            logger.warning(
-                                "Retrying agent streaming",
-                                thread_id=thread_id,
-                                attempt=attempt.retry_state.attempt_number,
+                # Create event queue for multiplexing agent events + heartbeats
+                event_queue: asyncio.Queue[tuple[str, dict[str, Any] | None]] = asyncio.Queue(maxsize=100)
+                shutdown_event = asyncio.Event()
+
+                async def agent_task():
+                    """Stream agent events and queue them."""
+                    nonlocal last_event_time, trace_id, event_count, event_types_seen
+
+                    try:
+                        async for attempt in AsyncRetrying(
+                            stop=stop_after_attempt(3),
+                            wait=wait_exponential(multiplier=1, min=2, max=10),
+                            retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+                            reraise=True,
+                        ):
+                            with attempt:
+                                if attempt.retry_state.attempt_number > 1:
+                                    logger.warning(
+                                        "Retrying agent streaming",
+                                        thread_id=thread_id,
+                                        attempt=attempt.retry_state.attempt_number,
+                                    )
+
+                                # Use astream_events() for fine-grained event streaming
+                                # This provides real-time token streaming and tool execution events
+                                async for event in agent.astream_events(input_data, config, version=stream_version):
+                                    event_count += 1
+                                    event_type = event.get("event", "unknown")
+                                    last_event_time = time.time()  # Update last event time
+
+                                    # Track ALL event types for debugging (not just allowed ones)
+                                    event_types_seen.add(event_type)
+
+                                    # Capture trace_id from first event if not already captured
+                                    if trace_id is None and event_count == 1:
+                                        try:
+                                            run_tree = _get_current_run_tree()
+                                            if run_tree:
+                                                trace_id = str(run_tree.trace_id)
+                                        except Exception:
+                                            # Don't fail if trace_id capture fails
+                                            pass
+
+                                    # Filter events based on configuration
+                                    if event_type in allowed_events:
+                                        # Add metadata to event
+                                        if "metadata" not in event:
+                                            event["metadata"] = {}
+                                        event["metadata"]["thread_id"] = thread_id
+                                        if trace_id:
+                                            event["metadata"]["trace_id"] = trace_id
+
+                                        # Log progress periodically
+                                        if event_count % 10 == 0:
+                                            logger.debug(
+                                                f"Stream event #{event_count}",
+                                                thread_id=thread_id,
+                                                trace_id=trace_id,
+                                                event_type=event_type,
+                                            )
+
+                                        # Queue event for output
+                                        await event_queue.put(("event", event))
+                                    else:
+                                        # Log filtered events for debugging (first 50 only to avoid log spam)
+                                        if event_count <= 50:
+                                            logger.debug(
+                                                "Filtered event (not in allowed_events)",
+                                                thread_id=thread_id,
+                                                trace_id=trace_id,
+                                                event_type=event_type,
+                                                event_name=event.get("name"),
+                                                allowed_events=list(allowed_events),
+                                            )
+                    finally:
+                        # Signal completion
+                        await event_queue.put(("done", None))
+
+                async def heartbeat_task():
+                    """Send heartbeat events during long periods of silence."""
+                    nonlocal heartbeat_count
+
+                    try:
+                        while not shutdown_event.is_set():
+                            await asyncio.sleep(heartbeat_interval)
+
+                            # Only send heartbeat if there's been no activity
+                            time_since_last_event = time.time() - last_event_time
+                            if time_since_last_event >= heartbeat_interval:
+                                heartbeat_count += 1
+                                heartbeat_event = {
+                                    "event": "heartbeat",
+                                    "data": {
+                                        "status": "processing",
+                                        "message": "Agent is still processing your request...",
+                                        "heartbeat_number": heartbeat_count,
+                                        "elapsed_seconds": int(time_since_last_event),
+                                    },
+                                    "metadata": {
+                                        "thread_id": thread_id,
+                                        "trace_id": trace_id,
+                                        "timestamp": datetime.utcnow().isoformat(),
+                                    },
+                                }
+
+                                logger.debug(
+                                    "Sending heartbeat event",
+                                    thread_id=thread_id,
+                                    heartbeat_number=heartbeat_count,
+                                    elapsed_seconds=int(time_since_last_event),
+                                )
+
+                                # Queue heartbeat for output
+                                await event_queue.put(("heartbeat", heartbeat_event))
+                    except asyncio.CancelledError:
+                        # Clean shutdown
+                        pass
+
+                # Start both tasks in parallel
+                agent_future = asyncio.create_task(agent_task())
+                heartbeat_future = asyncio.create_task(heartbeat_task())
+
+                try:
+                    # Multiplex events from both tasks
+                    while True:
+                        try:
+                            event_type, event_data = await asyncio.wait_for(
+                                event_queue.get(), timeout=1.0
                             )
 
-                        # Use astream_events() for fine-grained event streaming
-                        # This provides real-time token streaming and tool execution events
-                        async for event in agent.astream_events(input_data, config, version=stream_version):
-                            event_count += 1
-                            event_type = event.get("event", "unknown")
+                            if event_type == "done":
+                                break
 
-                            # Track ALL event types for debugging (not just allowed ones)
-                            event_types_seen.add(event_type)
+                            # Yield event (either agent event or heartbeat)
+                            yield event_data
 
-                            # Capture trace_id from first event if not already captured
-                            if trace_id is None and event_count == 1:
-                                try:
-                                    run_tree = get_current_run_tree()
-                                    if run_tree:
-                                        trace_id = str(run_tree.trace_id)
-                                except Exception:
-                                    # Don't fail if trace_id capture fails
-                                    pass
+                        except asyncio.TimeoutError:
+                            # Queue timeout, continue waiting
+                            continue
 
-                            # Filter events based on configuration
-                            if event_type in allowed_events:
-                                # Add metadata to event
-                                if "metadata" not in event:
-                                    event["metadata"] = {}
-                                event["metadata"]["thread_id"] = thread_id
-                                if trace_id:
-                                    event["metadata"]["trace_id"] = trace_id
-
-                                # Log progress periodically
-                                if event_count % 10 == 0:
-                                    logger.debug(
-                                        f"Stream event #{event_count}",
-                                        thread_id=thread_id,
-                                        trace_id=trace_id,
-                                        event_type=event_type,
-                                    )
-
-                                yield event
-                            else:
-                                # Log filtered events for debugging (first 50 only to avoid log spam)
-                                if event_count <= 50:
-                                    logger.debug(
-                                        "Filtered event (not in allowed_events)",
-                                        thread_id=thread_id,
-                                        trace_id=trace_id,
-                                        event_type=event_type,
-                                        event_name=event.get("name"),
-                                        allowed_events=list(allowed_events),
-                                    )
+                finally:
+                    # Clean shutdown
+                    shutdown_event.set()
+                    heartbeat_future.cancel()
+                    try:
+                        await heartbeat_future
+                    except asyncio.CancelledError:
+                        pass
+                    # Wait for agent task to complete
+                    await agent_future
 
             logger.info(
                 "Agent streaming completed naturally",
                 thread_id=thread_id,
                 trace_id=trace_id,
                 total_events=event_count,
+                heartbeats_sent=heartbeat_count,
                 event_types=list(event_types_seen),
             )
 

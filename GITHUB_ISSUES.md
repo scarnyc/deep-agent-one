@@ -1,6 +1,6 @@
 # GitHub Issues - Migration Strategy
 
-**Last Updated:** 2025-11-12
+**Last Updated:** 2025-11-15
 
 ## 🎯 Migration Strategy Overview
 
@@ -1312,4 +1312,56 @@ AttributeError: module 'click' has no attribute 'Group'
 **Rationale:** Manual security reviews are comprehensive and thorough. Automated tool is nice-to-have but not critical.
 **When to Fix:** When spare time available, not urgent for migration.
 **Workaround:** Continue using manual security reviews (no gaps in coverage).
+
+
+## Issue 121: React key prop warning in ProgressTracker (FIXED)
+
+**Labels:** `bug`, `frontend`, `react`, `low-priority`, `phase-0` ✅ **FIXED**
+
+**Title:** Fix duplicate step IDs causing React key prop warnings in ProgressTracker
+
+**Description:**
+React emitted warning "Each child in a list should have a unique 'key' prop" when rendering ProgressTracker component. Root cause: `on_step` and `on_tool_call` event handlers used `event.run_id` as fallback ID, causing multiple steps/tool calls to share the same ID (since all steps in a run share the same `run_id`).
+
+**Error Message:**
+```
+Warning: Each child in a list should have a unique 'key' prop.
+Check the render method of `ProgressTracker`
+```
+
+**Files:**
+- `frontend/hooks/useAGUIEventHandler.ts:330-383` (Event handlers)
+- `frontend/components/ag-ui/ProgressTracker.tsx:310-316` (Rendering with keys)
+
+**Root Cause:**
+```typescript
+// ❌ BEFORE: Multiple steps shared same ID
+addStep(threadId, {
+  id: event.data.step_id || event.run_id,  // run_id is NOT unique per step!
+  name: event.data.name || 'Processing',
+  status: 'running',
+  started_at: new Date().toISOString(),
+  metadata: event.data.metadata || {},
+});
+```
+
+**Fix Applied:**
+```typescript
+// ✅ AFTER: Generate unique ID if backend doesn't provide one
+const stepId = event.data.step_id || event.data.id || `step-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+addStep(threadId, {
+  id: stepId,  // Guaranteed unique ID
+  name: event.data.name || 'Processing',
+  status: 'running',
+  started_at: new Date().toISOString(),
+  metadata: event.data.metadata || {},
+});
+```
+
+**Impact:** LOW - Visual warning only, no functional impact. Could cause React reconciliation issues.
+
+**Status:** ✅ **FIXED** in commit fixing-react-key-warnings (2025-11-15)
+
+**Found in:** React console after implementing on_step/on_tool_call event handlers
 
