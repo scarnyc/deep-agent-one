@@ -1131,3 +1131,9 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - **Issue tracking:** Both agents must log non-critical issues to GITHUB_ISSUES.md for future work
 - **Code Doc Context:** Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
 - **Debugging workflow:** Run debugging-expert agent when a bug or issue is identified
+- **Agent fix validation:** When an agent (debugging-expert, testing-expert, etc.) makes code changes, ALWAYS validate the fix comprehensively before asking the user to manually test in browser. Validation steps:
+  1. Analyze the fix to understand what it does and why it solves the issue
+  2. Run TypeScript compilation (`npx tsc --noEmit`) to verify no new type errors
+  3. Run relevant tests (`pytest` for backend, `npm test` for frontend) to verify no regressions
+  4. Explain the fix to the user with evidence (test results, compilation success)
+  5. Only THEN ask the user to manually test if automated validation passes

@@ -13,6 +13,13 @@
  * - Tools: on_tool_start, on_tool_end
  * - Errors: on_chain_error, on_llm_error, error
  * - HITL: hitl_request, hitl_approval
+ * - Heartbeat: heartbeat (keepalive during long operations)
+ *
+ * Transformed Events (Backend EventTransformer):
+ * - on_step: Transformed chain events (on_chain_start/end → on_step with status: running/completed)
+ * - on_tool_call: Transformed tool events (on_tool_start/end → on_tool_call with status: running/completed)
+ * These events decouple the frontend from LangGraph's event schema, allowing independent evolution.
+ * See: backend/deep_agent/services/event_transformer.py
  *
  * Custom Backend Events (NOT part of AG-UI Protocol):
  * - processing_started: Cold start notification (8-10s delay)
@@ -42,6 +49,10 @@ export const STANDARD_AGUI_EVENTS = {
   TOOL_START: 'on_tool_start',
   TOOL_END: 'on_tool_end',
 
+  // Transformed Events (EventTransformer)
+  STEP: 'on_step',
+  TOOL_CALL: 'on_tool_call',
+
   // Retriever Events (optional)
   RETRIEVER_START: 'on_retriever_start',
   RETRIEVER_END: 'on_retriever_end',
@@ -53,6 +64,9 @@ export const STANDARD_AGUI_EVENTS = {
   // Error Events
   ERROR: 'error',
   ON_ERROR: 'on_error',
+
+  // Heartbeat Events (keepalive during long operations)
+  HEARTBEAT: 'heartbeat',
 } as const;
 
 /**

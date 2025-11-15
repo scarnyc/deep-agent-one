@@ -194,6 +194,64 @@ export interface ErrorEvent extends BaseEvent {
 }
 
 /**
+ * Transformed Events (EventTransformer)
+ *
+ * These events are created by the backend EventTransformer to decouple
+ * the frontend from LangGraph's event schema. They map LangGraph events
+ * to UI-friendly formats.
+ *
+ * See: backend/deep_agent/services/event_transformer.py
+ */
+
+export interface OnStepEvent extends BaseEvent {
+  event: 'on_step';
+  data: {
+    id: string;
+    name: string;
+    status: 'running' | 'completed';
+    started_at: string | null;
+    completed_at: string | null;
+    metadata: Record<string, any>;
+  };
+  metadata?: Record<string, any>;
+}
+
+export interface OnToolCallEvent extends BaseEvent {
+  event: 'on_tool_call';
+  data: {
+    id: string;
+    name: string;
+    args: Record<string, any>;
+    result: any;
+    status: 'running' | 'completed';
+    started_at: string | null;
+    completed_at: string | null;
+    error: string | null;
+  };
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Heartbeat Events
+ *
+ * Sent every 5 seconds during long-running agent operations to keep
+ * the WebSocket connection alive and provide status updates.
+ *
+ * See: backend/deep_agent/services/agent_service.py
+ */
+
+export interface HeartbeatEvent extends BaseEvent {
+  event: 'heartbeat';
+  data: {
+    status: string;
+    message: string;
+    heartbeat_number: number;
+    elapsed_seconds: number;
+  };
+  metadata?: Record<string, any>;
+}
+
+/**
  * Union type of all AG-UI events
  */
 export type AGUIEvent =
@@ -212,7 +270,10 @@ export type AGUIEvent =
   | ToolCallResultEvent
   | HITLRequestEvent
   | HITLApprovalEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | OnStepEvent
+  | OnToolCallEvent
+  | HeartbeatEvent;
 
 /**
  * WebSocket message types (client → server)

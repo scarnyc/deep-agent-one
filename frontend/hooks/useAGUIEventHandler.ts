@@ -10,6 +10,8 @@
  * - on_chat_model_end → Mark message complete
  * - on_tool_start → Add tool call to store
  * - on_tool_end → Update tool call result
+ * - on_step → Transformed chain events (status: running/completed)
+ * - on_tool_call → Transformed tool events (status: running/completed)
  * - hitl_request → Show HITL approval UI
  * - hitl_approval → Resume agent execution
  * - on_chain_end / on_llm_end → Update agent status to "completed"
@@ -325,6 +327,59 @@ export function useAGUIEventHandler(threadId: string) {
           handleToolCallEnd(event as ToolCallEndEvent);
           break;
 
+        case 'on_step':
+          // Transformed event from EventTransformer (backend)
+          // Backend sends unique ID per step (based on run_id)
+          if (event.data?.status === 'running') {
+            // Use backend-provided ID (should be unique per step)
+            // Fallback to generating unique ID if backend doesn't provide one
+            const stepId = event.data.id || `step-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+            addStep(threadId, {
+              id: stepId,
+              name: event.data.name || 'Processing',
+              status: 'running',
+              started_at: new Date().toISOString(),
+              metadata: event.data.metadata || {},
+            });
+          } else if (event.data?.status === 'completed') {
+            // Use same ID as the running event to update existing step
+            const stepId = event.data.id || event.run_id;
+
+            updateStep(threadId, stepId, {
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+            });
+          }
+          break;
+
+        case 'on_tool_call':
+          // Transformed event from EventTransformer (backend)
+          // Backend sends unique ID per tool call (based on run_id)
+          if (event.data?.status === 'running') {
+            // Use backend-provided ID (should be unique per tool call)
+            // Fallback to generating unique ID if backend doesn't provide one
+            const toolCallId = event.data.id || `tool-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+            addToolCall(threadId, {
+              id: toolCallId,
+              name: event.data.name || 'unknown',
+              args: event.data.args || {},
+              status: 'running',
+              started_at: new Date().toISOString(),
+            });
+          } else if (event.data?.status === 'completed') {
+            // Use same ID as the running event to update existing tool call
+            const toolCallId = event.data.id || event.run_id;
+
+            updateToolCall(threadId, toolCallId, {
+              status: 'completed',
+              result: event.data.result,
+              completed_at: new Date().toISOString(),
+            });
+          }
+          break;
+
         case 'hitl_request':
           handleHITLRequest(event as HITLRequestEvent);
           break;
@@ -334,6 +389,13 @@ export function useAGUIEventHandler(threadId: string) {
         case 'on_error':      // LangChain convention
         case 'error':
           handleRunError(event as RunErrorEvent | OnErrorEvent | ErrorEvent);
+          break;
+
+        case 'heartbeat':
+          // Heartbeat event - agent is still processing
+          // Just log it to show activity, no state updates needed
+          console.log('[AG-UI] Heartbeat received:', event.data);
+          // Could update a "last activity" timestamp in state if needed
           break;
 
         default:
