@@ -1043,6 +1043,104 @@ ab_test_prompts(prompt_a, prompt_b, dataset)
 create_evaluation_dataset(task_description, num_examples=20)
 ```
 
+### Startup Scripts
+
+**RECOMMENDED: Use `start-all.sh` for development**
+
+```bash
+# Start both backend and frontend with automatic logging
+./scripts/start-all.sh
+
+# Servers will start on:
+# - Backend:  http://127.0.0.1:8000
+# - Frontend: http://localhost:3000
+#
+# Ctrl+C stops both servers cleanly
+```
+
+**Features:**
+- **Synchronized startup** - Backend starts first, frontend waits 3 seconds
+- **Automatic logging** - Console output + timestamped log files
+- **Clean shutdown** - Ctrl+C stops both servers gracefully
+- **Environment loading** - Automatically sources `.env` file
+- **Virtual environment** - Activates venv for Python dependencies
+
+**Logging Configuration:**
+
+All scripts use `2>&1 | tee` to simultaneously:
+- Display output to console (interactive development)
+- Save output to timestamped log files (debugging, auditing)
+
+Log files are organized by component:
+```
+logs/
+├── backend/
+│   ├── 2025-11-16-10-30-45.log
+│   └── 2025-11-16-14-22-18.log
+└── frontend/
+    ├── 2025-11-16-10-30-48.log
+    └── 2025-11-16-14-22-21.log
+```
+
+**Viewing Logs:**
+
+```bash
+# Watch live logs
+tail -f logs/backend/2025-11-16-*.log
+tail -f logs/frontend/2025-11-16-*.log
+
+# Search logs for errors
+grep -i error logs/backend/*.log
+grep -i "websocket" logs/backend/*.log
+
+# View most recent backend log
+tail -100 $(ls -t logs/backend/*.log | head -1)
+
+# Follow both logs simultaneously
+tail -f logs/backend/2025-11-16-*.log logs/frontend/2025-11-16-*.log
+```
+
+**Individual Scripts:**
+
+Use these when you need to start services separately:
+
+```bash
+# Backend only (when testing API directly)
+./scripts/start-backend.sh
+
+# Frontend only (when backend already running)
+./scripts/start-frontend.sh
+```
+
+**Common Scenarios:**
+
+```bash
+# Full development with logging
+./scripts/start-all.sh
+
+# Debug backend issues (backend only + follow logs)
+./scripts/start-backend.sh &
+tail -f logs/backend/$(ls -t logs/backend/*.log | head -1)
+
+# Test frontend changes (backend running separately)
+# Terminal 1:
+./scripts/start-backend.sh
+
+# Terminal 2:
+./scripts/start-frontend.sh
+
+# Review historical logs after crash
+ls -lt logs/backend/*.log | head -5  # Find recent logs
+cat logs/backend/2025-11-16-10-30-45.log | grep -i error
+```
+
+**Why `2>&1 | tee`?**
+
+This pattern redirects stderr to stdout (`2>&1`) then duplicates output to both console and file (`tee`):
+- **Console output** - See real-time feedback during development
+- **Log file** - Permanent record for debugging, auditing, security analysis
+- **No lost output** - Both streams (stdout/stderr) captured
+
 ---
 
 ## Next Steps for Claude Code
@@ -1131,7 +1229,7 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - **Issue tracking:** Both agents must log non-critical issues to GITHUB_ISSUES.md for future work
 - **Code Doc Context:** Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
 - **Debugging workflow:** Run debugging-expert agent when a bug or issue is identified
-- **Agent fix validation:** When an agent (debugging-expert, testing-expert, etc.) makes code changes, ALWAYS validate the fix comprehensively before asking the user to manually test in browser. Validation steps:
+- **Fix validation:** After making code changes, ALWAYS validate the fix comprehensively before asking the user to manually test in browser. Validation steps:
   1. Analyze the fix to understand what it does and why it solves the issue
   2. Run TypeScript compilation (`npx tsc --noEmit`) to verify no new type errors
   3. Run relevant tests (`pytest` for backend, `npm test` for frontend) to verify no regressions
