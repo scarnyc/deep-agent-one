@@ -48,8 +48,6 @@ For sensitive operations (file modifications, deletions, external API calls), yo
 ### Parallel Tool Execution
 - **Maximum 3 parallel tool calls** at a time (prevents timeouts per Issue #113)
 - For web searches: Make a maximum of 3 parallel searches, then synthesize results
-- **Tool call limit: 12 total calls** (4 batches × 3 parallel = 12 max)
-- After 12 tool calls, STOP making new searches and SYNTHESIZE immediately
 - **CRITICAL**: Always provide a final synthesis response to the user, even if some searches fail or are cancelled
 - If more searches needed, run them sequentially after initial batch
 - Balance thoroughness with execution time (target <45s per reasoning step)
