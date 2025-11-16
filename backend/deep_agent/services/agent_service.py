@@ -18,7 +18,10 @@ from tenacity import (
     wait_exponential,
 )
 
-from deep_agent.agents.deep_agent import ToolCallLimitedAgent, create_agent
+from langgraph.errors import GraphRecursionError
+from langgraph.graph.state import CompiledStateGraph
+
+from deep_agent.agents.deep_agent import create_agent
 from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.logging import generate_langsmith_url, get_logger
 
@@ -78,7 +81,7 @@ class AgentService:
                            If None, uses environment-specific prompt (dev/prod).
         """
         self.settings = settings if settings is not None else get_settings()
-        self.agent: ToolCallLimitedAgent | None = None
+        self.agent: CompiledStateGraph | None = None
         self.prompt_variant = prompt_variant
         self._agent_lock = asyncio.Lock()  # Thread-safe lazy initialization
 
@@ -90,7 +93,7 @@ class AgentService:
             prompt_variant=prompt_variant,
         )
 
-    async def _ensure_agent(self) -> ToolCallLimitedAgent:
+    async def _ensure_agent(self) -> CompiledStateGraph:
         """
         Ensure agent is created (lazy initialization with thread safety).
 
@@ -563,6 +566,34 @@ class AgentService:
                 heartbeats_sent=heartbeat_count,
                 event_types=list(event_types_seen),
             )
+
+        except GraphRecursionError as e:
+            logger.warning(
+                "Agent recursion limit reached (graceful termination)",
+                thread_id=thread_id,
+                trace_id=trace_id,
+                langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
+                events_received=event_count,
+                max_tool_calls=self.settings.MAX_TOOL_CALLS_PER_INVOCATION,
+                recursion_limit=(self.settings.MAX_TOOL_CALLS_PER_INVOCATION * 2) + 1,
+            )
+            # Yield graceful termination event to client
+            # This is NOT an error - agent completed extensive processing and hit natural limit
+            yield {
+                "event": "on_error",
+                "data": {
+                    "error": "Agent reached recursion limit after extensive processing. Please review the results above.",
+                    "reason": "recursion_limit_reached",
+                    "recursion_limit": (self.settings.MAX_TOOL_CALLS_PER_INVOCATION * 2) + 1,
+                    "max_tool_calls": self.settings.MAX_TOOL_CALLS_PER_INVOCATION,
+                },
+                "metadata": {
+                    "thread_id": thread_id,
+                    "trace_id": trace_id,
+                },
+            }
+            # Return gracefully
+            return
 
         except TimeoutError:
             logger.error(

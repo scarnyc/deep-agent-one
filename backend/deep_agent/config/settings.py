@@ -287,8 +287,9 @@ class Settings(BaseSettings):
     # NOTE: Tool timeout must be < STREAM_TIMEOUT_SECONDS to prevent race conditions
     TOOL_EXECUTION_TIMEOUT: int = 45  # 45s per tool call (< 60s stream timeout)
     WEB_SEARCH_TIMEOUT: int = 30  # Perplexity search timeout (matches MCP_PERPLEXITY_TIMEOUT)
-    # Maximum tool calls per agent invocation (graceful limit - agent completes reasoning after Nth call)
-    # Set to 12 to allow 4 batches of 3 parallel searches (4 × 3 = 12)
+    # Maximum tool calls per agent invocation
+    # Used to calculate LangGraph recursion_limit: (max_tool_calls * 2) + 1
+    # Default: 12 tool calls = 25 recursion steps (each tool = 2 steps: LLM call + tool execution)
     MAX_TOOL_CALLS_PER_INVOCATION: int = 12
 
     # Security Configuration
