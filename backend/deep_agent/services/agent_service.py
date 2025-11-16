@@ -347,6 +347,10 @@ class AgentService:
         heartbeat_interval = 5  # Send heartbeat every 5 seconds
         heartbeat_count = 0
 
+        # Track streaming completion state for graceful cancellation handling
+        streaming_completed = False
+        checkpoint_task = None
+
         try:
             # Wrap streaming in timeout to prevent infinite hangs
             async with asyncio.timeout(timeout_seconds):
@@ -356,7 +360,11 @@ class AgentService:
 
                 async def agent_task():
                     """Stream agent events and queue them."""
-                    nonlocal last_event_time, trace_id, event_count, event_types_seen
+                    nonlocal last_event_time, trace_id, event_count, event_types_seen, streaming_completed
+
+                    # Track OpenAI API response times
+                    openai_call_start = None
+                    openai_call_count = 0
 
                     try:
                         async for attempt in AsyncRetrying(
@@ -393,7 +401,36 @@ class AgentService:
                                             # Don't fail if trace_id capture fails
                                             pass
 
+                                    # Track OpenAI API call timing
+                                    if event_type == "on_chat_model_start":
+                                        openai_call_start = time.time()
+                                        openai_call_count += 1
+                                        logger.debug(
+                                            "OpenAI API call started",
+                                            thread_id=thread_id,
+                                            call_number=openai_call_count,
+                                        )
+                                    elif event_type == "on_chat_model_end" and openai_call_start:
+                                        duration = time.time() - openai_call_start
+                                        logger.info(
+                                            "OpenAI API call completed",
+                                            thread_id=thread_id,
+                                            duration_seconds=round(duration, 2),
+                                            call_number=openai_call_count,
+                                        )
+                                        # Warn if approaching timeout threshold (>40s indicates risk)
+                                        if duration > 40:
+                                            logger.warning(
+                                                "OpenAI API call near timeout threshold",
+                                                thread_id=thread_id,
+                                                duration_seconds=round(duration, 2),
+                                                threshold_seconds=45,
+                                                call_number=openai_call_count,
+                                            )
+                                        openai_call_start = None
+
                                     # Filter events based on configuration
+                                    # EventTransformer in main.py will handle AG-UI Protocol conversion
                                     if event_type in allowed_events:
                                         # Add metadata to event
                                         if "metadata" not in event:
@@ -425,6 +462,8 @@ class AgentService:
                                                 allowed_events=list(allowed_events),
                                             )
                     finally:
+                        # Mark streaming as completed naturally
+                        streaming_completed = True
                         # Signal completion
                         await event_queue.put(("done", None))
 
@@ -501,6 +540,21 @@ class AgentService:
                     # Wait for agent task to complete
                     await agent_future
 
+            # If streaming completed successfully, add grace period for checkpoint finalization
+            if streaming_completed:
+                logger.debug(
+                    "Streaming completed - allowing checkpoint finalization",
+                    thread_id=thread_id,
+                    trace_id=trace_id,
+                )
+                # Give checkpoint 5s grace period to finalize
+                checkpoint_task = asyncio.create_task(asyncio.sleep(0.5))
+                try:
+                    await asyncio.wait_for(checkpoint_task, timeout=5.0)
+                except (asyncio.TimeoutError, asyncio.CancelledError):
+                    # Expected during shutdown - ignore
+                    pass
+
             logger.info(
                 "Agent streaming completed naturally",
                 thread_id=thread_id,
@@ -539,7 +593,26 @@ class AgentService:
             return
 
         except asyncio.CancelledError:
-            # Determine cancellation source for better diagnostics
+            # Handle post-completion vs mid-stream cancellations differently
+            if streaming_completed:
+                # Post-completion cancellation (during checkpoint finalization grace period)
+                # This is EXPECTED and SAFE - checkpoint has already been written
+                logger.debug(
+                    "Post-completion cancellation during checkpoint finalization (expected)",
+                    thread_id=thread_id,
+                    trace_id=trace_id,
+                    events_received=event_count,
+                )
+                # Wait for checkpoint task if it exists
+                if checkpoint_task and not checkpoint_task.done():
+                    try:
+                        await asyncio.wait_for(checkpoint_task, timeout=5.0)
+                    except (asyncio.TimeoutError, asyncio.CancelledError):
+                        pass  # Expected during shutdown
+                # Do NOT yield error event - this is normal shutdown
+                return
+
+            # Mid-stream cancellation - determine source for diagnostics
             cancellation_reason = "unknown"
             if event_count == 0:
                 cancellation_reason = "early_cancellation_before_first_event"
@@ -550,7 +623,7 @@ class AgentService:
 
             # Handle cancellation gracefully (client disconnect, task cancelled, etc.)
             logger.warning(
-                "Agent streaming cancelled",
+                "Agent streaming cancelled mid-execution",
                 thread_id=thread_id,
                 trace_id=trace_id,
                 langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
