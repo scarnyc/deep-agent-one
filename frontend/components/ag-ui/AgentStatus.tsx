@@ -16,7 +16,6 @@
 
 import { useAgentState } from '@/hooks/useAgentState';
 import { useWebSocketContext } from '@/hooks/useWebSocketContext';
-import { AgentStatus as AgentStatusType } from '@/types/agent';
 import {
   Card,
   CardContent,
@@ -27,87 +26,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
-  CheckCircle2,
-  XCircle,
   Loader2,
-  Circle,
-  Pause,
   Wifi,
   WifiOff,
+  Circle,
 } from 'lucide-react';
-
-/**
- * Get status display properties based on agent execution state.
- *
- * Maps agent status to visual presentation including icon, color, and label.
- *
- * @param status - Current agent status (idle, running, waiting_for_approval, completed, error)
- * @returns Display configuration object with icon, colors, label, and animation state
- *
- * @example
- * ```tsx
- * const { icon, color, label } = getStatusDisplay('running');
- * // Returns: { icon: <Loader2 />, color: 'text-blue-500', label: 'Running', pulse: true }
- * ```
- */
-function getStatusDisplay(status: AgentStatusType): {
-  icon: React.ReactNode;
-  color: string;
-  bgColor: string;
-  label: string;
-  pulse: boolean;
-} {
-  switch (status) {
-    case 'idle':
-      return {
-        icon: <Circle className="h-4 w-4" />,
-        color: 'text-muted-foreground',
-        bgColor: 'bg-muted',
-        label: 'Idle',
-        pulse: false,
-      };
-    case 'running':
-      return {
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
-        color: 'text-blue-500',
-        bgColor: 'bg-blue-500/10',
-        label: 'Running',
-        pulse: true,
-      };
-    case 'waiting_for_approval':
-      return {
-        icon: <Pause className="h-4 w-4" />,
-        color: 'text-yellow-500',
-        bgColor: 'bg-yellow-500/10',
-        label: 'Awaiting Approval',
-        pulse: true,
-      };
-    case 'completed':
-      return {
-        icon: <CheckCircle2 className="h-4 w-4" />,
-        color: 'text-green-500',
-        bgColor: 'bg-green-500/10',
-        label: 'Completed',
-        pulse: false,
-      };
-    case 'error':
-      return {
-        icon: <XCircle className="h-4 w-4" />,
-        color: 'text-destructive',
-        bgColor: 'bg-destructive/10',
-        label: 'Error',
-        pulse: false,
-      };
-    default:
-      return {
-        icon: <Circle className="h-4 w-4" />,
-        color: 'text-muted-foreground',
-        bgColor: 'bg-muted',
-        label: status,
-        pulse: false,
-      };
-  }
-}
 
 /**
  * Get WebSocket connection status display properties.
@@ -217,7 +140,6 @@ export default function AgentStatus() {
 
   // Get thread data
   const thread = active_thread_id ? threads[active_thread_id] : null;
-  const agentStatus: AgentStatusType = thread?.agent_status || 'idle';
 
   // Extract metadata from the most recent assistant message
   const lastAssistantMessage = thread?.messages
@@ -231,30 +153,15 @@ export default function AgentStatus() {
   const tokensUsed = lastAssistantMessage?.metadata?.tokens_used as number | undefined;
   const model = lastAssistantMessage?.metadata?.model as string | undefined;
 
-  const { icon, color, bgColor, label, pulse } =
-    getStatusDisplay(agentStatus);
   const connectionDisplay = getConnectionDisplay(connectionStatus);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Agent Status</CardTitle>
-        <CardDescription>Current execution state</CardDescription>
+        <CardDescription>Real-time agent information</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Main Status Badge */}
-        <div
-          className={`flex items-center justify-between p-3 rounded-lg ${bgColor} ${
-            pulse ? 'animate-pulse' : ''
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <div className={color}>{icon}</div>
-            <span className={`text-sm font-medium ${color}`}>{label}</span>
-          </div>
-        </div>
-
-        <Separator />
 
         {/* Connection Status */}
         <div className="flex items-center justify-between text-xs">
