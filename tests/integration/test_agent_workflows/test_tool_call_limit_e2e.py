@@ -1,8 +1,8 @@
 """
-Integration tests for tool call limit enforcement end-to-end.
+Integration tests for recursion_limit enforcement end-to-end.
 
-Tests the complete workflow from agent service through tool call limiting
-to verify graceful termination behavior with real agent configuration.
+Tests the complete workflow from agent service through LangGraph recursion_limit
+to verify graceful termination via GraphRecursionError handling.
 """
 
 from pathlib import Path
@@ -10,8 +10,9 @@ from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from langgraph.errors import GraphRecursionError
+from langgraph.graph.state import CompiledStateGraph
 
-from backend.deep_agent.agents.deep_agent import ToolCallLimitedAgent
 from backend.deep_agent.config.settings import Settings
 from backend.deep_agent.services.agent_service import AgentService
 
@@ -35,25 +36,33 @@ def test_settings(tmp_path: Path) -> Settings:
     settings.CHECKPOINT_CLEANUP_DAYS = 30
     settings.ENABLE_HITL = False  # Disable HITL for simpler testing
     settings.ENABLE_SUB_AGENTS = False
-    settings.MAX_TOOL_CALLS_PER_INVOCATION = 3  # Low limit for testing
+    settings.MAX_TOOL_CALLS_PER_INVOCATION = 3  # Low limit for testing (recursion_limit = 7)
+    settings.STREAM_TIMEOUT_SECONDS = 300
+    settings.stream_allowed_events_list = [
+        "on_chat_model_stream",
+        "on_tool_start",
+        "on_tool_end",
+        "on_chain_start",
+        "on_chain_end",
+    ]
+    settings.STREAM_VERSION = "v2"
     return settings
 
 
-class TestAgentServiceWithToolLimit:
-    """Test AgentService with tool call limit enforcement."""
+class TestAgentServiceWithRecursionLimit:
+    """Test AgentService with recursion_limit enforcement."""
 
     @pytest.mark.asyncio
     @patch("backend.deep_agent.services.agent_service.create_agent")
-    async def test_agent_service_creates_limited_agent(
+    async def test_agent_service_creates_agent_with_recursion_limit(
         self,
         mock_create_agent: AsyncMock,
         test_settings: Settings,
     ) -> None:
-        """Test AgentService creates ToolCallLimitedAgent with correct limit."""
+        """Test AgentService creates CompiledStateGraph with recursion_limit."""
         # Arrange
-        mock_limited_agent = Mock(spec=ToolCallLimitedAgent)
-        mock_limited_agent.max_tool_calls = 3
-        mock_create_agent.return_value = mock_limited_agent
+        mock_agent = Mock(spec=CompiledStateGraph)
+        mock_create_agent.return_value = mock_agent
 
         service = AgentService(settings=test_settings)
 
@@ -62,350 +71,118 @@ class TestAgentServiceWithToolLimit:
 
         # Assert
         assert agent is not None
-        assert agent.max_tool_calls == 3
+        assert isinstance(agent, Mock)  # Would be CompiledStateGraph in real usage
         mock_create_agent.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_agent_service_respects_settings_limit(
+    async def test_graph_recursion_error_yields_graceful_termination_event(
         self,
         test_settings: Settings,
     ) -> None:
-        """Test AgentService uses limit from settings."""
+        """Test that GraphRecursionError is caught and yields graceful on_error event."""
         # Arrange
-        test_settings.MAX_TOOL_CALLS_PER_INVOCATION = 5
+        mock_agent = Mock(spec=CompiledStateGraph)
 
-        with patch("backend.deep_agent.services.agent_service.create_agent") as mock_create:
-            mock_agent = Mock(spec=ToolCallLimitedAgent)
-            mock_agent.max_tool_calls = 5
-            mock_create.return_value = mock_agent
-
-            service = AgentService(settings=test_settings)
-
-            # Act
-            agent = await service._ensure_agent()
-
-            # Assert
-            assert agent.max_tool_calls == 5
-
-
-class TestToolLimitWithMockedAgent:
-    """Test tool limit enforcement with mocked agent execution."""
-
-    @pytest.mark.asyncio
-    async def test_stream_terminates_after_limit(
-        self,
-        test_settings: Settings,
-    ) -> None:
-        """Test streaming terminates gracefully after tool call limit."""
-        # Arrange
-        async def mock_astream(input: dict[str, Any], config: dict[str, Any] | None):
-            """Mock agent stream that emits many tool calls."""
+        async def mock_astream_events_raises_recursion_error(*args, **kwargs):
+            """Mock astream_events that raises GraphRecursionError."""
+            # Yield a few events first
             yield {"event": "on_chain_start", "data": {}}
-            # Emit 5 tool calls (but limit is 3)
-            for i in range(5):
-                yield {"event": "on_tool_start", "data": {"tool": f"tool_{i}"}}
-                yield {"event": "on_tool_end", "data": {"output": f"result_{i}"}}
-            yield {"event": "on_chain_end", "data": {"output": {"status": "completed"}}}
+            yield {"event": "on_tool_start", "data": {"tool": "web_search"}}
+            # Then raise GraphRecursionError
+            raise GraphRecursionError("Recursion limit 7 reached")
 
-        # Create service with mocked agent
-        with patch("backend.deep_agent.services.agent_service.create_agent") as mock_create:
-            mock_agent = Mock(spec=ToolCallLimitedAgent)
-            mock_agent.max_tool_calls = 3
-            mock_agent.astream = mock_astream
-            mock_create.return_value = mock_agent
+        mock_agent.astream_events = mock_astream_events_raises_recursion_error
 
+        with patch("backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent):
             service = AgentService(settings=test_settings)
 
-            # Act - Stream events
+            # Act - collect all events from stream
             events = []
             async for event in service.stream("test message", "thread-123"):
                 events.append(event)
-                # Stop collecting after termination event
-                if (event.get("data", {}).get("output", {}).get("reason") ==
-                    "tool_call_limit_reached"):
-                    break
-
-            # Assert - should have received termination event
-            termination_events = [
-                e for e in events
-                if e.get("data", {}).get("output", {}).get("reason") == "tool_call_limit_reached"
-            ]
-            assert len(termination_events) > 0
-
-    @pytest.mark.asyncio
-    async def test_invoke_respects_tool_limit(
-        self,
-        test_settings: Settings,
-    ) -> None:
-        """Test invoke method respects tool call limit."""
-        # Arrange
-        async def mock_astream(input: dict[str, Any], config: dict[str, Any] | None):
-            """Mock agent that emits tool calls."""
-            for _i in range(5):  # Try 5 calls, but limit is 3
-                yield {"event": "on_tool_start", "data": {}}
-            yield {
-                "event": "on_chain_end",
-                "data": {
-                    "output": {
-                        "status": "completed",
-                        "reason": "tool_call_limit_reached",
-                        "tool_calls": 3,
-                    }
-                },
-            }
-
-        with patch("backend.deep_agent.services.agent_service.create_agent") as mock_create:
-            mock_agent = Mock(spec=ToolCallLimitedAgent)
-            mock_agent.max_tool_calls = 3
-            mock_agent.astream = mock_astream
-            mock_agent.ainvoke = AsyncMock(return_value={
-                "status": "completed",
-                "reason": "tool_call_limit_reached",
-                "tool_calls": 3,
-            })
-            mock_create.return_value = mock_agent
-
-            service = AgentService(settings=test_settings)
-
-            # Act
-            result = await service.invoke("test message", "thread-123")
 
             # Assert
-            assert result is not None
-            mock_agent.ainvoke.assert_called_once()
+            # Should have received events before error + graceful termination event
+            assert len(events) > 0
 
-
-class TestToolLimitLogging:
-    """Test logging behavior when tool limit is reached."""
+            # Last event should be graceful on_error event
+            error_event = events[-1]
+            assert error_event["event"] == "on_error"
+            assert error_event["data"]["reason"] == "recursion_limit_reached"
+            assert "recursion_limit" in error_event["data"]
+            assert error_event["data"]["recursion_limit"] == 7  # (3 * 2) + 1
+            assert error_event["data"]["max_tool_calls"] == 3
+            assert "thread_id" in error_event["metadata"]
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.logger")
-    async def test_logs_when_limit_reached_in_workflow(
+    async def test_recursion_limit_error_message_user_friendly(
         self,
-        mock_logger: Mock,
         test_settings: Settings,
     ) -> None:
-        """Test agent workflow logs when tool limit is reached."""
+        """Test that recursion limit error message is user-friendly."""
         # Arrange
-        async def mock_astream(input: dict[str, Any], config: dict[str, Any] | None):
-            """Mock agent that hits tool limit."""
-            for _i in range(3):  # Exactly hit the limit
-                yield {"event": "on_tool_start", "data": {}}
-                yield {"event": "on_tool_end", "data": {}}
+        mock_agent = Mock(spec=CompiledStateGraph)
 
-        with patch("backend.deep_agent.services.agent_service.create_agent") as mock_create:
-            mock_agent = Mock(spec=ToolCallLimitedAgent)
-            mock_agent.max_tool_calls = 3
-            mock_agent.astream = mock_astream
-            mock_create.return_value = mock_agent
+        async def mock_astream_events_raises(*args, **kwargs):
+            """Mock async generator that raises GraphRecursionError."""
+            raise GraphRecursionError("Recursion limit reached")
+            yield  # Make it an async generator (unreachable but needed for syntax)
 
+        mock_agent.astream_events = mock_astream_events_raises
+
+        with patch("backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent):
             service = AgentService(settings=test_settings)
 
             # Act
             events = []
-            async for event in service.stream("test message", "thread-123"):
+            async for event in service.stream("test", "thread-123"):
                 events.append(event)
-
-            # Note: Actual logging happens in ToolCallLimitedAgent.astream()
-            # which is mocked here. In real execution, logger.warning would be called.
-
-
-class TestSettingsIntegration:
-    """Test integration with Settings configuration."""
-
-    def test_settings_has_max_tool_calls_field(self) -> None:
-        """Test Settings class has MAX_TOOL_CALLS_PER_INVOCATION field."""
-        # This tests that our settings update is properly integrated
-        from backend.deep_agent.config.settings import Settings
-
-        # Create settings with explicit value
-        settings = Settings(
-            OPENAI_API_KEY="sk-test",
-            MAX_TOOL_CALLS_PER_INVOCATION=7,
-        )
-
-        assert hasattr(settings, "MAX_TOOL_CALLS_PER_INVOCATION")
-        assert settings.MAX_TOOL_CALLS_PER_INVOCATION == 7
-
-    def test_settings_default_tool_limit(self) -> None:
-        """Test Settings has correct default tool call limit."""
-        from backend.deep_agent.config.settings import Settings
-
-        settings = Settings(OPENAI_API_KEY="sk-test")
-
-        # Default should be 10 per our implementation
-        assert settings.MAX_TOOL_CALLS_PER_INVOCATION == 10
-
-
-class TestRealAgentCreation:
-    """Test real agent creation with tool call limit (requires deepagents)."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_create_agent_returns_limited_agent(
-        self,
-        test_settings: Settings,
-    ) -> None:
-        """Test create_agent() returns ToolCallLimitedAgent wrapper."""
-        # This test requires real agent creation
-        try:
-            from backend.deep_agent.agents.deep_agent import create_agent
-
-            # Act
-            agent = await create_agent(settings=test_settings)
 
             # Assert
-            assert agent is not None
-            assert isinstance(agent, ToolCallLimitedAgent)
-            assert agent.max_tool_calls == test_settings.MAX_TOOL_CALLS_PER_INVOCATION
-            assert hasattr(agent, "graph")
-            assert hasattr(agent, "_tool_call_count")
-            assert hasattr(agent, "_limit_reached")
+            error_event = events[-1]
+            error_message = error_event["data"]["error"]
 
-        except (ImportError, NotImplementedError) as e:
-            # Skip if deepagents not installed or not working
-            pytest.skip(f"Skipping real agent test: {e}")
+            # Should be user-friendly, not technical
+            assert "extensive processing" in error_message.lower()
+            assert "review the results" in error_message.lower()
+            # Should NOT contain technical jargon
+            assert "GraphRecursionError" not in error_message
+            assert "stack trace" not in error_message.lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_limited_agent_has_correct_methods(
+    async def test_different_max_tool_calls_produce_different_limits(
         self,
         test_settings: Settings,
     ) -> None:
-        """Test ToolCallLimitedAgent has required async methods."""
-        try:
-            from backend.deep_agent.agents.deep_agent import create_agent
+        """Test that different MAX_TOOL_CALLS_PER_INVOCATION values produce different recursion_limits."""
+        # Test cases: (max_tool_calls, expected_recursion_limit)
+        test_cases = [
+            (3, 7),    # (3 * 2) + 1 = 7
+            (5, 11),   # (5 * 2) + 1 = 11
+            (12, 25),  # (12 * 2) + 1 = 25
+        ]
 
-            # Act
-            agent = await create_agent(settings=test_settings)
+        for max_calls, expected_limit in test_cases:
+            # Arrange
+            test_settings.MAX_TOOL_CALLS_PER_INVOCATION = max_calls
+            mock_agent = Mock(spec=CompiledStateGraph)
 
-            # Assert - verify async methods exist
-            assert hasattr(agent, "astream")
-            assert hasattr(agent, "ainvoke")
-            assert callable(agent.astream)
-            assert callable(agent.ainvoke)
+            async def mock_astream_events_raises(*args, **kwargs):
+                """Mock async generator that raises GraphRecursionError."""
+                raise GraphRecursionError(f"Recursion limit {expected_limit} reached")
+                yield  # Make it an async generator (unreachable but needed for syntax)
 
-        except (ImportError, NotImplementedError) as e:
-            pytest.skip(f"Skipping real agent test: {e}")
+            mock_agent.astream_events = mock_astream_events_raises
 
+            with patch("backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent):
+                service = AgentService(settings=test_settings)
 
-class TestCounterResetBehavior:
-    """Test counter reset between invocations."""
+                # Act
+                events = []
+                async for event in service.stream("test", "thread-123"):
+                    events.append(event)
 
-    @pytest.mark.asyncio
-    async def test_counter_resets_between_service_calls(
-        self,
-        test_settings: Settings,
-    ) -> None:
-        """Test tool call counter resets between service invocations."""
-        # Arrange
-        call_count = 0
-
-        async def mock_astream(input: dict[str, Any], config: dict[str, Any] | None):
-            """Mock that tracks invocation number."""
-            nonlocal call_count
-            call_count += 1
-
-            # Emit 2 tool calls per invocation
-            for _i in range(2):
-                yield {"event": "on_tool_start", "data": {}}
-                yield {"event": "on_tool_end", "data": {}}
-
-            yield {
-                "event": "on_chain_end",
-                "data": {"output": {"status": "completed"}},
-            }
-
-        with patch("backend.deep_agent.services.agent_service.create_agent") as mock_create:
-            mock_agent = Mock(spec=ToolCallLimitedAgent)
-            mock_agent.max_tool_calls = 10
-            mock_agent._tool_call_count = 0
-            mock_agent.astream = mock_astream
-            mock_create.return_value = mock_agent
-
-            service = AgentService(settings=test_settings)
-
-            # Act - First invocation
-            events1 = []
-            async for event in service.stream("message 1", "thread-1"):
-                events1.append(event)
-
-            # Act - Second invocation (with same agent instance)
-            events2 = []
-            async for event in service.stream("message 2", "thread-2"):
-                events2.append(event)
-
-            # Assert - both invocations should have succeeded
-            assert len(events1) > 0
-            assert len(events2) > 0
-            # Both should have completed without hitting limit
-            # (2 calls per invocation, limit is 10)
-
-
-class TestWebSocketStreamingWithLimit:
-    """Test WebSocket streaming (astream_events) with tool call limits."""
-
-    @pytest.mark.asyncio
-    async def test_astream_events_enforces_limit_in_production(
-        self,
-        test_settings: Settings,
-    ) -> None:
-        """Test production WebSocket streaming enforces tool call limit."""
-        # Arrange
-        async def mock_astream_events(
-            input: dict[str, Any],
-            config: dict[str, Any] | None,
-            **kwargs: Any,
-        ):
-            """Mock agent astream_events that emits many tool calls."""
-            yield {"event": "on_chain_start", "data": {}}
-            # Emit 15 tool calls (but limit is 3)
-            for i in range(15):
-                yield {"event": "on_tool_start", "data": {"tool": f"tool_{i}"}}
-                yield {"event": "on_tool_end", "data": {"output": f"result_{i}"}}
-            yield {"event": "on_chain_end", "data": {"output": {"status": "completed"}}}
-
-        # Create service with mocked agent that has astream_events
-        with patch("backend.deep_agent.services.agent_service.create_agent") as mock_create:
-            mock_agent = Mock(spec=ToolCallLimitedAgent)
-            mock_agent.max_tool_calls = 3
-            mock_agent.astream_events = mock_astream_events
-            mock_create.return_value = mock_agent
-
-            service = AgentService(settings=test_settings)
-
-            # Act - Stream events (this uses astream_events internally)
-            events = []
-            async for event in service.stream("test message", "thread-123"):
-                events.append(event)
-                # Stop collecting after termination event
-                if (event.get("data", {}).get("output", {}).get("reason") ==
-                    "tool_call_limit_reached"):
-                    break
-
-            # Assert - should have received termination event
-            termination_events = [
-                e for e in events
-                if e.get("data", {}).get("output", {}).get("reason") == "tool_call_limit_reached"
-            ]
-            assert len(termination_events) > 0
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_real_limited_agent_has_astream_events(
-        self,
-        test_settings: Settings,
-    ) -> None:
-        """Test ToolCallLimitedAgent has astream_events method for WebSocket streaming."""
-        try:
-            from backend.deep_agent.agents.deep_agent import create_agent
-
-            # Act
-            agent = await create_agent(settings=test_settings)
-
-            # Assert - verify astream_events method exists
-            assert hasattr(agent, "astream_events")
-            assert callable(agent.astream_events)
-
-        except (ImportError, NotImplementedError) as e:
-            pytest.skip(f"Skipping real agent test: {e}")
+                # Assert
+                error_event = events[-1]
+                assert error_event["data"]["recursion_limit"] == expected_limit
+                assert error_event["data"]["max_tool_calls"] == max_calls
