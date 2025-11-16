@@ -151,6 +151,84 @@ class CheckpointerManager:
                 self._connection = None
             raise
 
+    async def cleanup_false_errors(self) -> int:
+        """
+        Remove CancelledError entries from successful runs.
+
+        This cleanup removes false error checkpoint writes that occur when
+        post-completion cancellations happen during checkpoint finalization.
+        These are safe to remove as they represent expected shutdown behavior,
+        not actual errors.
+
+        Returns:
+            Number of false error entries removed
+
+        Example:
+            >>> manager = CheckpointerManager()
+            >>> await manager.create_checkpointer()
+            >>> removed = await manager.cleanup_false_errors()
+            >>> print(f"Removed {removed} false error entries")
+        """
+        db_path = Path(self.settings.CHECKPOINT_DB_PATH)
+
+        # If database doesn't exist yet, nothing to clean up
+        if not db_path.exists():
+            logger.debug("Database does not exist, nothing to cleanup")
+            return 0
+
+        try:
+            async with aiosqlite.connect(str(db_path)) as conn:
+                # Count false error entries
+                cursor = await conn.execute(
+                    """
+                    SELECT COUNT(*) FROM writes
+                    WHERE channel = '__error__'
+                    AND task_id IN (
+                        SELECT DISTINCT task_id FROM checkpoints
+                        WHERE metadata LIKE '%completed_naturally%'
+                    )
+                    """
+                )
+                row = await cursor.fetchone()
+                count = row[0] if row else 0
+
+                if count > 0:
+                    # Delete false error entries
+                    await conn.execute(
+                        """
+                        DELETE FROM writes
+                        WHERE channel = '__error__'
+                        AND task_id IN (
+                            SELECT DISTINCT task_id FROM checkpoints
+                            WHERE metadata LIKE '%completed_naturally%'
+                        )
+                        """
+                    )
+                    await conn.commit()
+
+                    logger.info(
+                        "Cleaned up false error entries from successful runs",
+                        removed_count=count,
+                    )
+
+                return count
+
+        except aiosqlite.OperationalError as e:
+            # Table might not exist yet
+            if "no such table" in str(e).lower():
+                logger.debug("Writes table does not exist yet")
+                return 0
+            else:
+                logger.error("Failed to cleanup false errors", error=str(e))
+                return 0
+        except Exception as e:
+            logger.error(
+                "Unexpected error during false error cleanup",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return 0
+
     async def cleanup_old_checkpoints(self, days: int = 30) -> int:
         """
         Clean up checkpoints older than specified number of days.

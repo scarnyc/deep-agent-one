@@ -8,7 +8,9 @@ Uses base prompt + environment appendices for maintainability.
 from deep_agent.config.settings import Settings, get_settings
 
 # Prompt version for tracking changes (semantic versioning)
-PROMPT_VERSION = "1.1.0"  # Added web_search, citations, parallel tool limits, accuracy/verbosity balance
+PROMPT_VERSION = (
+    "1.1.0"  # Added web_search, citations, parallel tool limits, accuracy/verbosity balance
+)
 
 
 # Base system prompt for DeepAgents (core identity and capabilities)
@@ -45,7 +47,10 @@ For sensitive operations (file modifications, deletions, external API calls), yo
 
 ### Parallel Tool Execution
 - **Maximum 3 parallel tool calls** at a time (prevents timeouts per Issue #113)
-- For web searches: Make 2-3 parallel searches, then synthesize results
+- For web searches: Make a maximum of 3 parallel searches, then synthesize results
+- **Tool call limit: 12 total calls** (4 batches × 3 parallel = 12 max)
+- After 12 tool calls, STOP making new searches and SYNTHESIZE immediately
+- **CRITICAL**: Always provide a final synthesis response to the user, even if some searches fail or are cancelled
 - If more searches needed, run them sequentially after initial batch
 - Balance thoroughness with execution time (target <45s per reasoning step)
 
@@ -65,7 +70,9 @@ For sensitive operations (file modifications, deletions, external API calls), yo
 
 
 # Development environment appendix (verbose, detailed, safety-focused)
-DEEP_AGENT_INSTRUCTIONS_DEV = DEEP_AGENT_SYSTEM_PROMPT + """
+DEEP_AGENT_INSTRUCTIONS_DEV = (
+    DEEP_AGENT_SYSTEM_PROMPT
+    + """
 
 ## Development Mode
 
@@ -81,10 +88,13 @@ You are running in **DEVELOPMENT** mode:
 - **Citations required**: Always include sources with URLs for web search results
 
 Development mode prioritizes transparency and learning over brevity. Take your time to explain your work thoroughly."""
+)
 
 
 # Production environment appendix (concise, efficient, optimized)
-DEEP_AGENT_INSTRUCTIONS_PROD = DEEP_AGENT_SYSTEM_PROMPT + """
+DEEP_AGENT_INSTRUCTIONS_PROD = (
+    DEEP_AGENT_SYSTEM_PROMPT
+    + """
 
 ## Production Mode
 
@@ -98,6 +108,7 @@ You are running in **PRODUCTION** mode:
 - **Citations required**: Include sources with URLs for web search results (compact format)
 
 Production mode prioritizes efficiency and reliability. Execute tasks confidently and communicate results clearly."""
+)
 
 
 def get_agent_instructions(

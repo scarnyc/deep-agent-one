@@ -1,7 +1,15 @@
 """Factory for creating LangChain LLM instances configured for GPT-5."""
 from typing import Any
 
+from httpx import Timeout
 from langchain_openai import ChatOpenAI
+from openai import AsyncOpenAI
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from deep_agent.core.logging import get_logger
 from deep_agent.models.gpt5 import GPT5Config
@@ -9,6 +17,11 @@ from deep_agent.models.gpt5 import GPT5Config
 logger = get_logger(__name__)
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+)
 def create_gpt5_llm(
     api_key: str,
     config: GPT5Config | None = None,
@@ -53,16 +66,32 @@ def create_gpt5_llm(
     if config is None:
         config = GPT5Config()
 
+    # Create custom AsyncOpenAI client with extended timeouts
+    # Default timeout is 60s which causes BrokenResourceError at 45s
+    # Increase to 120s to handle long-running parallel tool executions
+    http_client = AsyncOpenAI(
+        api_key=api_key,
+        timeout=Timeout(
+            connect=10.0,  # Connection timeout
+            read=120.0,    # Read timeout (increased from default 60s)
+            write=10.0,    # Write timeout
+            pool=10.0,     # Pool timeout
+        ),
+        max_retries=2,  # Built-in retry for transient failures
+    )
+
     # Prepare ChatOpenAI parameters
     # GPT-5 uses reasoning_effort parameter and max_completion_tokens (not max_tokens)
     # GPT-5 only supports temperature=1.0 - must explicitly set to override ChatOpenAI's default of 0.7
     llm_params = {
         "model": kwargs.get("model", config.model_name),
+        "client": http_client,  # Use custom client with extended timeouts
         "api_key": api_key,
         "max_completion_tokens": kwargs.get("max_completion_tokens", config.max_tokens),
         "reasoning_effort": config.reasoning_effort.value,
         "temperature": 1.0,  # GPT-5 requirement: must be 1.0 (overrides ChatOpenAI's default 0.7)
         "streaming": True,  # Enable streaming for real-time responses
+        "request_timeout": 120,  # Request-level timeout (matches read timeout)
     }
 
     # Add any additional kwargs (allows overriding config values)
@@ -71,10 +100,12 @@ def create_gpt5_llm(
             llm_params[key] = value
 
     logger.info(
-        "Creating GPT-5 LLM",
+        "Creating GPT-5 LLM with extended timeout configuration",
         model=llm_params["model"],
         reasoning_effort=config.reasoning_effort.value,
         max_completion_tokens=llm_params["max_completion_tokens"],
+        read_timeout=120,
+        request_timeout=120,
     )
 
     return ChatOpenAI(**llm_params)

@@ -1045,7 +1045,7 @@ create_evaluation_dataset(task_description, num_examples=20)
 
 ### Startup Scripts
 
-**RECOMMENDED: Use `start-all.sh` for development**
+**ALWAYS: Use `start-all.sh` for development**
 
 ```bash
 # Start both backend and frontend with automatic logging
