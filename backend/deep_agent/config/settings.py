@@ -47,6 +47,7 @@ Related:
     - deep_agent.services: Service configuration consumers
     - deep_agent.api: API configuration consumers
 """
+
 from functools import lru_cache
 from typing import Literal
 
@@ -208,9 +209,7 @@ class Settings(BaseSettings):
     # GPT-5 Configuration
     OPENAI_API_KEY: str = Field(..., description="OpenAI API key (required)")
     GPT5_MODEL_NAME: str = "gpt-5"
-    GPT5_DEFAULT_REASONING_EFFORT: Literal["minimal", "low", "medium", "high"] = (
-        "medium"
-    )
+    GPT5_DEFAULT_REASONING_EFFORT: Literal["minimal", "low", "medium", "high"] = "medium"
     GPT5_DEFAULT_VERBOSITY: str = "medium"
     GPT5_MAX_TOKENS: int = 4096
     GPT5_TEMPERATURE: float = 0.7
@@ -253,7 +252,7 @@ class Settings(BaseSettings):
 
     # Checkpointer Configuration (LangGraph State Persistence)
     CHECKPOINT_DB_PATH: str = "data/checkpoints.db"
-    CHECKPOINT_CLEANUP_DAYS: int = 30
+    CHECKPOINT_CLEANUP_DAYS: int = 7
 
     # Streaming Configuration
     STREAM_VERSION: Literal["v1", "v2"] = "v2"
@@ -263,7 +262,8 @@ class Settings(BaseSettings):
     STREAM_TIMEOUT_SECONDS: int = 300
     # Include both LangGraph v1 (on_tool_*) and v2 (on_tool_call_*) event patterns
     # Plus LLM events for reasoning visibility
-    STREAM_ALLOWED_EVENTS: str = "on_chat_model_stream,on_tool_start,on_tool_end,on_tool_call_start,on_tool_call_end,on_chain_start,on_chain_end,on_llm_start,on_llm_end"
+    # CRITICAL: on_chat_model_end is required to send final response to UI
+    STREAM_ALLOWED_EVENTS: str = "on_chat_model_stream,on_chat_model_end,on_tool_start,on_tool_end,on_tool_call_start,on_tool_call_end,on_chain_start,on_chain_end,on_llm_start,on_llm_end"
 
     # Redis Cache (Phase 2)
     REDIS_URL: str | None = None
@@ -290,7 +290,7 @@ class Settings(BaseSettings):
     # Maximum tool calls per agent invocation
     # Used to calculate LangGraph recursion_limit: (max_tool_calls * 2) + 1
     # Default: 12 tool calls = 25 recursion steps (each tool = 2 steps: LLM call + tool execution)
-    MAX_TOOL_CALLS_PER_INVOCATION: int = 12
+    MAX_TOOL_CALLS_PER_INVOCATION: int = 6
 
     # Security Configuration
     SECRET_KEY: str | None = None

@@ -60,6 +60,10 @@ class EventTransformer:
         elif event_type == "on_chain_end":
             return self._transform_chain_end(langgraph_event)
 
+        # Transform chat model completion → on_message_complete
+        elif event_type == "on_chat_model_end":
+            return self._transform_chat_model_end(langgraph_event)
+
         # Pass through all other events unchanged
         # (on_chat_model_stream, heartbeat, on_error, etc.)
         return langgraph_event
@@ -138,6 +142,30 @@ class EventTransformer:
                 "started_at": None,  # Not available in end event
                 "completed_at": datetime.utcnow().isoformat(),
                 "metadata": event.get("data", {}),
+            },
+            "metadata": event.get("metadata", {}),
+        }
+
+    def _transform_chat_model_end(self, event: dict[str, Any]) -> dict[str, Any]:
+        """Transform on_chat_model_end → on_message_complete."""
+        # Extract the final AIMessage from the output
+        output = event.get("data", {}).get("output", {})
+
+        # Handle both raw message objects and serialized content
+        if hasattr(output, "content"):
+            content = output.content
+        elif isinstance(output, dict):
+            content = output.get("content", "")
+        else:
+            content = str(output) if output else ""
+
+        return {
+            "event": "on_message_complete",
+            "data": {
+                "id": event.get("run_id", f"msg_{uuid.uuid4().hex[:8]}"),
+                "content": content,
+                "completed_at": datetime.utcnow().isoformat(),
+                "finish_reason": "stop",
             },
             "metadata": event.get("metadata", {}),
         }
