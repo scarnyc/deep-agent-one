@@ -63,6 +63,8 @@ export function useAGUIEventHandler(threadId: string) {
   // Track current streaming message ID
   const streamingMessageIdRef = useRef<string | null>(null);
   const streamingContentRef = useRef<string>('');
+  // Track if we just finished a shard (need separator before next token)
+  const needsShardSeparatorRef = useRef<boolean>(false);
 
   /**
    * Handle run started events (chain/llm start)
@@ -88,9 +90,23 @@ export function useAGUIEventHandler(threadId: string) {
 
   /**
    * Handle run finished events (chain/llm end)
+   *
+   * Marks the completion of the ENTIRE agent run (all shards complete).
+   * This is when we mark the message as fully complete and clear refs.
    */
   const handleRunFinished = (event: RunFinishedEvent) => {
     console.log('[AG-UI] Run finished:', event.run_id);
+
+    // Mark message as complete (all shards done)
+    if (streamingMessageIdRef.current) {
+      updateMessage(threadId, streamingMessageIdRef.current, {
+        metadata: {
+          streaming: false,
+          completed: true,
+          run_id: event.run_id,
+        },
+      });
+    }
 
     // Update step status
     updateStep(threadId, event.run_id, {
@@ -101,7 +117,7 @@ export function useAGUIEventHandler(threadId: string) {
     // Update agent status to completed
     setAgentStatus(threadId, 'completed');
 
-    // Clear streaming message ref
+    // NOW clear streaming refs (only when full run is complete)
     streamingMessageIdRef.current = null;
     streamingContentRef.current = '';
   };
@@ -130,8 +146,18 @@ export function useAGUIEventHandler(threadId: string) {
       // Store the ACTUAL ID returned from addMessage
       streamingMessageIdRef.current = generatedId;
     } else {
-      // Append token to existing message
+      // Check if we need to add separator BEFORE this token (new shard starting)
+      if (needsShardSeparatorRef.current) {
+        streamingContentRef.current += '\n\n';  // Add separator BEFORE token
+        needsShardSeparatorRef.current = false;
+        console.log('[DEBUG] Added \\n\\n separator before new shard token:', JSON.stringify(token));
+      }
+
+      // Now append the token
       streamingContentRef.current += token;
+
+      console.log('[DEBUG] After appending token, content length:', streamingContentRef.current.length);
+      console.log('[DEBUG] Last 100 chars:', streamingContentRef.current.slice(-100));
 
       // Now this ID matches the one in the store
       updateMessage(threadId, streamingMessageIdRef.current, {
@@ -142,23 +168,33 @@ export function useAGUIEventHandler(threadId: string) {
 
   /**
    * Handle chat model end event
+   *
+   * Marks the end of a response "shard" (one reasoning cycle).
+   * Sets flag so next shard's first token will be preceded by \n\n separator.
+   * Message is only marked complete when full agent run finishes (handleRunFinished).
    */
   const handleChatModelEnd = (event: TextMessageEndEvent) => {
-    console.log('[AG-UI] Chat model end');
+    console.log('[AG-UI] Chat model end - marking end of shard');
 
     if (streamingMessageIdRef.current) {
-      // Mark message as complete
+      // DON'T add separator at end - we'll add it at the BEGINNING of the next shard
+      console.log('[DEBUG] Shard ended, content length:', streamingContentRef.current.length);
+      console.log('[DEBUG] Last 100 chars:', streamingContentRef.current.slice(-100));
+
+      // Update message to mark shard complete but keep streaming
       updateMessage(threadId, streamingMessageIdRef.current, {
+        content: streamingContentRef.current,
         metadata: {
-          streaming: false,
-          completed: true,
+          streaming: true,  // Keep streaming for next shard
           run_id: event.run_id,
         },
       });
 
-      // Clear refs
-      streamingMessageIdRef.current = null;
-      streamingContentRef.current = '';
+      // Mark that next shard needs separator BEFORE its first token
+      needsShardSeparatorRef.current = true;
+      console.log('[DEBUG] Set needsShardSeparatorRef = true (next shard will start with \\n\\n)');
+
+      // DON'T clear refs - keep message ID active for next shard
     }
   };
 
