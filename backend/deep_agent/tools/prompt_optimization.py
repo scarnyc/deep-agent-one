@@ -12,7 +12,7 @@ Integrates with Opik's 6 optimization algorithms and follows GPT-5 best practice
 """
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 from langchain_openai import ChatOpenAI
@@ -22,8 +22,6 @@ from structlog import get_logger
 
 from deep_agent.config.settings import get_settings
 from deep_agent.integrations.opik_client import (
-    ALGORITHM_SELECTION_GUIDE,
-    OpikClient,
     OptimizerAlgorithm,
     get_opik_client,
 )
@@ -68,7 +66,7 @@ GPT5_BEST_PRACTICES = {
 def analyze_prompt(
     prompt: str,
     task_type: str = "general",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Analyze prompt structure against GPT-5 best practices.
 
@@ -213,11 +211,11 @@ def analyze_prompt(
 
 def optimize_prompt(
     prompt: str,
-    dataset: List[Dict[str, str]],
+    dataset: list[dict[str, str]],
     optimizer_type: str = "hierarchical_reflective",
     max_trials: int = 10,
     model: str = "gpt-4o",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Optimize prompt using Opik's optimization algorithms.
 
@@ -327,10 +325,10 @@ def optimize_prompt(
 
 def evaluate_prompt(
     prompt: str,
-    dataset: List[Dict[str, str]],
-    metrics: Optional[List[str]] = None,
+    dataset: list[dict[str, str]],
+    metrics: list[str] | None = None,
     model: str = "gpt-4o",
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Evaluate prompt performance with quantitative metrics.
 
@@ -447,7 +445,7 @@ def create_evaluation_dataset(
     task_description: str,
     num_examples: int = 20,
     model: str = "gpt-4o",
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """
     Generate evaluation dataset from task description.
 
@@ -534,10 +532,10 @@ Generate {num_examples} examples with varying difficulty and edge cases."""
 def ab_test_prompts(
     prompt_a: str,
     prompt_b: str,
-    dataset: List[Dict[str, str]],
+    dataset: list[dict[str, str]],
     alpha: float = 0.05,
     model: str = "gpt-4o",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Statistical A/B test between two prompts.
 

@@ -14,10 +14,9 @@ Integrates with LangSmith for tracing and provides async support.
 
 import asyncio
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import opik
-from structlog import get_logger
 
 # Real opik-optimizer imports (v2.2.1)
 from opik_optimizer import (
@@ -29,6 +28,7 @@ from opik_optimizer import (
     MetaPromptOptimizer,
     ParameterOptimizer,
 )
+from structlog import get_logger
 
 from deep_agent.config.settings import Settings, get_settings
 
@@ -167,7 +167,7 @@ class OpikClient:
         - Singleton available via get_opik_client()
     """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """
         Initialize Opik client.
 
@@ -203,7 +203,7 @@ class OpikClient:
     def get_or_create_dataset(
         self,
         name: str,
-        items: Optional[List[Dict[str, Any]]] = None,
+        items: list[dict[str, Any]] | None = None,
     ) -> Any:
         """
         Get existing dataset or create new one.
@@ -298,9 +298,9 @@ class OpikClient:
         algorithm: OptimizerAlgorithm = OptimizerAlgorithm.HIERARCHICAL_REFLECTIVE,
         max_trials: int = 10,
         model: str = "gpt-4o",
-        tools: Optional[List[Dict[str, Any]]] = None,
-        function_map: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        tools: list[dict[str, Any]] | None = None,
+        function_map: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Optimize prompt asynchronously with specified algorithm.
 
@@ -381,9 +381,9 @@ class OpikClient:
         algorithm: OptimizerAlgorithm = OptimizerAlgorithm.HIERARCHICAL_REFLECTIVE,
         max_trials: int = 10,
         model: str = "gpt-4o",
-        tools: Optional[List[Dict[str, Any]]] = None,
-        function_map: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        tools: list[dict[str, Any]] | None = None,
+        function_map: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Synchronous wrapper for optimize_prompt_async.
 
@@ -404,10 +404,10 @@ class OpikClient:
 
 
 # Singleton instance
-_opik_client: Optional[OpikClient] = None
+_opik_client: OpikClient | None = None
 
 
-def get_opik_client(settings: Optional[Settings] = None) -> OpikClient:
+def get_opik_client(settings: Settings | None = None) -> OpikClient:
     """
     Get or create Opik client singleton.
 

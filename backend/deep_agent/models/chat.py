@@ -54,9 +54,9 @@ Streaming Example:
     >>> print(f"event: {event.event_type}\\ndata: {event.data}\\n\\n")
 """
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -108,7 +108,7 @@ class Message(BaseModel):
         description="The text content of the message",
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When the message was created (UTC)",
     )
 
@@ -159,7 +159,7 @@ class ChatRequest(BaseModel):
         min_length=1,
         description="Unique identifier for the conversation thread",
     )
-    metadata: Optional[dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None,
         description="Optional metadata about the request",
     )
@@ -275,19 +275,19 @@ class ChatResponse(BaseModel):
     status: ResponseStatus = Field(
         description="Status of the response",
     )
-    metadata: Optional[dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None,
         description="Optional metadata about the response",
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         default=None,
         description="Optional error message if status is ERROR",
     )
-    trace_id: Optional[str] = Field(
+    trace_id: str | None = Field(
         default=None,
         description="LangSmith trace ID for debugging (links to execution trace)",
     )
-    run_id: Optional[str] = Field(
+    run_id: str | None = Field(
         default=None,
         description="LangGraph checkpoint/run ID for state inspection",
     )
@@ -350,10 +350,10 @@ class StreamEvent(BaseModel):
         description="Event payload data",
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When the event was created (UTC)",
     )
-    thread_id: Optional[str] = Field(
+    thread_id: str | None = Field(
         default=None,
         description="Optional thread identifier for the conversation",
     )

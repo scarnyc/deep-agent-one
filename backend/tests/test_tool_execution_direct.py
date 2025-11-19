@@ -82,9 +82,9 @@ async def test_direct_tool_execution():
                         if 'input' in event:
                             print(f"     Args: {event['input']}")
                     elif event_type == 'on_tool_end':
-                        print(f"  ✅ Tool completed")
+                        print("  ✅ Tool completed")
                     elif event_type == 'on_chat_model_end':
-                        print(f"  ✅ Chat model finished")
+                        print("  ✅ Chat model finished")
                     elif event_type in ['on_error', 'on_chain_error', 'on_llm_error', 'error']:
                         errors.append(event)
                         print(f"  ❌ ERROR: {event_type}")
@@ -95,10 +95,10 @@ async def test_direct_tool_execution():
 
                     # Check for completion
                     if event_type in ['on_chain_end', 'on_llm_end']:
-                        print(f"  🏁 Conversation complete")
+                        print("  🏁 Conversation complete")
                         complete = True
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     print("  ⏱️  Timeout waiting for response (60s)")
                     break
                 except Exception as e:

@@ -16,9 +16,9 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 from deep_agent.config.settings import Settings, get_settings
@@ -343,13 +343,13 @@ class PerplexityClient:
                         # Parse Perplexity response
                         return self._parse_perplexity_response(text_response, query)
 
-        except asyncio.TimeoutError:
+        except TimeoutError as e:
             logger.error(
                 "MCP request timed out",
                 query=query,
                 timeout=self.timeout,
             )
-            raise TimeoutError(f"MCP request exceeded {self.timeout}s timeout")
+            raise TimeoutError(f"MCP request exceeded {self.timeout}s timeout") from e
 
         except Exception as e:
             # Capture subprocess stderr and nested exceptions for better debugging
@@ -367,7 +367,7 @@ class PerplexityClient:
             raise ConnectionError(
                 f"Failed to connect to Perplexity MCP: {error_msg}. "
                 f"Ensure 'perplexity-mcp' command is available and PERPLEXITY_API_KEY is set."
-            )
+            ) from e
 
     def _parse_perplexity_response(
         self,

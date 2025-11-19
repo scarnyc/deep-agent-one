@@ -76,7 +76,7 @@ async def test_multiturn_conversation():
                         # Don't log every token
                         pass
                     elif event_type == 'on_chat_model_end':
-                        print(f"  ✅ Chat model finished")
+                        print("  ✅ Chat model finished")
                     elif event_type in ['on_error', 'on_chain_error', 'on_llm_error', 'error']:
                         turn1_errors.append(event)
                         print(f"  ❌ ERROR: {event_type}")
@@ -85,22 +85,22 @@ async def test_multiturn_conversation():
 
                     # Check for completion
                     if event_type in ['on_chain_end', 'on_llm_end']:
-                        print(f"  🏁 Turn 1 complete")
+                        print("  🏁 Turn 1 complete")
                         turn1_complete = True
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     print("  ⏱️  Timeout waiting for response (30s)")
                     break
                 except Exception as e:
                     print(f"  ❌ Error receiving event: {e}")
                     break
 
-            print(f"\n📊 Turn 1 Summary:")
+            print("\n📊 Turn 1 Summary:")
             print(f"   Events received: {len(turn1_events)}")
             print(f"   Errors: {len(turn1_errors)}")
 
             if turn1_errors:
-                print(f"\n⚠️  Turn 1 had errors - stopping test")
+                print("\n⚠️  Turn 1 had errors - stopping test")
                 return {
                     "success": False,
                     "tool_executed": False,
@@ -154,12 +154,12 @@ async def test_multiturn_conversation():
                         tools_called.append(tool_name)
                         print(f"  🔧 Tool started: {tool_name}")
                     elif event_type == 'on_tool_end':
-                        print(f"  ✅ Tool completed")
+                        print("  ✅ Tool completed")
                     elif event_type == 'on_chat_model_stream':
                         # Don't log every token
                         pass
                     elif event_type == 'on_chat_model_end':
-                        print(f"  ✅ Chat model finished")
+                        print("  ✅ Chat model finished")
                     elif event_type in ['on_error', 'on_chain_error', 'on_llm_error', 'error']:
                         turn2_errors.append(event)
                         print(f"  ❌ ERROR: {event_type}")
@@ -168,17 +168,17 @@ async def test_multiturn_conversation():
 
                     # Check for completion
                     if event_type in ['on_chain_end', 'on_llm_end']:
-                        print(f"  🏁 Turn 2 complete")
+                        print("  🏁 Turn 2 complete")
                         turn2_complete = True
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     print("  ⏱️  Timeout waiting for response (60s)")
                     break
                 except Exception as e:
                     print(f"  ❌ Error receiving event: {e}")
                     break
 
-            print(f"\n📊 Turn 2 Summary:")
+            print("\n📊 Turn 2 Summary:")
             print(f"   Events received: {len(turn2_events)}")
             print(f"   Tools executed: {len(tools_called)}")
             if tools_called:

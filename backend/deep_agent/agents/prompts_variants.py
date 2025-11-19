@@ -5,18 +5,13 @@ This module provides multiple optimized versions of the Deep Agent system prompt
 for testing different approaches to clarity, token efficiency, and performance.
 """
 
-from typing import Dict, Tuple
-import random
 import hashlib
-
+import random
 
 # Base prompt (current production version)
 from deep_agent.agents.prompts import (
-    DEEP_AGENT_SYSTEM_PROMPT,
     DEEP_AGENT_INSTRUCTIONS_DEV,
-    DEEP_AGENT_INSTRUCTIONS_PROD,
 )
-
 
 # Variant 1: Maximum Compression (50% reduction target)
 # Estimated: ~389 tokens (~1,556 chars)
@@ -140,7 +135,7 @@ For sensitive operations (file modifications, deletions, external API calls), yo
 
 
 # All variants registry
-PROMPT_VARIANTS: Dict[str, str] = {
+PROMPT_VARIANTS: dict[str, str] = {
     "control": DEEP_AGENT_INSTRUCTIONS_DEV,  # Current production
     "max_compression": DEEP_AGENT_PROMPT_V1_MAX_COMPRESSION,
     "balanced": DEEP_AGENT_PROMPT_V2_BALANCED,
@@ -151,7 +146,7 @@ PROMPT_VARIANTS: Dict[str, str] = {
 def select_prompt_variant(
     user_id: str | None = None,
     variant_name: str | None = None
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """
     Select a prompt variant for A/B testing.
 
@@ -196,7 +191,7 @@ def select_prompt_variant(
     return variant_name, PROMPT_VARIANTS[variant_name]
 
 
-def get_variant_metadata(variant_name: str) -> Dict[str, any]:
+def get_variant_metadata(variant_name: str) -> dict[str, any]:
     """
     Get metadata about a prompt variant for analysis and comparison.
 

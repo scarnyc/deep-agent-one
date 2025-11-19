@@ -10,7 +10,6 @@ from fastapi import Depends
 
 from deep_agent.services.agent_service import AgentService
 
-
 # Module-level singleton for AgentService
 # Phase 0: Cache service instance to prevent creating expensive service per connection
 # Each AgentService initialization creates LangGraph agents, checkpointers, etc.

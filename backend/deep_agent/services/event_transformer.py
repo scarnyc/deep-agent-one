@@ -9,9 +9,9 @@ UI Components Expectations:
 - ToolCallDisplay: Expects `on_tool_call` events with {id, name, args, result, status, started_at, completed_at}
 """
 
+import uuid
 from datetime import datetime
 from typing import Any
-import uuid
 
 
 class EventTransformer:

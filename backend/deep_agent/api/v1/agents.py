@@ -7,7 +7,7 @@ Provides REST endpoints for:
 - Managing agent execution state
 """
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -105,7 +105,7 @@ async def get_agent_status(request: Request, thread_id: str) -> AgentRunInfo:
             run_id=run_id,
             thread_id=thread_id,
             status=agent_status,
-            started_at=state.get("created_at") or datetime.now(timezone.utc).isoformat(),
+            started_at=state.get("created_at") or datetime.now(UTC).isoformat(),
             completed_at=None if agent_status == AgentRunStatus.RUNNING else state.get("created_at"),
             metadata=state.get("metadata", {}),
         )

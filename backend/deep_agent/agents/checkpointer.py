@@ -1,9 +1,8 @@
 """Checkpointer manager for LangGraph state persistence."""
-import aiosqlite
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
+import aiosqlite
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from deep_agent.config.settings import Settings, get_settings
@@ -43,8 +42,8 @@ class CheckpointerManager:
                      If None, uses get_settings() default singleton.
         """
         self.settings = settings if settings is not None else get_settings()
-        self._checkpointer: Optional[AsyncSqliteSaver] = None
-        self._connection: Optional[aiosqlite.Connection] = None
+        self._checkpointer: AsyncSqliteSaver | None = None
+        self._connection: aiosqlite.Connection | None = None
 
         logger.info(
             "CheckpointerManager initialized",

@@ -5,7 +5,7 @@ Provides REST endpoints for chat conversations with the deep agent,
 including standard request/response and streaming via SSE.
 """
 import json
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
@@ -149,7 +149,7 @@ async def chat(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e),
-        )
+        ) from e
 
     except Exception as e:
         # Agent execution errors
@@ -169,7 +169,7 @@ async def chat(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Agent execution failed",
-        )
+        ) from e
 
 
 @router.post("/chat/stream")

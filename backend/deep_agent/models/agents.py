@@ -38,9 +38,9 @@ HITL Workflow Example:
     ... )
     >>> # Send to agent service for processing
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -73,23 +73,23 @@ class ErrorResponse(BaseModel):
         min_length=1,
         description="Human-readable error message",
     )
-    detail: Optional[str] = Field(
+    detail: str | None = Field(
         default=None,
         description="Optional detailed error information",
     )
-    thread_id: Optional[str] = Field(
+    thread_id: str | None = Field(
         default=None,
         description="Conversation thread identifier",
     )
-    trace_id: Optional[str] = Field(
+    trace_id: str | None = Field(
         default=None,
         description="LangSmith trace ID for debugging (links to execution trace)",
     )
-    run_id: Optional[str] = Field(
+    run_id: str | None = Field(
         default=None,
         description="LangGraph checkpoint/run ID for state inspection",
     )
-    request_id: Optional[str] = Field(
+    request_id: str | None = Field(
         default=None,
         description="Request identifier (for WebSocket/async requests)",
     )
@@ -170,22 +170,22 @@ class AgentRunInfo(BaseModel):
         description="Current status of the run",
     )
     started_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="When the run started (UTC)",
     )
-    completed_at: Optional[datetime] = Field(
+    completed_at: datetime | None = Field(
         default=None,
         description="When the run completed",
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         default=None,
         description="Error message if status is ERROR",
     )
-    trace_id: Optional[str] = Field(
+    trace_id: str | None = Field(
         default=None,
         description="LangSmith trace ID for debugging (links to execution trace)",
     )
-    metadata: Optional[dict[str, Any]] = Field(
+    metadata: dict[str, Any] | None = Field(
         default=None,
         description="Optional metadata about the run",
     )
@@ -249,11 +249,11 @@ class HITLApprovalRequest(BaseModel):
     action: HITLAction = Field(
         description="Type of approval action",
     )
-    response_text: Optional[str] = Field(
+    response_text: str | None = Field(
         default=None,
         description="Text response (for RESPOND action)",
     )
-    tool_edits: Optional[dict[str, Any]] = Field(
+    tool_edits: dict[str, Any] | None = Field(
         default=None,
         description="Tool parameter edits (for EDIT action)",
     )
@@ -321,7 +321,7 @@ class HITLApprovalResponse(BaseModel):
         min_length=1,
         description="Thread/conversation identifier",
     )
-    updated_status: Optional[AgentRunStatus] = Field(
+    updated_status: AgentRunStatus | None = Field(
         default=None,
         description="New status of the run (if changed)",
     )

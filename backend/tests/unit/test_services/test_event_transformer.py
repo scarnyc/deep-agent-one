@@ -4,9 +4,8 @@ Unit tests for EventTransformer.
 Tests transformation logic for LangGraph events → UI-compatible format.
 """
 
-import pytest
-from datetime import datetime
 
+import pytest
 from deep_agent.services.event_transformer import EventTransformer
 
 

@@ -11,15 +11,14 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Any
 
+from langgraph.errors import GraphRecursionError
+from langgraph.graph.state import CompiledStateGraph
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
-
-from langgraph.errors import GraphRecursionError
-from langgraph.graph.state import CompiledStateGraph
 
 from deep_agent.agents.deep_agent import create_agent
 from deep_agent.config.settings import Settings, get_settings
@@ -528,7 +527,7 @@ class AgentService:
                             # Yield event (either agent event or heartbeat)
                             yield event_data
 
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             # Queue timeout, continue waiting
                             continue
 
@@ -554,7 +553,7 @@ class AgentService:
                 checkpoint_task = asyncio.create_task(asyncio.sleep(0.5))
                 try:
                     await asyncio.wait_for(checkpoint_task, timeout=5.0)
-                except (asyncio.TimeoutError, asyncio.CancelledError):
+                except (TimeoutError, asyncio.CancelledError):
                     # Expected during shutdown - ignore
                     pass
 
@@ -567,7 +566,7 @@ class AgentService:
                 event_types=list(event_types_seen),
             )
 
-        except GraphRecursionError as e:
+        except GraphRecursionError:
             logger.warning(
                 "Agent recursion limit reached (graceful termination)",
                 thread_id=thread_id,
@@ -638,7 +637,7 @@ class AgentService:
                 if checkpoint_task and not checkpoint_task.done():
                     try:
                         await asyncio.wait_for(checkpoint_task, timeout=5.0)
-                    except (asyncio.TimeoutError, asyncio.CancelledError):
+                    except (TimeoutError, asyncio.CancelledError):
                         pass  # Expected during shutdown
                 # Do NOT yield error event - this is normal shutdown
                 return

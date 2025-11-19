@@ -9,11 +9,10 @@ Tests cover:
 """
 
 import asyncio
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from deep_agent.services.agent_service import AgentService
-from deep_agent.config.settings import Settings
 
 
 @pytest.fixture
@@ -180,7 +179,7 @@ async def test_agent_streaming_logs_cancellation_context(mock_settings):
         with patch('deep_agent.services.agent_service.logger') as mock_logger:
             with patch('deep_agent.services.agent_service._get_current_run_tree', return_value=mock_run_tree):
                 # Act
-                async for event in service.stream(
+                async for _event in service.stream(
                     message="Test",
                     thread_id="test-logging-thread"
                 ):
