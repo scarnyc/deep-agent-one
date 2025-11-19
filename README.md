@@ -1,35 +1,81 @@
 # Deep Agent AGI
 
-> **General-purpose deep agent framework that reduces AI tool costs through intelligent reasoning optimization**
+> **Phase 0 Prototype: Core framework demonstrating intelligent reasoning optimization and cost reduction**
 
-[![Phase](https://img.shields.io/badge/Phase-0--MVP-blue)]()
+[![Phase](https://img.shields.io/badge/Phase-0--Prototype-orange)]()
 [![Python](https://img.shields.io/badge/Python-3.10+-green)]()
 [![Node](https://img.shields.io/badge/Node.js-18+-green)]()
 [![License](https://img.shields.io/badge/License-MIT-yellow)]()
 
 ---
 
-## 🎯 Project Overview
+## 🎯 Overview
 
-Deep Agent AGI is a production-ready deep agent framework built on LangGraph DeepAgents with GPT-5 reasoning optimization. The framework provides:
+Deep Agent AGI is a **Phase 0 prototype** deep agent framework built on LangGraph DeepAgents with GPT-5 reasoning optimization. This prototype demonstrates the core framework capabilities with basic features.
+
+**What This Prototype Provides:**
 
 - **Cost Reduction:** Intelligent GPT-5 reasoning effort routing (minimal/low/medium/high)
 - **Human-in-the-Loop:** Built-in approval workflows for critical decisions
-- **Multi-Agent System:** Sub-agent delegation for specialized tasks
-- **Real-time UI:** AG-UI protocol for streaming events and transparency
-- **Production-Ready:** Full observability, testing, security scanning
+- **Real-time Transparency:** AG-UI protocol for streaming events and tool call visibility
+- **Web Search:** Perplexity MCP integration for web queries
+- **File Operations:** Read, write, edit, and list files
+- **Observability:** LangSmith tracing for debugging and monitoring
 
-**Core Capabilities:**
-- Gmail analysis
-- Code generation in secure sandboxes
-- GitHub integration
-- Calendar management
-- Web search (Perplexity MCP)
-- Shopping & budgeting
-- Retirement planning
-- Research & analysis
-- OCR & content creation
-- Image generation
+**Phase 0 Status:**
+
+This is a working prototype demonstrating core framework capabilities. Future phases will add production-grade features like memory systems, advanced authentication, and deep research capabilities.
+
+---
+
+## ✨ Features
+
+### Currently Implemented (Phase 0)
+
+**Chat Interface**
+- Real-time streaming responses with token-by-token display
+- Conversation history and context tracking
+- WebSocket-based bidirectional communication
+
+**GPT-5 Reasoning Optimization**
+- 4 effort levels: minimal, low, medium, high
+- Automatic effort selection based on query complexity
+- Manual override via trigger phrases ("think harder about...")
+- Per-request cost tracking and display
+
+**Web Search**
+- Perplexity MCP integration for web queries
+- Search results with source citations
+- Seamless integration into agent responses
+
+**Human-in-the-Loop (HITL)**
+- Built-in approval workflow for critical operations
+- Three response options: Accept, Respond (with feedback), Edit
+- Real-time approval requests in UI
+- Conversation continuity after approval/rejection
+
+**File System Tools**
+- `ls`: List directory contents
+- `read_file`: Read file contents
+- `write_file`: Create or overwrite files
+- `edit_file`: Modify existing files
+
+**Planning & Task Tracking**
+- TodoWrite-based planning tool
+- Real-time task list updates in UI
+- Subtask progress visualization
+
+**Agent Transparency**
+- Real-time tool call display (args and results)
+- Agent state visualization
+- Step-by-step execution tracking
+- "Inspect source" toggle for detailed tool information
+
+**Monitoring & Observability**
+- LangSmith tracing for all agent operations
+- Structured logging (JSON in production, human-readable locally)
+- Error tracking with trace IDs
+- Cost tracking per request
 
 ---
 
@@ -70,216 +116,21 @@ Deep Agent AGI is a production-ready deep agent framework built on LangGraph Dee
 │                           │                                     │
 │  ┌────────────────────────┴─────────────────────────────────┐   │
 │  │              External Integrations                       │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐   │   │
-│  │  │ OpenAI   │  │Perplexity│  │LangSmith │  │  Opik   │   │   │
-│  │  │ GPT-5    │  │   MCP    │  │  Traces  │  │ Prompts │   │   │
-│  │  └──────────┘  └──────────┘  └──────────┘  └─────────┘   │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐               │   │
+│  │  │ OpenAI   │  │Perplexity│  │LangSmith │               │   │
+│  │  │ GPT-5    │  │   MCP    │  │  Traces  │               │   │
+│  │  └──────────┘  └──────────┘  └──────────┘               │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
 ┌─────────────────────────────┴───────────────────────────────────┐
-│                    DATA LAYER                                   │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐   │
-│  │ PostgreSQL       │  │ Checkpointer     │  │ Redis        │   │
-│  │ (Replit)         │  │ (SQLite/Postgres)│  │ (Phase 2)    │   │
-│  │ + pgvector       │  │                  │  │              │   │
-│  └──────────────────┘  └──────────────────┘  └──────────────┘   │
+│                    DATA LAYER (Phase 0)                         │
+│  ┌──────────────────┐                                            │
+│  │ SQLite           │  Checkpointer for agent state             │
+│  │ Checkpointer     │  (conversation history, HITL state)       │
+│  └──────────────────┘                                            │
 └─────────────────────────────────────────────────────────────────┘
 ```
-
-## 🏗️ Architectural Decisions (High-Level)
-
-All 33 architectural decisions have been made. See README.md for folder structure details.
-
-### Phase 0 Critical Decisions
-
-**1. Folder Structure & Organization**
-- **✅ Decision:** Backend (FastAPI/Python) + Frontend (Next.js/React) separation with feature-based organization
-- **Rationale:** Clear separation of concerns, production-ready structure
-- **See:** README.md for complete folder structure
-
-**2. Checkpointer Configuration**
-- **✅ Decision:** SqliteSaver for Phase 0, PostgresSaver for Phase 1+
-- **Rationale:** Simple for MVP, scalable for production
-- **Implementation:** `CheckpointerManager` class handles environment-specific checkpointers
-
-**3. Database Schema & Setup**
-- **✅ Decision:** Alembic + SQLAlchemy 2.0 with async support
-- **Rationale:** Industry standard, excellent pgvector integration, Replit compatible
-- **Implementation:** Schema includes Users, Conversations, Memories (vector embeddings), Messages, Provenance, Sessions
-
-**4. Environment Variables**
-- **✅ Decision:** Comprehensive .env.example with GPT-5 reasoning configuration
-- **Rationale:** Clear documentation of all required settings per environment
-- **Implementation:** See `.env.example` in repository
-
-**5. Dependency Management**
-- **✅ Decision:** Poetry for Python, npm for Node.js
-- **Rationale:** Best lock files, native Replit support, modern pyproject.toml standard
-- **Implementation:** `pyproject.toml` + `package.json`
-
-**6. Error Handling & Logging**
-- **✅ Decision:** structlog with JSON formatting, custom exception classes, FastAPI global handlers
-- **Rationale:** Production-ready structured logging, machine-parseable, excellent for debugging
-- **Implementation:** `ErrorCode` enum, `DeepAgentError` base class, environment-specific log formats
-
-**7. API Design & WebSocket Strategy**
-- **✅ Decision:** WebSocket for AG-UI events, `/api/v1/` versioning, feature-based routers
-- **Rationale:** AG-UI requires WebSocket, clear API versioning, organized by domain
-- **Implementation:** FastAPI routers for agents, chat, reasoning, WebSocket streaming
-
-**8. Test Organization & Patterns**
-- **✅ Decision:** `test_*.py` naming, hierarchical conftest.py, factory pattern mocks
-- **Rationale:** Pytest standard, shared fixtures at appropriate scope, reusable mocks
-- **Implementation:** Unit/Integration/E2E/UI test directories with dedicated fixtures
-
-**9. Git Hooks & Pre-commit**
-- **✅ Decision:** pre-commit framework with ruff, mypy, detect-secrets
-- **Rationale:** Automated quality checks, prevent common issues before commit
-- **Implementation:** `.pre-commit-config.yaml` with comprehensive hooks
-
-**10. CI/CD Pipeline**
-- **✅ Decision:** GitHub Actions with parallel jobs (lint, test, security, deploy)
-- **Rationale:** Native GitHub integration, parallel execution, Replit deployment support
-- **Implementation:** `.github/workflows/` with test, security, deploy workflows
-
-**11. Frontend Architecture**
-- **✅ Decision:** Next.js App Router + shadcn/ui + Tailwind CSS + Zustand
-- **Rationale:** Modern React patterns, AG-UI compatibility, excellent DX
-- **Implementation:** App router for SSR, shadcn/ui for components, Zustand for state
-
-**12. Monitoring & Observability**
-- **✅ Decision:** LangSmith for traces, built-in logging for Phase 0, add Sentry Phase 1
-- **Rationale:** LangSmith essential for agent debugging, structured logs sufficient for MVP
-- **Implementation:** LangSmith integration in all agent operations
-
-**13. Opik Setup**
-- **✅ Decision:** Opik SDK integrated with agent prompts from day one
-- **Rationale:** Auto-prompt optimization critical for cost reduction goal
-- **Implementation:** Opik decorators on agent system prompts and tool prompts
-
-**14. Secrets Management**
-- **✅ Decision:** Local (.env files) + Replit Secrets + GitHub Secrets
-- **Rationale:** Environment-specific secret storage with proper isolation
-- **Implementation:** `get_secret()` abstraction layer in `core/secrets.py`
-
-**15. Rate Limiting**
-- **✅ Decision:** slowapi library, per-IP + per-user, in-memory Phase 0, Redis Phase 2
-- **Rationale:** FastAPI-native, flexible strategy, simple for MVP
-- **Implementation:** `@limiter.limit()` decorators on routes
-
-**16. CORS & Security Headers**
-- **✅ Decision:** Environment-specific CORS whitelist + comprehensive security headers
-- **Rationale:** Secure by default, defense-in-depth approach
-- **Implementation:** CORS middleware + `SecurityHeadersMiddleware`
-
-**17. Docker & Replit Compatibility**
-- **✅ Decision:** Replit Nix for deployment, optional Docker for local dev
-- **Rationale:** Replit-native approach preferred, Docker available if needed
-- **Implementation:** `.replit` + `replit.nix` configuration
-
-**18. Linting, Formatting & Code Quality**
-- **✅ Decision:** Ruff (linting + formatting) + mypy (type checking)
-- **Rationale:** 10-100x faster than alternatives, single tool, excellent VSCode integration
-- **Implementation:** `pyproject.toml` configuration, pre-commit hooks
-
-**19. IDE Configuration**
-- **✅ Decision:** VSCode/Cursor settings + recommended extensions
-- **Rationale:** Consistent development experience across team
-- **Implementation:** `.vscode/settings.json`, `.vscode/extensions.json`
-
-**20. Local Development Workflow**
-- **✅ Decision:** Scripts in `scripts/` directory, single command startup
-- **Rationale:** Simple developer experience, consistent across environments
-- **Implementation:** `scripts/dev.sh` for starting all services
-
-**21. Debugging Strategies**
-- **✅ Decision:** LangSmith visual debugging + VSCode launch configurations
-- **Rationale:** LangGraph-specific debugging crucial for agent development
-- **Implementation:** `.vscode/launch.json` with agent debug configs
-
-**22. LLM Output Testing**
-- **✅ Decision:** LangSmith evals + custom assertion patterns
-- **Rationale:** Handle non-deterministic outputs, track quality regressions
-- **Implementation:** Eval suite in `tests/evals/` with LangSmith integration
-
-**23. Load Testing**
-- **✅ Decision:** k6 for load testing, scenarios aligned with Replit tier limits
-- **Rationale:** Modern, scriptable, excellent reporting
-- **Implementation:** Load test scenarios in `tests/load/`
-
-**24. Playwright Test Organization**
-- **✅ Decision:** Page Object Model + data-testid selectors
-- **Rationale:** Maintainable UI tests, resilient to UI changes
-- **Implementation:** `tests/ui/` with page objects
-
-**25. Cost Tracking & Optimization**
-- **✅ Decision:** Per-request token tracking + custom cost dashboard
-- **Rationale:** Core project goal is cost reduction, need visibility
-- **Implementation:** `CostTracker` service, dashboard in frontend
-
-**26. Caching Strategy**
-- **✅ Decision:** Redis for Phase 2 (LLM responses, DB queries, API responses)
-- **Rationale:** Distributed cache essential for multi-instance production
-- **Implementation:** Cache layer with TTL configuration
-
-**27. Performance Budgets**
-- **✅ Decision:** <2s simple query latency, <500ms DB queries, 80% test coverage
-- **Rationale:** User experience requirements drive technical constraints
-- **Implementation:** Performance monitoring + alerts
-
-**28. Architecture Decision Records (ADRs)**
-- **✅ Decision:** ADR template in `docs/adr/` for major decisions
-- **Rationale:** Document architectural choices with context and rationale
-- **Implementation:** ADR template + numbering system
-
-**29. API Documentation**
-- **✅ Decision:** Google-style docstrings + enhanced OpenAPI with examples
-- **Rationale:** FastAPI auto-generates docs, enhance with rich examples
-- **Implementation:** Docstring standards + OpenAPI customization
-
-**30. Operations Manual (Runbook)**
-- **✅ Decision:** Runbook in `docs/operations/` with deployment, rollback, troubleshooting
-- **Rationale:** Production readiness requires operational documentation
-- **Implementation:** Step-by-step procedures for common operations
-
-**31. Custom Tool Development**
-- **✅ Decision:** Tool template + error handling patterns + testing template
-- **Rationale:** Consistent tool interface, reliable error handling
-- **Implementation:** Tool base class + development guide
-
-**32. Sub-Agent Communication**
-- **✅ Decision:** Context-passing patterns + error handling + async calls
-- **Rationale:** DeepAgents supports sub-agents, need clear communication patterns
-- **Implementation:** Sub-agent usage guidelines + examples
-
-**33. Agent State Management**
-- **✅ Decision:** State persistence via checkpointer + cleanup strategies + size limits
-- **Rationale:** Manage agent state across interactions and sessions
-- **Implementation:** `StateManager` with pruning and migration support
-
----
-
-## 📐 Architecture Overview
-
-**Backend:** FastAPI (Python 3.10+)
-**Frontend:** Next.js (React) with AG-UI Protocol
-**Database:** PostgreSQL with pgvector (Replit)
-**LLM:** OpenAI GPT-5 with variable reasoning effort
-**Agent Framework:** LangGraph DeepAgents
-**Monitoring:** LangSmith
-**Search:** Perplexity MCP
-**UI Testing:** Playwright MCP
-
-**Key Patterns:**
-- Reasoning Router (GPT-5 effort optimization)
-- Event Streaming (AG-UI Protocol)
-- HITL Workflow (Human-in-the-loop approvals)
-- Checkpointer Strategy (State persistence)
-
-**See README.md for complete folder structure and detailed architecture.**
-
----
 
 ### Key Architectural Patterns
 
@@ -305,440 +156,41 @@ Human-in-the-loop approvals with three options:
 
 #### 4. **Checkpointer Strategy**
 State persistence across agent interactions:
-- Phase 0: SQLite for local/dev
-- Phase 1+: PostgreSQL for production
-- Enables conversation continuity and HITL
+- Phase 0: SQLite for local development
+- Enables conversation continuity and HITL workflows
+
+### Technology Stack
+
+**Backend:**
+- Framework: LangGraph DeepAgents
+- LLM: OpenAI GPT-5 with variable reasoning
+- API: FastAPI (async Python 3.10+)
+- State Management: SQLite checkpointer
+- Monitoring: LangSmith
+
+**Frontend:**
+- Framework: Next.js 14+ (App Router)
+- UI: shadcn/ui + Tailwind CSS
+- State: Zustand
+- Protocol: AG-UI for event streaming
+- WebSocket: Real-time bidirectional communication
+
+**External Integrations:**
+- Perplexity MCP: Web search
+- LangSmith: Agent tracing and observability
 
 ---
 
-## 📁 Project Structure
-
-```
-deep-agent-agi/
-├── backend/                           # FastAPI backend
-│   └── deep_agent/                    # Main application package
-│       ├── __init__.py
-│       ├── main.py                    # FastAPI app entry point
-│       │
-│       ├── config/                    # Configuration management
-│       │   ├── __init__.py
-│       │   ├── settings.py            # Pydantic settings
-│       │   ├── gpt5_config.py         # GPT-5 configuration
-│       │   └── environments.py        # Environment configs
-│       │
-│       ├── agents/                    # LangGraph DeepAgents
-│       │   ├── __init__.py
-│       │   ├── deep_agent.py          # Main agent implementation
-│       │   ├── reasoning_router.py    # GPT-5 effort routing
-│       │   ├── checkpointer.py        # State persistence
-│       │   └── sub_agents/            # Specialized sub-agents
-│       │       ├── __init__.py
-│       │       ├── research_agent.py
-│       │       └── analysis_agent.py
-│       │
-│       ├── tools/                     # Agent tools
-│       │   ├── __init__.py
-│       │   ├── file_system.py         # File tools (ls, read, write, edit)
-│       │   ├── planning.py            # Planning tool
-│       │   ├── web_search.py          # Perplexity MCP integration
-│       │   └── custom_tools.py        # Project-specific tools
-│       │
-│       ├── api/                       # FastAPI routes
-│       │   ├── __init__.py
-│       │   ├── v1/                    # API version 1
-│       │   │   ├── __init__.py
-│       │   │   ├── agents.py          # Agent endpoints
-│       │   │   ├── chat.py            # Chat/streaming
-│       │   │   ├── reasoning.py       # Reasoning analysis
-│       │   │   └── websocket.py       # AG-UI WebSocket
-│       │   ├── middleware.py          # CORS, rate limiting, auth
-│       │   └── dependencies.py        # FastAPI dependencies
-│       │
-│       ├── models/                    # Pydantic data models
-│       │   ├── __init__.py
-│       │   ├── gpt5.py                # GPT-5 models
-│       │   ├── agents.py              # Agent models
-│       │   ├── chat.py                # Chat models
-│       │   ├── reasoning.py           # Reasoning models
-│       │   ├── database.py            # SQLAlchemy models
-│       │   └── common.py              # Shared models
-│       │
-│       ├── services/                  # Business logic layer
-│       │   ├── __init__.py
-│       │   ├── gpt5_service.py        # GPT-5 API integration
-│       │   ├── reasoning_service.py   # Reasoning analysis
-│       │   ├── agent_service.py       # Agent orchestration
-│       │   ├── memory_service.py      # Memory/vector DB (Phase 1)
-│       │   └── auth_service.py        # Authentication (Phase 1)
-│       │
-│       ├── core/                      # Core utilities
-│       │   ├── __init__.py
-│       │   ├── logging.py             # Structured logging (structlog)
-│       │   ├── errors.py              # Custom exceptions
-│       │   ├── monitoring.py          # LangSmith integration
-│       │   ├── security.py            # Security utilities
-│       │   ├── database.py            # Database connection manager
-│       │   └── secrets.py             # Secrets abstraction
-│       │
-│       └── integrations/              # External service integrations
-│           ├── __init__.py
-│           ├── langsmith.py           # LangSmith tracing
-│           ├── opik.py                # Prompt optimization
-│           ├── mcp_clients/           # MCP server clients
-│           │   ├── __init__.py
-│           │   ├── playwright.py      # Playwright MCP client
-│           │   └── perplexity.py      # Perplexity MCP client
-│           └── ag_ui.py               # AG-UI event streaming
-│
-├── frontend/                          # Next.js frontend (AG-UI)
-│   ├── app/                           # Next.js App Router
-│   │   ├── layout.tsx                 # Root layout
-│   │   ├── page.tsx                   # Home page
-│   │   ├── chat/                      # Chat interface
-│   │   │   ├── page.tsx
-│   │   │   └── components/
-│   │   │       ├── ChatInterface.tsx
-│   │   │       ├── ReasoningIndicator.tsx
-│   │   │       ├── StreamingMessage.tsx
-│   │   │       └── HITLApproval.tsx
-│   │   └── reasoning/                 # Reasoning dashboard
-│   │       ├── page.tsx
-│   │       └── components/
-│   │           ├── ReasoningDashboard.tsx
-│   │           ├── EffortSelector.tsx
-│   │           └── TokenUsageChart.tsx
-│   │
-│   ├── components/                    # Shared components
-│   │   ├── ui/                        # shadcn/ui components
-│   │   ├── ag-ui/                     # AG-UI specific
-│   │   │   ├── AgentStatus.tsx
-│   │   │   ├── ToolCallDisplay.tsx
-│   │   │   ├── ReasoningVisualizer.tsx
-│   │   │   └── ProgressTracker.tsx
-│   │   └── common/                    # Common UI components
-│   │
-│   ├── lib/                           # Utility libraries
-│   │   ├── ag-ui.ts                   # AG-UI client setup
-│   │   ├── websocket.ts               # WebSocket client
-│   │   ├── reasoning.ts               # Reasoning utilities
-│   │   └── utils.ts                   # General utilities
-│   │
-│   ├── hooks/                         # React hooks
-│   │   ├── useAgentState.ts
-│   │   ├── useReasoningMode.ts
-│   │   └── useWebSocket.ts
-│   │
-│   ├── types/                         # TypeScript types
-│   │   ├── agent.ts
-│   │   ├── gpt5.ts
-│   │   ├── reasoning.ts
-│   │   └── ag-ui.ts
-│   │
-│   ├── package.json
-│   ├── next.config.js
-│   ├── tailwind.config.js
-│   └── tsconfig.json
-│
-├── tests/                             # Comprehensive test suite
-│   ├── unit/                          # Unit tests (pytest)
-│   │   ├── test_agents/
-│   │   │   ├── test_reasoning_router.py
-│   │   │   ├── test_deep_agent.py
-│   │   │   └── test_checkpointer.py
-│   │   ├── test_services/
-│   │   ├── test_tools/
-│   │   ├── test_api/
-│   │   └── test_models/
-│   │
-│   ├── integration/                   # Integration tests
-│   │   ├── test_agent_workflows/
-│   │   ├── test_api_endpoints/
-│   │   ├── test_mcp_integration/
-│   │   └── test_database/
-│   │
-│   ├── e2e/                           # End-to-end tests
-│   │   ├── test_complete_workflows/
-│   │   ├── test_reasoning_scenarios/
-│   │   └── test_user_journeys/
-│   │
-│   ├── ui/                            # Playwright UI tests
-│   │   ├── test_chat_interface.py
-│   │   ├── test_reasoning_ui.py
-│   │   ├── test_hitl_approval.py
-│   │   └── test_agent_dashboard.py
-│   │
-│   ├── fixtures/                      # Test data
-│   │   ├── reasoning_scenarios.json
-│   │   ├── agent_configs.py
-│   │   └── mock_responses/
-│   │
-│   ├── mocks/                         # Mock implementations
-│   │   ├── mock_gpt5.py
-│   │   ├── mock_langsmith.py
-│   │   └── mock_mcp_servers.py
-│   │
-│   └── conftest.py                    # Pytest configuration
-│
-├── .mcp/                              # MCP server configurations
-│   ├── playwright.json
-│   ├── perplexity.json
-│   └── README.md
-│
-├── docs/                              # Documentation
-│   ├── architecture/
-│   │   ├── gpt5_integration.md
-│   │   ├── reasoning_system.md
-│   │   ├── overview.md
-│   │   └── decisions/                 # Architecture Decision Records
-│   ├── development/
-│   │   ├── setup.md
-│   │   ├── testing.md
-│   │   └── deployment.md
-│   ├── api/                           # API documentation
-│   ├── operations/                    # Runbooks
-│   │   ├── deployment.md
-│   │   ├── rollback.md
-│   │   └── troubleshooting.md
-│   └── user_guides/
-│
-├── scripts/                           # Development scripts
-│   ├── dev.sh                         # Start development environment
-│   ├── test.sh                        # Run test suite
-│   ├── security_scan.sh               # TheAuditor security scan
-│   ├── quality_check.sh               # Lint, format, type check
-│   ├── deploy.sh                      # Deployment script
-│   └── setup_env.py                   # Environment setup
-│
-├── alembic/                           # Database migrations
-│   ├── env.py
-│   ├── versions/
-│   └── alembic.ini
-│
-├── .github/                           # GitHub Actions CI/CD
-│   └── workflows/
-│       ├── test.yml                   # Test workflow
-│       ├── security.yml               # TheAuditor integration
-│       └── deploy.yml                 # Deployment workflow
-│
-├── .vscode/                           # VSCode/Cursor settings
-│   ├── settings.json
-│   ├── extensions.json
-│   └── launch.json
-│
-├── pyproject.toml                     # Poetry configuration
-├── poetry.lock                        # Poetry lock file
-├── package.json                       # Node.js dependencies (Playwright MCP)
-├── package-lock.json
-│
-├── .env.example                       # Environment template
-├── .gitignore
-├── .pre-commit-config.yaml            # Pre-commit hooks
-│
-├── .replit                            # Replit configuration
-├── replit.nix                         # Replit Nix configuration
-│
-├── CLAUDE.md                          # Development guide (this file)
-└── README.md                          # Architecture overview (you are here)
-```
-
----
-
-## 📚 Documentation
-
-This project follows a comprehensive documentation strategy at multiple levels:
-
-1. **Code-level:** Google-style docstrings on all modules, classes, and functions
-2. **Folder-level:** README.md in every directory explaining purpose and usage
-3. **Project-level:** Architecture docs, development guides, and runbooks
-
-### 📖 Documentation Index
-
-#### 🏗️ Architecture & Design
-- **[Documentation Hub](docs/README.md)** - Complete documentation navigation
-- **[Architecture Overview](docs/architecture/README.md)** - System design and patterns
-- **[Technical Decisions](docs/architecture/)** - Architecture Decision Records
-
-#### 💻 Backend Documentation
-- **[Agents](backend/deep_agent/agents/README.md)** - DeepAgent implementations and sub-agents
-- **[API](backend/deep_agent/api/README.md)** - FastAPI routes and endpoints
-- **[API v1](backend/deep_agent/api/v1/README.md)** - Version 1 API specification
-- **[Services](backend/deep_agent/services/README.md)** - Business logic layer
-- **[Integrations](backend/deep_agent/integrations/README.md)** - External services (LangSmith, Opik)
-- **[MCP Clients](backend/deep_agent/integrations/mcp_clients/README.md)** - Perplexity and other MCP servers
-- **[Core](backend/deep_agent/core/README.md)** - Core utilities (logging, errors, security)
-- **[Models](backend/deep_agent/models/README.md)** - Pydantic data models
-- **[Tools](backend/deep_agent/tools/README.md)** - Agent tools (web search, prompt optimization)
-- **[Config](backend/deep_agent/config/README.md)** - Configuration management
-
-#### 🎨 Frontend Documentation
-- **[Frontend](frontend/README.md)** - Next.js application overview
-- **[App Router](frontend/app/README.md)** - Next.js 14 App Router pages
-- **[Components](frontend/components/README.md)** - Reusable UI components
-- **[Utilities](frontend/lib/README.md)** - Helper functions and libraries
-
-#### 🧪 Testing Documentation
-- **[Tests Overview](tests/README.md)** - Testing strategy and guidelines
-- **[Unit Tests](tests/unit/README.md)** - Isolated component testing
-- **[Integration Tests](tests/integration/README.md)** - Multi-component workflows
-- **[E2E Tests](tests/e2e/README.md)** - Complete user journeys
-- **[UI Tests](tests/ui/README.md)** - Playwright browser automation
-- **[Test Fixtures](tests/fixtures/README.md)** - Reusable test data
-- **[Test Mocks](tests/mocks/README.md)** - Mock implementations
-
-#### 🛠️ Developer Resources
-- **[Scripts](scripts/README.md)** - Development and deployment scripts
-- **[Development Guide](docs/development/README.md)** - Setup and workflow
-- **[API Documentation](docs/api/README.md)** - API reference and examples
-- **[Operations](docs/operations/README.md)** - Deployment and monitoring
-
-### 📝 Code Documentation Standards
-
-#### Python Docstrings (Google Style)
-
-All Python code follows Google-style docstrings with comprehensive examples:
-
-**Module level:**
-```python
-"""Brief module description.
-
-Longer description explaining the module's purpose and key concepts.
-
-Typical usage example:
-    from module import Class
-    obj = Class()
-    result = obj.method()
-```
-
-**Class level:**
-```python
-class MyClass:
-    """Brief class description.
-
-    Longer description of the class purpose and behavior.
-
-    Attributes:
-        attr1: Description of attribute
-        attr2: Description of attribute
-
-    Example:
-        >>> obj = MyClass()
-        >>> result = obj.method()
-        True
-    """
-```
-
-**Function level:**
-```python
-def my_function(arg1: str, arg2: int) -> bool:
-    """Brief function description.
-
-    Longer description of what the function does.
-
-    Args:
-        arg1: Description of arg1
-        arg2: Description of arg2
-
-    Returns:
-        Description of return value
-
-    Raises:
-        ValueError: When arg1 is invalid
-        TypeError: When arg2 is wrong type
-
-    Example:
-        >>> result = my_function("test", 42)
-        >>> print(result)
-        True
-    """
-```
-
-#### TypeScript/JSDoc Comments
-
-All TypeScript/React code follows JSDoc standards:
-
-```typescript
-/**
- * Component description
- *
- * @param props - Component props
- * @param props.message - Message to display
- * @param props.onSubmit - Submit callback
- * @returns React component
- *
- * @example
- * ```tsx
- * <MyComponent message="Hello" onSubmit={handleSubmit} />
- * ```
- */
-export function MyComponent({ message, onSubmit }: Props) {
-  // ...
-}
-```
-
-#### Shell Script Documentation
-
-All shell scripts include header comments:
-
-```bash
-#!/bin/bash
-# Script name and brief description
-#
-# Usage: ./script.sh [options]
-#
-# Options:
-#   -h, --help    Show this help message
-#   -v, --verbose Enable verbose output
-#
-# Example:
-#   ./script.sh --verbose
-```
-
-### 🤝 Contributing to Documentation
-
-When contributing code, ensure:
-
-1. **All Python files have module docstrings**
-2. **All public functions/methods have docstrings**
-3. **All classes have docstrings**
-4. **New directories include README.md**
-5. **Examples included in docstrings**
-6. **Update relevant README.md files**
-
-#### Documentation Checklist
-
-- [ ] Module docstring added
-- [ ] All public functions documented
-- [ ] All classes documented
-- [ ] Usage examples included
-- [ ] README.md updated (if applicable)
-- [ ] Related docs updated
-- [ ] Cross-references added
-
-#### Running Documentation Tests
-
-```bash
-# Check docstring coverage
-pydocstyle backend/deep_agent/
-
-# Generate API documentation (optional)
-sphinx-build -b html docs/ docs/_build/
-
-# Lint TypeScript comments
-npm run lint
-```
-
----
-
-## 🚀 Quick Start
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - **Python 3.10+**
 - **Node.js 18+**
-- **PostgreSQL** (for Phase 1+, Replit provides this)
 - **Git**
+- **API Keys:** OpenAI, Perplexity, LangSmith (optional)
 
-### Installation
+### Local Setup
 
 ```bash
 # 1. Clone repository
@@ -754,397 +206,556 @@ poetry install
 # 4. Install Node.js dependencies
 npm install
 
-# 5. Install Playwright browsers
-npx playwright install
-npx playwright install-deps
-
-# 6. Install TheAuditor (security scanning)
-git clone https://github.com/TheAuditorTool/Auditor
-cd TheAuditor && pip install -e .
-cd ..
-
-# 7. Set up environment variables
+# 5. Set up environment variables
 cp .env.example .env
-# Edit .env with your API keys (OpenAI, Perplexity, LangSmith, etc.)
+# Edit .env with your API keys:
+#   - OPENAI_API_KEY (required)
+#   - PERPLEXITY_API_KEY (required for web search)
+#   - LANGSMITH_API_KEY (optional, for tracing)
 
-# 8. Initialize database (Phase 1+)
-alembic upgrade head
-```
-
-### Run Development Server
-
-Use the provided scripts to start the servers with automatic datetime-stamped logging:
-
-```bash
-# Start both servers (recommended)
+# 6. Start the servers
 ./scripts/start-all.sh
-
-# Or start individually:
-./scripts/start-backend.sh   # Backend only
-./scripts/start-frontend.sh  # Frontend only
 ```
-
-All logs are automatically written to `logs/{service}/YYYY-MM-DD-HH-MM-SS.log` for easy debugging and tracking.
 
 **Access Points:**
 - Backend API: http://127.0.0.1:8000
 - Frontend UI: http://localhost:3000
 - API Docs: http://127.0.0.1:8000/docs
 
-**Development Modes:**
+### Replit Deployment
 
-#### HTTP Development Mode (with hot-reload)
-Use this for developing HTTP endpoints, services, and general backend code. Code changes trigger automatic restart.
+This prototype is optimized for deployment on Replit:
 
-**Trade-off:** WebSocket connections will be killed on each reload.
+**One-Click Deploy:**
+1. Fork this repository on Replit
+2. Configure Secrets in Replit dashboard:
+   - `OPENAI_API_KEY`
+   - `PERPLEXITY_API_KEY`
+   - `LANGSMITH_API_KEY` (optional)
+3. Click "Run" - Replit automatically:
+   - Installs Python/Node dependencies
+   - Starts backend (FastAPI) on port 8000
+   - Starts frontend (Next.js) on port 3000
 
-#### WebSocket Development Mode (no hot-reload)
-Use this for developing WebSocket functionality, streaming responses, and real-time features. Connections remain stable.
-
-**Trade-off:** Manual backend restart required for code changes.
-
-**Why Two Modes?**
-Uvicorn's `--reload` flag monitors file changes and restarts the server automatically. This restart kills all active WebSocket connections (Close Code 1006), making WebSocket development difficult. The two modes allow you to choose the right tool for your current task.
-
-### Run Tests
-
+**Environment Configuration:**
 ```bash
-# All tests with coverage
-pytest --cov
+# Replit automatically loads secrets from the Secrets tab
+# No .env file needed on Replit
 
-# Unit tests only
-pytest tests/unit/
-
-# UI tests (Playwright)
-pytest tests/ui/
-
-# Security scan (TheAuditor)
-aud init && aud full
+# Verify deployment:
+curl https://your-repl-name.replit.app/health
 ```
 
-### Logging
+### Environment Variables
 
-All server logs are automatically persisted with datetime-stamped filenames for easy tracking and debugging.
-
-**Log Directory Structure:**
-```
-logs/
-├── backend/
-│   ├── 2025-10-30-15-45-30.log
-│   ├── 2025-10-30-16-20-15.log
-│   └── ...
-└── frontend/
-    ├── 2025-10-30-15-45-32.log
-    ├── 2025-10-30-16-20-18.log
-    └── ...
-```
-
-**Viewing Logs:**
+**Required:**
 ```bash
-# Tail the most recent backend log
-tail -f logs/backend/$(ls -t logs/backend/*.log | head -1)
-
-# Tail the most recent frontend log
-tail -f logs/frontend/$(ls -t logs/frontend/*.log | head -1)
-
-# View specific log file (shown when starting servers)
-tail -f logs/backend/2025-10-30-15-45-30.log
+OPENAI_API_KEY=sk-...                    # OpenAI API key for GPT-5
+PERPLEXITY_API_KEY=pplx-...             # Perplexity API key for web search
 ```
 
-**Log Rotation:**
+**Optional:**
 ```bash
-# Clean up old logs (keeps recent 10, removes files older than 7 days)
-./scripts/cleanup-logs.sh
+LANGSMITH_API_KEY=ls__...               # LangSmith tracing (recommended)
+LANGSMITH_PROJECT=deep-agent-agi        # Project name in LangSmith
+
+# Reasoning configuration (defaults shown)
+GPT5_REASONING_MINIMAL=minimal          # Effort level for simple queries
+GPT5_REASONING_LOW=low                  # Effort level for basic queries
+GPT5_REASONING_MEDIUM=medium            # Effort level for moderate queries
+GPT5_REASONING_HIGH=high                # Effort level for complex queries
+
+# Rate limiting (Phase 0 defaults)
+RATE_LIMIT_PER_MINUTE=60                # Requests per minute per IP
 ```
 
-**Log Format:**
-- **Naming:** `YYYY-MM-DD-HH-MM-SS.log` (e.g., `2025-10-30-15-45-30.log`)
-- **Rotation:** Manual via `cleanup-logs.sh` script
-- **Retention:** Minimum 10 most recent logs, 7-day automatic cleanup available
-
-**Debugging with Logs:**
-All error logs include debugging identifiers:
-- `trace_id` - LangSmith trace URL for execution details
-- `thread_id` - Conversation thread identifier
-- `run_id` - LangGraph checkpoint ID
-- `request_id` - WebSocket request identifier
-
-See `docs/development/debugging.md` for complete debugging guide.
+See `.env.example` for complete configuration template.
 
 ---
 
-## 💻 Technology Stack
+## 📖 User Guide
 
-### Backend
-- **Framework:** LangGraph DeepAgents
-- **LLM:** OpenAI GPT-5 with variable reasoning
-- **API:** FastAPI (async Python)
-- **Database:** PostgreSQL + pgvector (Replit)
-- **Checkpointer:** SQLite (Phase 0) → PostgreSQL (Phase 1+)
-- **Monitoring:** LangSmith
-- **Prompt Optimization:** Opik
+### Using the Chat Interface
 
-### Frontend
-- **Framework:** Next.js 14+ (App Router)
-- **UI Library:** shadcn/ui + Tailwind CSS
-- **State Management:** Zustand
-- **Protocol:** AG-UI for agent event streaming
-- **Real-time:** WebSocket for bidirectional communication
+**Starting a Conversation:**
+1. Navigate to http://localhost:3000 (or your Replit URL)
+2. Type your message in the chat input
+3. Press Enter or click Send
+4. Watch the agent respond in real-time (token-by-token streaming)
 
-### Testing
-- **Unit/Integration/E2E:** pytest + pytest-cov
-- **UI Testing:** Playwright MCP
-- **Load Testing:** k6
-- **Security:** TheAuditor
+**Understanding Reasoning Modes:**
 
-### Development Tools
-- **Linting/Formatting:** Ruff (10-100x faster than alternatives)
-- **Type Checking:** mypy
-- **Pre-commit Hooks:** pre-commit framework
-- **CI/CD:** GitHub Actions
-- **Code Review:** CodeRabbit CLI (when available)
+The agent automatically selects the appropriate reasoning effort:
 
-### MCP Servers
-- **Playwright MCP:** UI testing automation
-- **Perplexity MCP:** Web search integration
-- **Custom MCP:** Built with fastmcp (Phase 2)
+- **Minimal** (⚡): Fast, simple queries
+  - Example: "What is 2+2?"
+  - Response time: <1 second
 
-### Infrastructure
-- **Deployment:** Replit (dev/staging/prod)
-- **WAF:** Cloudflare (Phase 2)
-- **Caching:** Redis (Phase 2)
-- **Load Balancing:** Nginx/cloud-native (Phase 2)
+- **Low** (💡): Basic explanations
+  - Example: "What is Python?"
+  - Response time: 1-2 seconds
+
+- **Medium** (🧠): Moderate complexity
+  - Example: "Explain object-oriented programming"
+  - Response time: 2-5 seconds
+
+- **High** (🚀): Complex analysis (use trigger phrases)
+  - Example: "Think harder about quantum computing applications"
+  - Response time: 5-15 seconds
+
+**Manual Reasoning Control:**
+
+Add trigger phrases to force high reasoning:
+- "think harder about..."
+- "think deeply about..."
+- "analyze thoroughly..."
+- "think step by step about..."
+
+### HITL Approval Workflow
+
+**When the agent needs approval:**
+
+1. **Approval Request Appears:** Agent pauses and displays the action requiring approval
+2. **Three Options:**
+   - **Accept:** Proceed with the action as-is
+   - **Respond:** Reject and provide feedback (agent will adjust)
+   - **Edit:** Modify the action then approve
+
+3. **Response:** Agent continues based on your decision
+
+**Example HITL Scenario:**
+```
+Agent: "I need approval to delete file: important-data.txt"
+
+Options:
+[ Accept ]  [ Respond ]  [ Edit ]
+
+You: [Respond] "Please back it up first"
+
+Agent: "I'll create a backup at important-data.txt.bak first"
+```
+
+### Viewing Agent Activity
+
+**Tool Call Transparency:**
+
+Click "Inspect" next to any agent response to see:
+- Tool name and invocation time
+- Input arguments (JSON format)
+- Output results
+- Execution duration
+
+**Example Tool Call Display:**
+```
+Tool: web_search
+Args: { "query": "latest Python news" }
+Result: [5 search results with titles and URLs]
+Duration: 1.2s
+```
+
+**Task Progress:**
+
+Watch the subtask list (left sidebar) for:
+- Current task being executed
+- Completed tasks (checked off)
+- Pending tasks (queued)
+
+### Cost Tracking
+
+**Per-Request Costs:**
+
+Each response shows:
+- Tokens used (input + output)
+- Reasoning effort level
+- Estimated cost in USD
+
+**Cost Optimization Tips:**
+- Use simple queries when possible (triggers minimal reasoning)
+- Avoid trigger phrases unless needed
+- Break complex queries into simpler sub-queries
+
+---
+
+## 🔌 API Reference
+
+### WebSocket Endpoint
+
+**Endpoint:** `ws://localhost:8000/ws/chat`
+
+**Connection:**
+```javascript
+const ws = new WebSocket('ws://localhost:8000/ws/chat');
+
+ws.onopen = () => {
+  console.log('Connected to agent');
+};
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  console.log('Received:', message);
+};
+```
+
+**Message Format (Client → Server):**
+```json
+{
+  "type": "user_message",
+  "content": "Your message here",
+  "thread_id": "optional-thread-id",
+  "reasoning_effort": "auto"  // or "minimal", "low", "medium", "high"
+}
+```
+
+**Event Types (Server → Client):**
+
+**Text Streaming:**
+```json
+{
+  "type": "text_message_start",
+  "message_id": "msg_123"
+}
+{
+  "type": "text_message_content",
+  "message_id": "msg_123",
+  "content": "Hello"
+}
+{
+  "type": "text_message_end",
+  "message_id": "msg_123"
+}
+```
+
+**Tool Calls:**
+```json
+{
+  "type": "tool_call_start",
+  "tool_name": "web_search",
+  "tool_call_id": "call_456"
+}
+{
+  "type": "tool_call_args",
+  "tool_call_id": "call_456",
+  "args": {"query": "Python news"}
+}
+{
+  "type": "tool_call_result",
+  "tool_call_id": "call_456",
+  "result": ["Result 1", "Result 2"]
+}
+```
+
+**HITL Approval:**
+```json
+{
+  "type": "hitl_approval_required",
+  "approval_id": "hitl_789",
+  "action": "delete_file",
+  "details": {"file_path": "/data/file.txt"}
+}
+
+// Client responds with:
+{
+  "type": "hitl_response",
+  "approval_id": "hitl_789",
+  "action": "accept"  // or "respond", "edit"
+}
+```
+
+**Errors:**
+```json
+{
+  "type": "error",
+  "error_code": "RATE_LIMIT_EXCEEDED",
+  "message": "Rate limit exceeded. Try again in 60 seconds.",
+  "retry_after": 60
+}
+```
+
+### REST Endpoints
+
+**Health Check:**
+```bash
+GET /health
+
+Response:
+{
+  "status": "healthy",
+  "version": "0.1.0-phase0"
+}
+```
+
+**API Documentation:**
+```bash
+GET /docs  # Interactive Swagger UI
+GET /redoc # ReDoc documentation
+```
+
+### Rate Limits
+
+**Phase 0 Limits:**
+- **Per IP:** 60 requests/minute
+- **WebSocket connections:** 5 concurrent per IP
+- **Message size:** 100KB max
+
+**Rate Limit Headers:**
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1634567890
+```
+
+**Rate Limit Exceeded Response:**
+```json
+{
+  "error": "Rate limit exceeded",
+  "retry_after": 60
+}
+```
+
+---
+
+## ⚡ Performance & Limits
+
+### Expected Response Times (Phase 0 Prototype)
+
+| Query Type | Reasoning Effort | Expected Latency | Example |
+|------------|------------------|------------------|---------|
+| Simple | Minimal | TBDs | "What is 2+2?" |
+| Basic | Low | TBDs | "What is Python?" |
+| Moderate | Medium | TBDs | "Explain OOP" |
+| Complex | High | TBDs | "Analyze quantum computing" |
+
+**Note:** Response times include network latency, LLM inference, and streaming overhead.
+
+### Current Limitations
+
+**Prototype Constraints:**
+- **No memory system:** Each conversation is independent (no long-term memory)
+- **No authentication:** Open access (secure your deployment)
+- **No rate limiting per user:** Only per-IP limits
+- **SQLite checkpointer:** Not suitable for high concurrency
+- **No multi-user:** Designed for single-user testing
+
+**Known Issues:**
+- WebSocket connections may timeout after 60 seconds of inactivity
+- Large file operations (>1MB) may be slow
+- Complex reasoning (high effort) can take 15+ seconds
+
+### Cost Estimates (GPT-5)
+
+**Cost factors:**
+- Query complexity
+- Reasoning effort level
+- Response length
+- Tool usage (web search adds $0.01-0.05)
+
+**Cost Optimization:**
+- Prefer minimal/low reasoning when possible
+- Cache common queries (not implemented in Phase 0)
+- Use specific, targeted questions
 
 ---
 
 ## 🔐 Security
 
-### Built-in Security Features
+### Built-in Protections
 
-1. **TheAuditor Integration**
-   - AI-assisted security scanning
-   - Automatic vulnerability detection
-   - Reports in `.pf/readthis/` directory
-   - Run: `aud init && aud full`
+**Rate Limiting:**
+- Per-IP request limits (60/minute)
+- Concurrent WebSocket connection limits (5/IP)
+- Protection against DoS attacks
 
-2. **Security Headers**
-   - CORS whitelist (environment-specific)
-   - CSP (Content Security Policy)
-   - HSTS (Strict-Transport-Security)
-   - X-Frame-Options, X-Content-Type-Options
+**Input Validation:**
+- Message size limits (100KB max)
+- JSON schema validation
+- SQL injection prevention (parameterized queries)
 
-3. **Rate Limiting**
-   - Per-IP + per-user limits
-   - Special limits for expensive operations (high reasoning)
-   - In-memory (Phase 0) → Redis (Phase 2)
+**Security Headers:**
+- CORS whitelist (environment-specific)
+- X-Content-Type-Options: nosniff
+- X-Frame-Options: DENY
 
-4. **Authentication & IAM (Phase 1)**
-   - OAuth 2.0 authentication
-   - Least-privilege access
-   - Rotating credentials (24-48h)
-   - Ephemeral tokens
+### Data Privacy
 
-5. **Secrets Management**
-   - Local: `.env` files (gitignored)
-   - Replit: Replit Secrets
-   - CI/CD: GitHub Secrets
-   - No hardcoded secrets anywhere
+**Phase 0 Prototype:**
+- No persistent user data storage
+- Conversation state in SQLite (local only)
+- LangSmith traces (optional, can be disabled)
 
-### Security Testing
+**Data Handling:**
+- API keys stored in environment variables only
+- No hardcoded secrets in codebase
+- Logs do not contain API keys or sensitive data
 
-- **Prompt injection** attack prevention
-- **Authorization bypass** testing
-- **Data exfiltration** prevention
-- **Rate limit** validation
-- **Input sanitization** verification
+### Recommended Deployment Security
 
-**Run Security Scan:**
+**For Public Deployments:**
+1. **Add authentication:** Implement API key or OAuth before public deployment
+2. **Use HTTPS:** Always deploy with SSL/TLS certificates
+3. **Firewall rules:** Restrict access to known IPs if possible
+4. **Monitor logs:** Watch for suspicious activity patterns
+5. **Rotate API keys:** Change OpenAI/Perplexity keys regularly
+
+**Environment Variables:**
 ```bash
-aud full
-cat .pf/readthis/*  # Review findings
+# Never commit these to version control
+OPENAI_API_KEY=...
+PERPLEXITY_API_KEY=...
+LANGSMITH_API_KEY=...
 ```
 
 ---
 
-## 📊 Monitoring & Observability
+## 🔧 Troubleshooting
 
-### LangSmith Integration
+### Common Issues
 
-All agent operations are traced in LangSmith:
-- Agent runs (start, steps, finish)
-- Tool calls (args, results, duration)
-- Sub-agent invocations
-- Error states and exceptions
-- Performance metrics
+**Issue: "WebSocket connection failed"**
+```
+Symptoms: Chat interface shows "Disconnected" status
+Cause: Backend not running or CORS misconfiguration
 
-**View Traces:** https://smith.langchain.com
-
-### Structured Logging (structlog)
-
-JSON-formatted logs for production:
-- Environment-specific formats (human-readable local, JSON prod)
-- Request/response logging with duration
-- Error tracking with stack traces
-- Reasoning decision logging
-
-### Cost Tracking
-
-Per-request token usage tracking:
-- GPT-5 token counts by reasoning effort
-- Cost calculation per model
-- Budget alerts
-- Custom cost dashboard (frontend)
-
----
-
-## 🧪 Testing Strategy
-
-### Test Coverage Requirements
-
-- **Minimum:** 80% code coverage
-- **Block merge** if coverage drops below threshold
-- **Automated reports** generated on every test run
-
-### Test Categories
-
-| Category | Tool | Coverage |
-|----------|------|----------|
-| Unit Tests | pytest | Functions, methods, tools |
-| Integration Tests | pytest | Workflows, tool chains, API |
-| E2E Tests | pytest | Complete user journeys |
-| UI Tests | Playwright MCP | Browser automation, visual regression |
-| Load Tests | k6 | Concurrent users, rate limiting |
-| Security Tests | TheAuditor | Vulnerabilities, prompt injection |
-
-### Running Tests
-
-```bash
-# All tests with coverage report
-pytest --cov --html=reports/test_report.html
-
-# Specific test categories
-pytest tests/unit/                      # Unit tests
-pytest tests/integration/               # Integration tests
-pytest tests/e2e/                       # E2E tests
-pytest tests/ui/                        # Playwright UI tests
-
-# Parallel execution (faster)
-pytest -n auto
-
-# Watch mode (re-run on file changes)
-pytest --watch
-
-# Generate detailed report
-pytest --cov --cov-report=html --html=reports/test_report.html
+Solution:
+1. Verify backend is running: curl http://localhost:8000/health
+2. Check backend logs: tail -f logs/backend/*.log
+3. Verify CORS settings in .env
 ```
 
----
+**Issue: "API key not found"**
+```
+Symptoms: Error message "OpenAI API key not configured"
+Cause: Missing or invalid OPENAI_API_KEY
 
-## 📈 Development Workflow
-
-### Phase-Based Development
-
-**Phase 0 (MVP):** Core agent + basic UI + monitoring
-**Phase 1 (Production):** Memory + auth + reasoning optimization
-**Phase 2 (Research):** Deep research + infrastructure hardening
-
-### Commit Discipline
-
-**Commit constantly:** Every logical unit of work gets committed immediately.
-
-**Semantic Commit Messages:**
-```bash
-feat(phase-0): implement DeepAgents file system tools
-fix(agents): resolve HITL approval timeout
-test(ui): add Playwright tests for chat interface
-security(phase-1): address TheAuditor findings
-docs(readme): update architecture diagram
-chore(deps): upgrade langchain to 0.3.x
+Solution:
+1. Check .env file exists
+2. Verify OPENAI_API_KEY is set: echo $OPENAI_API_KEY
+3. Restart backend after setting: ./scripts/start-backend.sh
 ```
 
-### Pre-commit Checks
+**Issue: "Rate limit exceeded"**
+```
+Symptoms: HTTP 429 error, message "Rate limit exceeded"
+Cause: Too many requests from same IP
 
-Automated on every commit:
-- Ruff linting & formatting
-- mypy type checking
-- detect-secrets scan
-- Trailing whitespace removal
-- YAML/JSON/TOML validation
+Solution:
+1. Wait 60 seconds before retrying
+2. Check for infinite loops or automated scripts
+3. Increase limit in .env: RATE_LIMIT_PER_MINUTE=120
+```
 
-### CI/CD Pipeline
+**Issue: "Slow responses (>30 seconds)"**
+```
+Symptoms: Agent takes very long to respond
+Cause: High reasoning effort or network issues
 
-GitHub Actions workflow runs on every push:
-1. **Lint:** Ruff check + format check
-2. **Type Check:** mypy
-3. **Unit Tests:** pytest with coverage
-4. **Integration Tests:** pytest
-5. **UI Tests:** Playwright MCP
-6. **Security Scan:** TheAuditor
-7. **E2E Tests:** Full workflows
-8. **Deploy:** Replit (if all pass)
+Solution:
+1. Check reasoning effort level (visible in UI)
+2. Use simpler queries or avoid trigger phrases
+3. Verify network connection to OpenAI
+4. Check LangSmith traces for bottlenecks
+```
 
----
+**Issue: "HITL approval hangs"**
+```
+Symptoms: Approval request never completes
+Cause: WebSocket connection lost during approval
 
-## 🎯 Phase 0 Success Criteria
+Solution:
+1. Refresh the page
+2. Check WebSocket connection status
+3. Review backend logs for errors
+```
 
-- [x] All 33 architectural decisions made
-- [ ] DeepAgents framework integrated
-- [ ] GPT-5 streaming responses working
-- [ ] AG-UI event streaming functional
-- [ ] HITL approval workflow complete
-- [ ] Perplexity MCP web search integrated
-- [ ] LangSmith tracing operational
-- [ ] 80%+ test coverage achieved
-- [ ] TheAuditor security scan passing
-- [ ] FastAPI backend deployed
+### Error Codes
 
-**See CLAUDE.md for complete success criteria and development guide.**
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `RATE_LIMIT_EXCEEDED` | Too many requests | Wait and retry |
+| `INVALID_API_KEY` | OpenAI key invalid | Check environment variables |
+| `WEBSOCKET_CLOSED` | Connection lost | Refresh page |
+| `TOOL_EXECUTION_FAILED` | Tool error | Check tool arguments |
+| `INTERNAL_SERVER_ERROR` | Backend crash | Check logs, restart |
 
----
+### Getting Help
 
-## 📚 Key Documentation
+**Debugging Steps:**
+1. Check backend logs: `tail -f logs/backend/*.log`
+2. Check frontend logs: Browser console (F12)
+3. View LangSmith traces: https://smith.langchain.com (if configured)
+4. Review error messages in UI
 
-- **[CLAUDE.md](./CLAUDE.md)** - Complete development guide for Claude Code
-- **[.env.example](./.env.example)** - Environment variable template
-- **[docs/architecture/](./docs/architecture/)** - Architecture decisions and diagrams
-- **[docs/development/](./docs/development/)** - Setup, testing, deployment guides
-- **[docs/operations/](./docs/operations/)** - Runbooks for deployment, rollback, troubleshooting
+**Log Locations:**
+```bash
+# Backend logs (timestamped)
+logs/backend/2025-11-17-*.log
 
----
+# Frontend logs (timestamped)
+logs/frontend/2025-11-17-*.log
+```
 
-## 🔗 Key Resources
-
-### Framework & Core
-- [LangGraph DeepAgents](https://github.com/langchain-ai/deepagents)
-- [Open Deep Research](https://github.com/langchain-ai/open_deep_research)
-- [AG-UI Protocol](https://docs.ag-ui.com/sdk/python/core/overview)
-
-### LLM & Optimization
-- [GPT-5 Documentation](https://platform.openai.com/docs/guides/latest-model)
-- [GPT-5 Prompting Guide](https://cookbook.openai.com/examples/gpt-5/gpt-5_prompting_guide)
-- [Opik Prompt Optimization](https://opik.ai/docs)
-
-### MCP Servers
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [Official MCP Servers](https://github.com/modelcontextprotocol/servers)
-- [Perplexity MCP](https://github.com/perplexityai/modelcontextprotocol)
-- [Playwright MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/playwright)
-
-### Monitoring & Tools
-- [LangSmith](https://docs.smith.langchain.com/reference/python/reference)
-- [TheAuditor Security](https://github.com/TheAuditorTool/Auditor)
-- [Playwright Testing](https://playwright.dev/)
+**Reporting Issues:**
+- Include error messages from logs
+- Include steps to reproduce
+- Include environment details (OS, Python/Node versions)
+- Open an issue on GitHub
 
 ---
 
 ## 🤝 Contributing
 
-1. **Follow CLAUDE.md development principles**
-2. **Write tests first** (TDD approach)
-3. **Commit constantly** (semantic messages)
-4. **Run security scan** after changes (`aud full`)
-5. **Maintain 80%+ test coverage**
-6. **Request CodeRabbit review** (when available)
+This is a **Phase 0 prototype**. Contributions are welcome for:
+- Bug fixes
+- Documentation improvements
+- Test coverage
+- Performance optimizations
+
+**Development Setup:**
+
+See [CLAUDE.md](./CLAUDE.md) for complete development guide, including:
+- TDD workflow (write tests first)
+- Commit discipline (semantic commits)
+- Pre-commit checks (linting, type checking)
+- Security scanning (TheAuditor)
+
+**Quick Start for Contributors:**
+```bash
+# Fork and clone
+git clone https://github.com/yourusername/deep-agent-agi.git
+
+# Install development dependencies
+poetry install
+npm install
+
+# Run tests
+pytest --cov
+
+# Make changes, write tests, commit
+git commit -m "feat(phase-0): add feature X"
+```
+
+---
+
+## 📚 Documentation
+
+### Key Documents
+
+- **[CLAUDE.md](./CLAUDE.md)** - Complete development guide
+- **[.env.example](./.env.example)** - Environment variable template
+- **[docs/architecture/](./docs/architecture/)** - Architecture details
+- **[docs/operations/](./docs/operations/)** - Deployment guides
+
+### Technical References
+
+**Framework & Core:**
+- [LangGraph DeepAgents](https://github.com/langchain-ai/deepagents)
+- [AG-UI Protocol](https://docs.ag-ui.com/sdk/python/core/overview)
+
+**LLM & APIs:**
+- [GPT-5 Documentation](https://platform.openai.com/docs/guides/latest-model)
+- [Perplexity MCP](https://github.com/perplexityai/modelcontextprotocol)
+
+**Monitoring:**
+- [LangSmith](https://docs.smith.langchain.com/reference/python/reference)
 
 ---
 
@@ -1154,43 +765,18 @@ MIT License - see [LICENSE](./LICENSE) for details
 
 ---
 
-## 👥 Team
+## 👥 About
 
-Built with ❤️ using Claude Code
+**Phase 0 Prototype** - Demonstrating core framework capabilities with intelligent reasoning optimization.
+
+Built with Claude Code using LangGraph DeepAgents and GPT-5.
+
+**Roadmap:**
+- **Phase 1:** Production features (memory, auth, advanced reasoning)
+- **Phase 2:** Deep research capabilities and infrastructure hardening
 
 **Contact:** [your-email@example.com]
 
 ---
 
-## ⚡ Quick Commands Reference
-
-```bash
-# Development
-poetry run uvicorn backend.deep_agent.main:app --reload
-cd frontend && npm run dev
-
-# Testing
-pytest --cov                                    # All tests
-pytest tests/ui/ -v                             # UI tests only
-./scripts/test.sh                               # Full test suite
-
-# Code Quality
-ruff check . && ruff format .                   # Lint & format
-mypy backend/deep_agent/                        # Type checking
-./scripts/quality_check.sh                      # All checks
-
-# Security
-aud init && aud full                            # Security scan
-cat .pf/readthis/*                              # Review findings
-
-# Git Workflow
-git add <files>
-git commit -m "feat(phase-X): description"      # Semantic commit
-git push origin feat/your-feature               # Push feature branch
-```
-
----
-
-**Remember:** Evaluation-driven, test-driven, phase-driven, commit-driven, security-first.
-
-Build incrementally, commit constantly, test thoroughly, scan for security issues, measure continuously, deploy confidently.
+**Phase 0 Prototype** | Test locally or deploy to Replit | [View on GitHub](https://github.com/yourusername/deep-agent-agi)

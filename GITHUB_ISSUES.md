@@ -1,6 +1,6 @@
 # GitHub Issues - Migration Strategy
 
-**Last Updated:** 2025-11-15
+**Last Updated:** 2025-11-17
 
 ## 🎯 Migration Strategy Overview
 
@@ -18,7 +18,7 @@
 
 ## 📊 Summary Statistics
 
-**Total Issues:** 75
+**Total Issues:** 76 (added Issue 122: Agent infinite loop)
 
 ### By Category:
 - **⏭️ DEFERRED:** 7 backend issues (9%) - Fix during service implementation
@@ -1364,4 +1364,88 @@ addStep(threadId, {
 **Status:** ✅ **FIXED** in commit fixing-react-key-warnings (2025-11-15)
 
 **Found in:** React console after implementing on_step/on_tool_call event handlers
+
+
+## Issue 122: Agent infinite loop in web search causes GraphRecursionError
+
+**Labels:** `bug`, `critical`, `phase-0`, `agent-behavior`
+
+**Title:** Agent stuck in infinite web search loop hits recursion limit of 25
+
+**Description:**
+Agent gets stuck in an infinite research loop when answering web search queries, making 100+ redundant searches instead of synthesizing results after the first batch. This causes GraphRecursionError when hitting the recursion limit of 25 steps.
+
+**Trace Analysis:**
+- **Trace ID:** 985e4710-046c-474e-a7e6-cde9e7815105
+- **Query:** "what are the latest advancements in AI from last week?"
+- **Duration:** ~2 minutes before timeout
+- **Tool Calls Made:** 127 web_search calls
+- **Unique Queries:** 37 different queries
+- **Most Repeated Query:** 124 times (same 3 queries repeated)
+- **LLM API Calls:** 13 GPT-5 calls
+- **Estimated Cost:** ~$15-20 (127 searches + 13 LLM calls)
+- **User Experience:** ERROR - no response delivered, recursion limit hit
+
+**Root Cause:**
+Agent receives comprehensive results from first 3-6 searches but **fails to recognize task completion**. Instead of synthesizing, it keeps making the SAME 3 queries in parallel repeatedly:
+1. `"OpenAI news November 2025 week of Nov 10"` - 124 times
+2. `"Google DeepMind news week of November 10 2025"` - 124 times
+3. `"AI news roundup November 10-16, 2025"` - 124 times
+
+**Why Loop Occurs:**
+- Prompt says "Make a maximum of 3 parallel searches, then synthesize results"
+- Agent makes 3 searches → Gets good results → Makes 3 MORE searches (instead of synthesizing)
+- No loop detection to stop after N iterations of same behavior
+- Each iteration spawns 3 new parallel searches
+- Recursion limit (25 steps) hit before synthesis ever occurs
+
+**Files:**
+- System Prompt: `backend/deep_agent/agents/prompts.py:48-54`
+- Agent Creation: `backend/deep_agent/agents/deep_agent.py:187-190` (recursion_limit setting)
+- Error Handling: `backend/deep_agent/services/agent_service.py:570-596` (GraphRecursionError catch)
+- Settings: `backend/deep_agent/config/settings.py:293` (MAX_TOOL_CALLS_PER_INVOCATION=12)
+
+**Fix Applied:**
+✅ **Phase 1: Prompt-Level Loop Prevention**
+
+Updated system prompt with explicit loop prevention guidance:
+```python
+### Parallel Tool Execution
+- **Maximum 3 parallel tool calls** at a time (prevents timeouts per Issue #113)
+- For web searches: Make a maximum of 3 parallel searches, then **IMMEDIATELY SYNTHESIZE RESULTS**
+- **CRITICAL**: Always provide a final synthesis response to the user, even if some searches fail or are cancelled
+- **LOOP PREVENTION**: If you've made 6+ web searches for the same topic, STOP searching and synthesize what you have
+- Research tasks should complete in 3-9 web searches maximum - synthesis is MORE important than exhaustive research
+- If more searches needed after synthesis, ask user permission before continuing
+- Balance thoroughness with execution time (target <45s per reasoning step)
+```
+
+**Testing:**
+- ✅ Integration test created: `tests/integration/test_agent_workflows/test_loop_prevention.py`
+- ✅ Prompt version updated: 1.1.0 → 1.2.0
+- 🔄 Pending: Re-run original query to validate fix
+
+**Impact:** CRITICAL - Blocks production use for research queries. Users get:
+- No response (ERROR instead of answer)
+- High cost (~$15-20 per failed query vs $1-2 for successful)
+- Poor UX (2+ min wait time, then error)
+
+**Why NOT to Increase Recursion Limit:**
+- Masks the bug (agent will loop for 50 steps instead of 25)
+- Cost explosion ($25-30 instead of $15-20)
+- Doesn't fix root cause (agent still doesn't know when to stop)
+- Current limit of 25 is correct (12 tool calls × 2 steps + 1 = 25)
+
+**Related Issues:**
+- Issue 113: LangGraph 45s timeout (different but related to tool execution)
+
+**Metrics:**
+| Metric | Before Fix | After Fix (Expected) |
+|--------|-----------|---------------------|
+| Web Searches | 127 | 3-9 |
+| Cost per Query | ~$15-20 | <$1 |
+| User Response | ERROR | Successful synthesis |
+| Execution Time | 2+ min (timeout) | <45s |
+
+**Found in:** GraphRecursionError investigation (2025-11-17)
 
