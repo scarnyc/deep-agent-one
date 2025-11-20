@@ -346,7 +346,7 @@ class AgentService:
         last_event_time = time.time()
 
         # Heartbeat configuration
-        heartbeat_interval = 5  # Send heartbeat every 5 seconds
+        heartbeat_interval = settings.HEARTBEAT_INTERVAL_SECONDS
         heartbeat_count = 0
 
         # Track streaming completion state for graceful cancellation handling
@@ -450,11 +450,32 @@ class AgentService:
                                                 event_type=event_type,
                                             )
 
+                                        # CRITICAL: Log all completion events for debugging truncation issues
+                                        if event_type in ("on_chain_end", "on_llm_end"):
+                                            logger.info(
+                                                f"🏁 RUN COMPLETION EVENT: {event_type}",
+                                                thread_id=thread_id,
+                                                trace_id=trace_id,
+                                                run_id=event.get("run_id"),
+                                                event_name=event.get("name"),
+                                                data_output=str(event.get("data", {}).get("output", ""))[:200],
+                                            )
+
                                         # Queue event for output
                                         await event_queue.put(("event", event))
                                     else:
+                                        # CRITICAL: Always log if completion events are filtered
+                                        if event_type in ("on_chain_end", "on_llm_end"):
+                                            logger.warning(
+                                                f"⚠️  COMPLETION EVENT FILTERED: {event_type} not in allowed_events!",
+                                                thread_id=thread_id,
+                                                trace_id=trace_id,
+                                                event_type=event_type,
+                                                event_name=event.get("name"),
+                                                allowed_events=list(allowed_events),
+                                            )
                                         # Log filtered events for debugging (first 50 only to avoid log spam)
-                                        if event_count <= 50:
+                                        elif event_count <= 50:
                                             logger.debug(
                                                 "Filtered event (not in allowed_events)",
                                                 thread_id=thread_id,
@@ -518,7 +539,7 @@ class AgentService:
                     while True:
                         try:
                             event_type, event_data = await asyncio.wait_for(
-                                event_queue.get(), timeout=1.0
+                                event_queue.get(), timeout=settings.EVENT_QUEUE_TIMEOUT_SECONDS
                             )
 
                             if event_type == "done":
@@ -549,10 +570,10 @@ class AgentService:
                     thread_id=thread_id,
                     trace_id=trace_id,
                 )
-                # Give checkpoint 5s grace period to finalize
+                # Give checkpoint grace period to finalize
                 checkpoint_task = asyncio.create_task(asyncio.sleep(0.5))
                 try:
-                    await asyncio.wait_for(checkpoint_task, timeout=5.0)
+                    await asyncio.wait_for(checkpoint_task, timeout=settings.CHECKPOINT_GRACE_PERIOD_SECONDS)
                 except (TimeoutError, asyncio.CancelledError):
                     # Expected during shutdown - ignore
                     pass
@@ -636,7 +657,7 @@ class AgentService:
                 # Wait for checkpoint task if it exists
                 if checkpoint_task and not checkpoint_task.done():
                     try:
-                        await asyncio.wait_for(checkpoint_task, timeout=5.0)
+                        await asyncio.wait_for(checkpoint_task, timeout=settings.CHECKPOINT_GRACE_PERIOD_SECONDS)
                     except (TimeoutError, asyncio.CancelledError):
                         pass  # Expected during shutdown
                 # Do NOT yield error event - this is normal shutdown
