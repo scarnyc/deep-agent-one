@@ -58,6 +58,16 @@ else
     exit 1
 fi
 
+# Validate configuration before starting
+echo ""
+echo -e "${BLUE}Validating configuration...${NC}"
+if python scripts/validate_config.py; then
+    echo -e "${GREEN}Configuration validation passed${NC}"
+else
+    echo -e "${RED}Configuration validation failed - fix errors before starting${NC}"
+    exit 1
+fi
+
 echo ""
 echo -e "${BLUE}Starting uvicorn on http://127.0.0.1:8000${NC}"
 echo -e "${BLUE}Logs: ${LOG_FILE}${NC}"

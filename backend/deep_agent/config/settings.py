@@ -292,6 +292,22 @@ class Settings(BaseSettings):
     # Default: 12 tool calls = 25 recursion steps (each tool = 2 steps: LLM call + tool execution)
     MAX_TOOL_CALLS_PER_INVOCATION: int = 6
 
+    # WebSocket & Event Processing Timeouts
+    # Heartbeat interval - frequency of keep-alive messages sent to client
+    # Lower values = more responsive disconnect detection, higher network overhead
+    # Higher values = less network traffic, slower disconnect detection
+    HEARTBEAT_INTERVAL_SECONDS: int = 5
+
+    # Event queue polling timeout - max wait time for new events during multiplexing
+    # Lower values = more CPU usage (busy polling), faster event delivery
+    # Higher values = less CPU usage, potential latency in event delivery
+    EVENT_QUEUE_TIMEOUT_SECONDS: float = 1.0
+
+    # Checkpoint grace period - time allowed for state persistence to complete
+    # Should be > typical checkpoint write latency for your storage backend
+    # Insufficient time may cause state loss during shutdown
+    CHECKPOINT_GRACE_PERIOD_SECONDS: float = 5.0
+
     # Security Configuration
     SECRET_KEY: str | None = None
     JWT_SECRET: str | None = None
