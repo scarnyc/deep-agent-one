@@ -103,23 +103,7 @@ def __init__(self) -> None:
 
 **Found in:** Layer 2 Review
 
----
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** Agent Service microservice
-**Timeline:** Weeks 7-8 of migration
-**Rationale:** ReasoningRouter configuration will be redesigned as part of Agent Service microservice. New service will have proper config management patterns.
-**Workaround:** Phase 1 placeholder feature, not needed for Phase 0.
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** Agent Service microservice
-**Timeline:** Weeks 7-8 of migration
-**Rationale:** ReasoningRouter configuration will be redesigned as part of Agent Service microservice. New service will have proper config management patterns.
-**Workaround:** Phase 1 placeholder feature, not needed for Phase 0.
+**🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in Agent Service microservice (Weeks 7-8). Phase 1 placeholder feature.
 
 
 ## Issue 26: Enhance health endpoint with dependency status checks
@@ -137,23 +121,7 @@ The current health endpoint only returns `{"status": "healthy"}` without checkin
 
 **Found in:** FastAPI App Review
 
----
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** API Gateway microservice
-**Timeline:** Weeks 9-10 of migration
-**Rationale:** API Gateway (Kong) will implement centralized health checks with dependency status for all microservices. Don't build this in monolith.
-**Workaround:** Basic health check works for Phase 0.
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** API Gateway microservice
-**Timeline:** Weeks 9-10 of migration
-**Rationale:** API Gateway (Kong) will implement centralized health checks with dependency status for all microservices. Don't build this in monolith.
-**Workaround:** Basic health check works for Phase 0.
+**🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in API Gateway microservice (Weeks 9-10). Basic health check works for Phase 0.
 
 
 ## Issue 28: Version string hardcoded in FastAPI app creation
@@ -171,23 +139,7 @@ The FastAPI app version is hardcoded as `"0.1.0"` instead of being loaded from a
 
 **Found in:** FastAPI App Review
 
----
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** All Microservices microservice
-**Timeline:** Weeks 9-10 of migration
-**Rationale:** Each microservice will have its own version management. Implement consistent versioning strategy during service creation.
-**Workaround:** Hardcoded version acceptable for Phase 0.
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** All Microservices microservice
-**Timeline:** Weeks 9-10 of migration
-**Rationale:** Each microservice will have its own version management. Implement consistent versioning strategy during service creation.
-**Workaround:** Hardcoded version acceptable for Phase 0.
+**🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in All Microservices (Weeks 9-10). Hardcoded version acceptable for Phase 0.
 
 
 ## Issue 30: Add timeout protection to streaming endpoint
@@ -205,23 +157,7 @@ The POST /chat/stream endpoint doesn't enforce a timeout, potentially allowing i
 
 **Found in:** Streaming Endpoint Review
 
----
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** Chat Service microservice
-**Timeline:** Weeks 5-6 of migration
-**Rationale:** Chat Service microservice will implement proper timeout handling for SSE streams with configurable limits.
-**Workaround:** Not critical for Phase 0 single-user dev environment.
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** Chat Service microservice
-**Timeline:** Weeks 5-6 of migration
-**Rationale:** Chat Service microservice will implement proper timeout handling for SSE streams with configurable limits.
-**Workaround:** Not critical for Phase 0 single-user dev environment.
+**🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in Chat Service microservice (Weeks 5-6). Not critical for Phase 0.
 
 
 ## Issue 31: Transform LangChain events to AG-UI Protocol format
@@ -250,23 +186,7 @@ async for event in service.stream(
 
 **Found in:** Streaming Endpoint Review
 
----
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** Chat Service microservice
-**Timeline:** Weeks 5-6 of migration
-**Rationale:** Event transformation will be redesigned in Chat Service microservice. May implement new event pipeline architecture.
-**Workaround:** Current implementation works, will be refactored.
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** Chat Service microservice
-**Timeline:** Weeks 5-6 of migration
-**Rationale:** Event transformation will be redesigned in Chat Service microservice. May implement new event pipeline architecture.
-**Workaround:** Current implementation works, will be refactored.
+**🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in Chat Service microservice (Weeks 5-6). Current implementation works.
 
 
 ## Issue 99: Add error handling to AgentService initialization in dependencies
@@ -320,23 +240,7 @@ def get_agent_service() -> AgentService:
 
 **Found in:** code-review-expert Pre-Commit Review (2025-10-27)
 
----
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** State Service + Agent Service microservice
-**Timeline:** Weeks 3-4 of migration
-**Rationale:** Agent Service microservice will have new initialization pattern with dependency injection. State Service provides checkpointer.
-**Workaround:** Errors caught at FastAPI level, manageable for MVP.
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** State Service + Agent Service microservice
-**Timeline:** Weeks 3-4 of migration
-**Rationale:** Agent Service microservice will have new initialization pattern with dependency injection. State Service provides checkpointer.
-**Workaround:** Errors caught at FastAPI level, manageable for MVP.
+**🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in State Service + Agent Service (Weeks 3-4). Errors caught at FastAPI level.
 
 
 ## Issue 113: LangGraph internal 45s timeout causes Agent streaming timeout
@@ -375,55 +279,9 @@ Agent streaming fails with `CancelledError` after exactly 44.85 seconds when pro
 
 **Impact:** MEDIUM - Queries with many parallel tools may timeout before synthesis completes. Affects complex research queries.
 
-**Temporary Workaround (Phase 0):**
-Users can limit parallel tool calls by rephrasing queries to be more specific/targeted.
+**Temporary Workaround (Phase 0):** Users can limit parallel tool calls by rephrasing queries.
 
-**Solution Options for Phase 1:**
-
-**Option A: Limit Parallel Tool Calls (Recommended)**
-Modify system prompt to restrict parallel searches:
-```python
-# In backend/deep_agent/agents/prompts.py
-system_prompt += "\n\nIMPORTANT: Limit web searches to 2-3 parallel calls maximum to ensure timely synthesis."
-```
-**Pros:** Simple, immediate fix
-**Cons:** Reduces research thoroughness
-
-**Option B: Increase OpenAI Client Timeout**
-Add explicit timeout to ChatOpenAI configuration:
-```python
-# In backend/deep_agent/services/llm_factory.py
-llm = ChatOpenAI(
-    model=settings.GPT5_MODEL_NAME,
-    temperature=settings.GPT5_TEMPERATURE,
-    max_completion_tokens=settings.GPT5_MAX_TOKENS,
-    reasoning_effort=effort_value,
-    request_timeout=180.0,  # Add explicit timeout
-)
-```
-**Pros:** May override LangGraph timeout
-**Cons:** Not guaranteed to work, depends on LangChain internals
-
-**Option C: Split Synthesis into Chunks**
-Modify agent architecture to synthesize incrementally:
-- After each N tool calls complete, run intermediate synthesis
-- Final synthesis only combines intermediate results
-- Keeps each model call under 45s
-**Pros:** Most robust, handles any number of tools
-**Cons:** Complex implementation, requires agent architecture changes
-
-**Option D: Contact LangGraph Team**
-File issue with LangGraph project requesting configurable timeouts:
-- GitHub: https://github.com/langchain-ai/langgraph
-- Request: Add `node_timeout` parameter to `create_deep_agent()`
-**Pros:** Fixes at framework level
-**Cons:** Depends on external team, unknown timeline
-
-**Recommended Approach (Phase 1):**
-1. Implement **Option A** immediately (system prompt change)
-2. Test **Option B** (request timeout override)
-3. If neither works, implement **Option C** (incremental synthesis)
-4. File issue as **Option D** regardless (helps community)
+**Phase 1 Solutions:** (A) Limit parallel tool calls via prompt, (B) Increase OpenAI client timeout, (C) Split synthesis into chunks, or (D) Request LangGraph framework fix. Recommended: Try A→B→C in order.
 
 **Related Configuration:**
 ```python
@@ -446,17 +304,7 @@ WEB_SEARCH_TIMEOUT=30               # Perplexity MCP timeout (enforced ✅)
 
 **Found in:** WebSocket Timeout Investigation (2025-11-06)
 
----
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** Agent Service microservice
-**Timeline:** Weeks 7-8 of migration
-**Rationale:** Agent Service will implement incremental synthesis to avoid 45s timeout. Complex architectural change better done during service split.
-**Workaround:** Users can limit parallel tools by rephrasing queries.
-
-
+**🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in Agent Service (Weeks 7-8). Complex architectural change for service split.
 
 
 ## 📋 TRACKED ISSUES (10 Low-Priority Issues)
@@ -466,29 +314,6 @@ WEB_SEARCH_TIMEOUT=30               # Perplexity MCP timeout (enforced ✅)
 **Rationale:** These are nice-to-have improvements that don't block migration or production deployment. Can be addressed incrementally after migration completes.
 
 **Priority:** All issues in this section are LOW priority.
-
----
----
-
-**🔄 MIGRATION STRATEGY: DEFERRED**
-
-**Will Be Fixed In:** Agent Service microservice
-**Timeline:** Weeks 7-8 of migration
-**Rationale:** Agent Service will implement incremental synthesis to avoid 45s timeout. Complex architectural change better done during service split.
-**Workaround:** Users can limit parallel tools by rephrasing queries.
-
-
-
-
-## 📋 TRACKED ISSUES (10 Low-Priority Issues)
-
-**Strategy:** Fix when time permits - Non-blocking quality improvements.
-
-**Rationale:** These are nice-to-have improvements that don't block migration or production deployment. Can be addressed incrementally after migration completes.
-
-**Priority:** All issues in this section are LOW priority.
-
----
 
 ## Issue 14: Optional test coverage improvement for Perplexity client
 
@@ -506,21 +331,7 @@ Post-commit review by testing-expert identified optional coverage improvement. L
 
 **Found in:** Layer 4 Post-Commit Review
 
----
----
-
-**📋 TRACKED (LOW PRIORITY)**
-
-**Priority:** NON-BLOCKING
-**Rationale:** Optional quality improvement - 89.89% coverage already exceeds 80% requirement.
-**When to Fix:** When spare time available, not urgent for migration.
----
-
-**📋 TRACKED (LOW PRIORITY)**
-
-**Priority:** NON-BLOCKING
-**Rationale:** Optional quality improvement - 89.89% coverage already exceeds 80% requirement.
-**When to Fix:** When spare time available, not urgent for migration.
+**📋 TRACKED (LOW PRIORITY)** - Optional quality improvement. 89.89% coverage exceeds 80% requirement.
 
 
 ## Issue 21: Duplicate validator logic across agent models
@@ -541,21 +352,7 @@ All three agent models (`AgentRunInfo`, `HITLApprovalRequest`, `HITLApprovalResp
 
 **Found in:** Agent Models Review
 
----
----
-
-**📋 TRACKED (LOW PRIORITY)**
-
-**Priority:** NON-BLOCKING
-**Rationale:** Code duplication exists but doesn't affect functionality. Backend models will remain in microservices architecture.
-**When to Fix:** When spare time available, not urgent for migration.
----
-
-**📋 TRACKED (LOW PRIORITY)**
-
-**Priority:** NON-BLOCKING
-**Rationale:** Code duplication exists but doesn't affect functionality. Backend models will remain in microservices architecture.
-**When to Fix:** When spare time available, not urgent for migration.
+**📋 TRACKED (LOW PRIORITY)** - Code duplication doesn't affect functionality. Backend models remain in microservices.
 
 
 ## Issue 100: Add test for WebSocket secret redaction feature
