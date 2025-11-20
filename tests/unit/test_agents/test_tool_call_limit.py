@@ -33,7 +33,7 @@ class TestRecursionLimitConfiguration:
         mock_graph.with_config = MagicMock(return_value=mock_graph_with_config)
 
         with patch("backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph):
-            with patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm"):
+            with patch("backend.deep_agent.agents.deep_agent.create_llm"):
                 with patch("backend.deep_agent.agents.deep_agent.setup_langsmith"):
                     # Act
                     agent = await create_agent(settings=test_settings)
@@ -67,7 +67,7 @@ class TestRecursionLimitConfiguration:
             mock_graph.with_config = MagicMock(return_value=mock_graph_with_config)
 
             with patch("backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph):
-                with patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm"):
+                with patch("backend.deep_agent.agents.deep_agent.create_llm"):
                     with patch("backend.deep_agent.agents.deep_agent.setup_langsmith"):
                         # Act
                         await create_agent(settings=test_settings)
@@ -89,7 +89,7 @@ class TestRecursionLimitConfiguration:
         mock_graph.with_config = MagicMock(return_value=mock_graph_with_config)
 
         with patch("backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph):
-            with patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm"):
+            with patch("backend.deep_agent.agents.deep_agent.create_llm"):
                 with patch("backend.deep_agent.agents.deep_agent.setup_langsmith"):
                     # Act
                     agent = await create_agent(settings=test_settings)

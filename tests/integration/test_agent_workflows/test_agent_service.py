@@ -20,11 +20,10 @@ def mock_settings(tmp_path: Path) -> Settings:
     settings = Mock(spec=Settings)
     settings.ENV = "local"
     settings.OPENAI_API_KEY = "sk-test-key-12345"
-    settings.GPT5_MODEL_NAME = "gpt-5"
-    settings.GPT5_DEFAULT_REASONING_EFFORT = "medium"
-    settings.GPT5_DEFAULT_VERBOSITY = "medium"
-    settings.GPT5_MAX_TOKENS = 4096
-    settings.GPT5_TEMPERATURE = 0.7
+    settings.GPT_MODEL_NAME = "gpt-5"
+    settings.GPT_DEFAULT_REASONING_EFFORT = "medium"
+    settings.GPT_DEFAULT_VERBOSITY = "medium"
+    settings.GPT_MAX_TOKENS = 4096
     settings.CHECKPOINT_DB_PATH = str(tmp_path / "test_service_checkpoints.db")
     settings.CHECKPOINT_CLEANUP_DAYS = 30
     settings.ENABLE_HITL = True

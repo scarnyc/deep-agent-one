@@ -27,11 +27,11 @@ def test_settings(tmp_path: Path) -> Settings:
     settings.LANGSMITH_PROJECT = "test-project"
     settings.LANGSMITH_ENDPOINT = "https://api.smith.langchain.com"
     settings.LANGSMITH_TRACING_V2 = False
-    settings.GPT5_MODEL_NAME = "gpt-5"
-    settings.GPT5_DEFAULT_REASONING_EFFORT = "medium"
-    settings.GPT5_DEFAULT_VERBOSITY = "medium"
-    settings.GPT5_MAX_TOKENS = 4096
-    settings.GPT5_TEMPERATURE = 0.7
+    settings.GPT_MODEL_NAME = "gpt-5"
+    settings.GPT_DEFAULT_REASONING_EFFORT = "medium"
+    settings.GPT_DEFAULT_VERBOSITY = "medium"
+    settings.GPT_MAX_TOKENS = 4096
+    settings.GPT_TEMPERATURE = 0.7
     settings.CHECKPOINT_DB_PATH = str(tmp_path / "test_checkpoints.db")
     settings.CHECKPOINT_CLEANUP_DAYS = 30
     settings.ENABLE_HITL = False  # Disable HITL for simpler testing

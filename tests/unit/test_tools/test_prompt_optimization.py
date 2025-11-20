@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from deep_agent.tools.prompt_optimization import (
-    GPT5_BEST_PRACTICES,
+    GPT_BEST_PRACTICES,
     ab_test_prompts,
     analyze_prompt,
     create_evaluation_dataset,
@@ -409,20 +409,20 @@ class TestABTestPrompts:
         assert not result["statistically_significant"]
 
 
-class TestGPT5BestPractices:
-    """Test suite for GPT5_BEST_PRACTICES constant."""
+class TestGPTBestPractices:
+    """Test suite for GPT_BEST_PRACTICES constant."""
 
     def test_best_practices_structure(self):
         """Test that best practices dictionary has expected structure."""
         # Assert (updated key names to match actual implementation)
-        assert "agentic_behavior" in GPT5_BEST_PRACTICES
-        assert "verbosity_control" in GPT5_BEST_PRACTICES
-        assert "tool_usage" in GPT5_BEST_PRACTICES
-        assert "clarity_structure" in GPT5_BEST_PRACTICES  # Changed from "structure"
-        assert "no_contradictions" in GPT5_BEST_PRACTICES  # Changed from "completeness"
+        assert "agentic_behavior" in GPT_BEST_PRACTICES
+        assert "verbosity_control" in GPT_BEST_PRACTICES
+        assert "tool_usage" in GPT_BEST_PRACTICES
+        assert "clarity_structure" in GPT_BEST_PRACTICES  # Changed from "structure"
+        assert "no_contradictions" in GPT_BEST_PRACTICES  # Changed from "completeness"
 
         # Check that each category has items
-        for category in GPT5_BEST_PRACTICES.values():
+        for category in GPT_BEST_PRACTICES.values():
             assert isinstance(category, list)
             assert len(category) > 0
 
@@ -430,7 +430,7 @@ class TestGPT5BestPractices:
         """Test that best practices include key requirements."""
         # Flatten all practices into single list
         all_practices = []
-        for practices in GPT5_BEST_PRACTICES.values():
+        for practices in GPT_BEST_PRACTICES.values():
             all_practices.extend(practices)
 
         # Assert key requirements are present

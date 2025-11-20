@@ -36,11 +36,10 @@ def mock_settings(tmp_path: Path) -> Settings:
     settings.LANGSMITH_PROJECT = "test-project"
     settings.LANGSMITH_ENDPOINT = "https://api.smith.langchain.com"
     settings.LANGSMITH_TRACING_V2 = True
-    settings.GPT5_MODEL_NAME = "gpt-5"
-    settings.GPT5_DEFAULT_REASONING_EFFORT = "medium"
-    settings.GPT5_DEFAULT_VERBOSITY = "medium"  # Valid values: low, medium, high
-    settings.GPT5_MAX_TOKENS = 4096
-    settings.GPT5_TEMPERATURE = 0.7
+    settings.GPT_MODEL_NAME = "gpt-5"
+    settings.GPT_DEFAULT_REASONING_EFFORT = "medium"
+    settings.GPT_DEFAULT_VERBOSITY = "medium"  # Valid values: low, medium, high
+    settings.GPT_MAX_TOKENS = 4096
     settings.CHECKPOINT_DB_PATH = str(tmp_path / "test_checkpoints.db")
     settings.CHECKPOINT_CLEANUP_DAYS = 30
     settings.ENABLE_HITL = True
@@ -141,11 +140,10 @@ class TestCreateAgentBasics:
         test_settings.LANGSMITH_PROJECT = "test-project"
         test_settings.LANGSMITH_ENDPOINT = "https://api.smith.langchain.com"
         test_settings.LANGSMITH_TRACING_V2 = True
-        test_settings.GPT5_MODEL_NAME = "gpt-5"
-        test_settings.GPT5_DEFAULT_REASONING_EFFORT = "medium"
-        test_settings.GPT5_DEFAULT_VERBOSITY = "medium"
-        test_settings.GPT5_MAX_TOKENS = 4096
-        test_settings.GPT5_TEMPERATURE = 0.7
+        test_settings.GPT_MODEL_NAME = "gpt-5"
+        test_settings.GPT_DEFAULT_REASONING_EFFORT = "medium"
+        test_settings.GPT_DEFAULT_VERBOSITY = "medium"
+        test_settings.GPT_MAX_TOKENS = 4096
         test_settings.CHECKPOINT_DB_PATH = "/tmp/test.db"
         test_settings.CHECKPOINT_CLEANUP_DAYS = 30
         test_settings.ENABLE_HITL = True
@@ -169,7 +167,7 @@ class TestLLMIntegration:
     """Test LLM integration via llm_factory."""
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     async def test_agent_creates_llm_from_factory(
         self,
         mock_llm_factory: Mock,
@@ -199,11 +197,11 @@ class TestLLMIntegration:
         # Check config was passed
         assert "config" in call_kwargs
         config = call_kwargs["config"]
-        assert config.model_name == mock_settings.GPT5_MODEL_NAME
-        assert config.reasoning_effort.value == mock_settings.GPT5_DEFAULT_REASONING_EFFORT
+        assert config.model_name == mock_settings.GPT_MODEL_NAME
+        assert config.reasoning_effort.value == mock_settings.GPT_DEFAULT_REASONING_EFFORT
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     async def test_agent_uses_custom_reasoning_effort_from_settings(
         self,
         mock_llm_factory: Mock,
@@ -214,7 +212,7 @@ class TestLLMIntegration:
         # Arrange
         from backend.deep_agent.agents.deep_agent import create_agent
 
-        mock_settings.GPT5_DEFAULT_REASONING_EFFORT = "high"
+        mock_settings.GPT_DEFAULT_REASONING_EFFORT = "high"
         mock_llm_factory.return_value = mock_llm
 
         # Act
@@ -233,7 +231,7 @@ class TestCheckpointerIntegration:
     """Test checkpointer integration for state persistence."""
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     @patch("backend.deep_agent.agents.deep_agent.CheckpointerManager")
     async def test_agent_creates_checkpointer_manager(
         self,
@@ -267,7 +265,7 @@ class TestCheckpointerIntegration:
         mock_manager.create_checkpointer.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     @patch("backend.deep_agent.agents.deep_agent.CheckpointerManager")
     async def test_checkpointer_manager_creates_checkpointer(
         self,
@@ -346,7 +344,7 @@ class TestErrorHandling:
     """Test error handling for various failure scenarios."""
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     async def test_create_agent_missing_api_key_raises_error(
         self,
         mock_llm_factory: Mock,
@@ -364,7 +362,7 @@ class TestErrorHandling:
             await create_agent(settings=mock_settings)
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     @patch("backend.deep_agent.agents.deep_agent.CheckpointerManager")
     async def test_create_agent_checkpointer_failure_raises_error(
         self,
@@ -396,7 +394,7 @@ class TestErrorHandling:
             await create_agent(settings=mock_settings)
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     async def test_create_agent_invalid_reasoning_effort_raises_error(
         self,
         mock_llm_factory: Mock,
@@ -406,7 +404,7 @@ class TestErrorHandling:
         # Arrange
         from backend.deep_agent.agents.deep_agent import create_agent
 
-        mock_settings.GPT5_DEFAULT_REASONING_EFFORT = "invalid"
+        mock_settings.GPT_DEFAULT_REASONING_EFFORT = "invalid"
 
         # Act & Assert - should raise ValueError when creating GPT5Config
         with pytest.raises(ValueError):
@@ -417,7 +415,7 @@ class TestLoggingAndObservability:
     """Test logging and observability features."""
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     async def test_agent_creation_logs_configuration(
         self,
         mock_llm_factory: Mock,
@@ -444,7 +442,7 @@ class TestLoggingAndObservability:
             assert any("Creating DeepAgent" in call for call in info_calls)
 
     @pytest.mark.asyncio
-    @patch("backend.deep_agent.agents.deep_agent.create_gpt5_llm")
+    @patch("backend.deep_agent.agents.deep_agent.create_llm")
     async def test_agent_creation_logs_llm_creation(
         self,
         mock_llm_factory: Mock,

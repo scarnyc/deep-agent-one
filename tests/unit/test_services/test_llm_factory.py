@@ -2,30 +2,29 @@
 import pytest
 from langchain_openai import ChatOpenAI
 
-from backend.deep_agent.models.gpt5 import GPT5Config, ReasoningEffort, Verbosity
-from backend.deep_agent.services.llm_factory import create_gpt5_llm
+from backend.deep_agent.models.llm import GPTConfig, ReasoningEffort, Verbosity
+from backend.deep_agent.services.llm_factory import create_llm
 
 
-class TestCreateGPT5LLM:
-    """Test create_gpt5_llm factory function."""
+class TestCreateLLM:
+    """Test create_llm factory function."""
 
     def test_create_with_defaults(self) -> None:
         """Test creating ChatOpenAI with default config."""
-        llm = create_gpt5_llm(api_key="test_key")
+        llm = create_llm(api_key="test_key")
 
         assert isinstance(llm, ChatOpenAI)
         assert llm.model_name == "gpt-5"
 
     def test_create_with_custom_config(self) -> None:
-        """Test creating ChatOpenAI with custom GPT5Config."""
-        config = GPT5Config(
+        """Test creating ChatOpenAI with custom GPTConfig."""
+        config = GPTConfig(
             model_name="gpt-5-mini",
             reasoning_effort=ReasoningEffort.HIGH,
             verbosity=Verbosity.LOW,
-            temperature=0.9,
             max_tokens=2048,
         )
-        llm = create_gpt5_llm(api_key="test_key", config=config)
+        llm = create_llm(api_key="test_key", config=config)
 
         assert isinstance(llm, ChatOpenAI)
         assert llm.model_name == "gpt-5-mini"
@@ -38,8 +37,8 @@ class TestCreateGPT5LLM:
             ReasoningEffort.MEDIUM,
             ReasoningEffort.HIGH,
         ]:
-            config = GPT5Config(reasoning_effort=effort)
-            llm = create_gpt5_llm(api_key="test_key", config=config)
+            config = GPTConfig(reasoning_effort=effort)
+            llm = create_llm(api_key="test_key", config=config)
 
             assert isinstance(llm, ChatOpenAI)
             # Note: We can't easily inspect the reasoning param on ChatOpenAI,
@@ -48,19 +47,19 @@ class TestCreateGPT5LLM:
     def test_create_with_verbosity(self) -> None:
         """Test verbosity is passed to ChatOpenAI."""
         for verbosity in [Verbosity.LOW, Verbosity.MEDIUM, Verbosity.HIGH]:
-            config = GPT5Config(verbosity=verbosity)
-            llm = create_gpt5_llm(api_key="test_key", config=config)
+            config = GPTConfig(verbosity=verbosity)
+            llm = create_llm(api_key="test_key", config=config)
 
             assert isinstance(llm, ChatOpenAI)
             # Note: We can't easily inspect the verbosity param on ChatOpenAI,
             # so we just verify the LLM was created successfully
 
     def test_create_with_all_model_variants(self) -> None:
-        """Test creating LLM with all GPT-5 model variants."""
+        """Test creating LLM with all GPT model variants."""
         models = ["gpt-5", "gpt-5-mini", "gpt-5-nano"]
         for model_name in models:
-            config = GPT5Config(model_name=model_name)
-            llm = create_gpt5_llm(api_key="test_key", config=config)
+            config = GPTConfig(model_name=model_name)
+            llm = create_llm(api_key="test_key", config=config)
 
             assert isinstance(llm, ChatOpenAI)
             assert llm.model_name == model_name
@@ -68,12 +67,12 @@ class TestCreateGPT5LLM:
     def test_create_without_api_key(self) -> None:
         """Test that missing API key raises ValueError."""
         with pytest.raises(ValueError, match="API key is required"):
-            create_gpt5_llm(api_key="")
+            create_llm(api_key="")
 
     def test_create_with_kwargs_override(self) -> None:
         """Test that kwargs can override config values."""
-        config = GPT5Config(model_name="gpt-5", temperature=0.7)
-        llm = create_gpt5_llm(
+        config = GPTConfig(model_name="gpt-5")
+        llm = create_llm(
             api_key="test_key",
             config=config,
             model="gpt-5-nano",  # Override model name
@@ -84,7 +83,7 @@ class TestCreateGPT5LLM:
 
     def test_returns_langchain_compatible_llm(self) -> None:
         """Test that returned LLM is LangChain-compatible."""
-        llm = create_gpt5_llm(api_key="test_key")
+        llm = create_llm(api_key="test_key")
 
         # Verify it has the expected LangChain LLM interface
         assert hasattr(llm, "invoke")
@@ -100,39 +99,27 @@ class TestLLMFactoryEdgeCases:
 
     def test_minimal_reasoning_with_nano_model(self) -> None:
         """Test fastest configuration (minimal reasoning + nano model)."""
-        config = GPT5Config(
+        config = GPTConfig(
             model_name="gpt-5-nano",
             reasoning_effort=ReasoningEffort.MINIMAL,
         )
-        llm = create_gpt5_llm(api_key="test_key", config=config)
+        llm = create_llm(api_key="test_key", config=config)
 
         assert llm.model_name == "gpt-5-nano"
 
     def test_high_reasoning_with_standard_model(self) -> None:
         """Test most thorough configuration (high reasoning + standard model)."""
-        config = GPT5Config(
+        config = GPTConfig(
             model_name="gpt-5",
             reasoning_effort=ReasoningEffort.HIGH,
             verbosity=Verbosity.HIGH,
         )
-        llm = create_gpt5_llm(api_key="test_key", config=config)
+        llm = create_llm(api_key="test_key", config=config)
 
         assert llm.model_name == "gpt-5"
 
-    def test_extreme_temperature_values(self) -> None:
-        """Test temperature at boundary values."""
-        # Min temperature
-        config = GPT5Config(temperature=0.0)
-        llm = create_gpt5_llm(api_key="test_key", config=config)
-        assert isinstance(llm, ChatOpenAI)
-
-        # Max temperature
-        config = GPT5Config(temperature=1.0)
-        llm = create_gpt5_llm(api_key="test_key", config=config)
-        assert isinstance(llm, ChatOpenAI)
-
     def test_very_high_max_tokens(self) -> None:
         """Test with very high max_tokens value."""
-        config = GPT5Config(max_tokens=100000)
-        llm = create_gpt5_llm(api_key="test_key", config=config)
+        config = GPTConfig(max_tokens=100000)
+        llm = create_llm(api_key="test_key", config=config)
         assert isinstance(llm, ChatOpenAI)

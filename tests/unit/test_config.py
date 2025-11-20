@@ -97,8 +97,8 @@ class TestSettings:
         # Check defaults
         assert settings.ENV == "local"
         assert settings.DEBUG is False
-        assert settings.GPT5_MODEL_NAME == "gpt-5"
-        assert settings.GPT5_DEFAULT_REASONING_EFFORT == "medium"
+        assert settings.GPT_MODEL_NAME == "gpt-5"
+        assert settings.GPT_DEFAULT_REASONING_EFFORT == "medium"
         assert settings.API_HOST == "0.0.0.0"
         assert settings.API_PORT == 8000
 
@@ -109,13 +109,13 @@ class TestSettings:
         Test that reasoning effort must be valid value.
 
         Scenario:
-            Set GPT5_DEFAULT_REASONING_EFFORT to invalid value
+            Set GPT_DEFAULT_REASONING_EFFORT to invalid value
 
         Expected:
             ValidationError raised
         """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-        monkeypatch.setenv("GPT5_DEFAULT_REASONING_EFFORT", "invalid")
+        monkeypatch.setenv("GPT_DEFAULT_REASONING_EFFORT", "invalid")
 
         with pytest.raises(ValidationError):
             Settings()
