@@ -367,44 +367,7 @@ The WebSocket endpoint implements secret redaction in error messages (line 221-2
 **File:** `tests/integration/test_api_endpoints/test_websocket.py`
 **Related File:** `backend/deep_agent/api/v1/websocket.py:221-222`
 
-**Missing Test Code:**
-```python
-def test_websocket_redacts_secrets_in_errors(
-    self,
-    client: TestClient,
-    mock_agent_service: AsyncMock,
-) -> None:
-    """Test that WebSocket redacts secrets from error messages."""
-    # Arrange
-    message_data = {
-        "type": "chat",
-        "message": "Test secret redaction",
-        "thread_id": "test-thread-123",
-    }
-
-    # Mock agent to raise error with secret pattern
-    async def mock_secret_error(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
-        raise RuntimeError("API Error: key=sk-1234567890abcdef failed")
-        yield
-
-    def create_secret_error(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
-        return mock_secret_error(*args, **kwargs)
-
-    mock_agent_service.stream.side_effect = create_secret_error
-
-    # Act
-    with client.websocket_connect("/api/v1/ws") as websocket:
-        websocket.send_json(message_data)
-        response = websocket.receive_json()
-
-    # Assert
-    assert response.get("type") == "error"
-    # Secret should be redacted
-    assert "sk-" not in response.get("error", ""), \
-        "Secret should be redacted from error message"
-    assert "[REDACTED" in response.get("error", "") or \
-           "failed" in response.get("error", "").lower()
-```
+**Missing Test:** `test_websocket_redacts_secrets_in_errors()` - Mock error with "sk-1234..." pattern, verify redaction in response
 
 **Impact:** MEDIUM - Security feature validation. Should be added to ensure redaction logic works.
 
@@ -442,51 +405,9 @@ WebSocket integration tests have excellent coverage (85%) but miss 4 specific er
 
 **File:** `tests/integration/test_api_endpoints/test_websocket.py`
 
-**Missing Test 1: Malformed JSON**
-```python
-def test_websocket_handles_malformed_json(
-    self,
-    client: TestClient,
-    mock_agent_service: AsyncMock,
-) -> None:
-    """Test that WebSocket handles malformed JSON gracefully."""
-    # Act
-    with client.websocket_connect("/api/v1/ws") as websocket:
-        # Send invalid JSON (not parseable)
-        websocket.send_text("{ this is not valid JSON }")
-
-        # Should receive error response
-        response = websocket.receive_json()
-
-    # Assert
-    assert response.get("type") == "error"
-    assert "JSON" in response.get("error", "")
-```
-
-**Missing Test 2: Unknown Message Type**
-```python
-def test_websocket_rejects_unknown_message_type(
-    self,
-    client: TestClient,
-    mock_agent_service: AsyncMock,
-) -> None:
-    """Test that WebSocket rejects unknown message types."""
-    # Arrange
-    message_data = {
-        "type": "unknown_type",
-        "message": "Test message",
-        "thread_id": "test-thread-123",
-    }
-
-    # Act
-    with client.websocket_connect("/api/v1/ws") as websocket:
-        websocket.send_json(message_data)
-        response = websocket.receive_json()
-
-    # Assert
-    assert response.get("type") == "error"
-    assert "unknown_type" in response.get("error", "").lower()
-```
+**Missing Tests:**
+1. `test_websocket_handles_malformed_json()` - Send invalid JSON, verify error response
+2. `test_websocket_rejects_unknown_message_type()` - Send unknown type, verify rejection
 
 **Impact:** MEDIUM - Raises test coverage from 85% to ~90%, covers important error paths.
 
@@ -518,29 +439,11 @@ def test_websocket_rejects_unknown_message_type(
 **Description:**
 Three WebSocket tests use overly permissive error assertions that could lead to false positives. The current pattern `assert response.get("type") == "error" or "error" in response` will pass if the string "error" appears anywhere in the response, not just in the type field.
 
-**File:** `tests/integration/test_api_endpoints/test_websocket.py`
-**Lines:** 182, 205, 248
+**File:** `tests/integration/test_api_endpoints/test_websocket.py` (Lines 182, 205, 248)
 
-**Current Code (Example from line 182):**
-```python
-assert response.get("type") == "error" or "error" in response
-```
+**Issue:** Permissive assertions like `assert response.get("type") == "error" or "error" in response`
 
-**Recommended Fix:**
-```python
-# Line 182 - test_websocket_validates_message_format
-assert response.get("type") == "error", \
-    f"Expected error type for invalid message format, got: {response}"
-
-# Line 205 - test_websocket_handles_empty_message
-assert response.get("type") == "error", \
-    f"Expected error type for empty message, got: {response}"
-
-# Line 248 - test_websocket_handles_agent_error
-error_events = [e for e in events if e.get("type") == "error"]
-assert len(error_events) >= 1, \
-    f"Expected at least one error event, got events: {events}"
-```
+**Fix:** Replace with specific checks: `assert response.get("type") == "error", f"Expected error type, got: {response}"`
 
 **Impact:** MEDIUM - Improves test reliability and prevents false positives.
 
@@ -574,35 +477,7 @@ Playwright UI tests assume the backend is running but don't verify it. If the ba
 
 **File:** `tests/ui/conftest.py`
 
-**Recommended Addition:**
-```python
-@pytest.fixture(scope="session", autouse=True)
-def verify_backend_running():
-    """
-    Verify backend is accessible before running UI tests.
-
-    Skips all UI tests if backend is not reachable, preventing
-    cascading failures from missing backend.
-    """
-    import requests
-
-    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-
-    try:
-        response = requests.get(
-            f"{backend_url}/health",
-            timeout=5
-        )
-        assert response.status_code == 200, \
-            f"Backend health check failed with status {response.status_code}"
-    except requests.exceptions.ConnectionError:
-        pytest.skip(
-            f"Backend not running at {backend_url}. "
-            "Start backend before running UI tests."
-        )
-    except Exception as e:
-        pytest.skip(f"Backend verification failed: {e}")
-```
+**Recommended:** Add session-scoped fixture `verify_backend_running()` that checks `/health` endpoint before UI tests. Skip all tests if backend unavailable to prevent cascade failures.
 
 **Impact:** MEDIUM - Improves test failure clarity and developer experience.
 
@@ -719,21 +594,7 @@ Playwright configuration has video recording commented out. Enable it conditiona
 
 **File:** `tests/ui/conftest.py:44-46`
 
-**Current Code:**
-```python
-# Video recording disabled by default (large files)
-# "record_video_dir": "test-results/videos",
-# "record_video_size": {"width": 1280, "height": 720},
-```
-
-**Recommended Addition:**
-```python
-# Video recording disabled by default (large files)
-# Enable in CI by setting PLAYWRIGHT_RECORD_VIDEO=true
-if os.getenv("PLAYWRIGHT_RECORD_VIDEO", "false").lower() == "true":
-    browser_context_args["record_video_dir"] = "test-results/videos"
-    browser_context_args["record_video_size"] = {"width": 1280, "height": 720}
-```
+**Recommended:** Enable conditional video recording via `PLAYWRIGHT_RECORD_VIDEO=true` env var for CI/CD debugging.
 
 **Impact:** LOW - Improves CI/CD debugging capabilities.
 
@@ -844,83 +705,24 @@ ImportError while loading conftest '/Users/scar_nyc/Documents/GitHub/deep-agent-
 SyntaxError: source code string cannot contain null bytes
 ```
 
-**Attempted Workarounds:**
-```bash
-# None of these worked:
-find . -type d -name "__pycache__" -exec rm -rf {} +
-find . -type d -name ".pytest_cache" -exec rm -rf {} +
-venv/bin/python -m pytest tests/unit/test_agents/test_tool_call_limit.py --noconftest
-venv/bin/python -m pytest ... -p no:opik -p no:langsmith
-PYTHONDONTWRITEBYTECODE=1 venv/bin/python -m pytest ... --cache-clear
-```
+**Attempted Workarounds:** Cache clearing, `--noconftest`, plugin disabling (`-p no:opik`), `--import-mode=importlib` - none resolved issue.
 
-**Environment:**
-- Python: 3.11.7
-- pytest: 9.0.1
-- Platform: Darwin 24.4.0 (macOS)
-- Virtual env: ./venv
-- Project: /Users/scar_nyc/Documents/GitHub/deep-agent-agi
+**Environment:** Python 3.11.7, pytest 9.0.1, macOS Darwin 24.4.0
 
 **Impact:** HIGH - Blocks execution of all pytest-based tests. Unable to validate:
 - Unit tests for ToolCallLimitedAgent (28 tests)
 - Integration tests for tool call limiting (11 tests)
 - Any other pytest-based test suites
 
-**Workaround for Immediate Commit:**
-Code review and testing expert agents can evaluate code quality and test coverage through static analysis without executing pytest. Manual code review is sufficient to validate implementation quality before commit.
+**Workaround:** Use code review/testing agents for static analysis validation.
 
-**Recommended Investigation:**
-1. Check pytest version compatibility with Python 3.11.7
-2. Investigate pytest plugin conflicts (opik-1.9.8, langsmith-0.4.42, anyio-4.11.0)
-3. Test with fresh virtual environment
-4. Consider pytest reinstall or downgrade
-5. Check for macOS-specific pytest issues (Darwin 24.4.0)
+**Next Steps:** Investigate pytest version compatibility, plugin conflicts (opik/langsmith/anyio), fresh venv, reinstall, macOS-specific issues.
 
 **Found in:** Tool Call Limit Feature completion testing (2025-11-13)
 
 ---
 
-**📋 TRACKED (HIGH PRIORITY - BLOCKING)**
-
-**Priority:** HIGH (blocks test execution)
-**Rationale:** Prevents running pytest tests. Workaround: Use code review agents for static analysis before commit.
-**When to Fix:** Immediately after current feature commit. Root cause investigation needed.
-
-
-## Issue 115: Test execution blocked by pytest environment error (duplicate of 114)
-
-**Labels:** `bug`, `testing`, `environment`, `medium-priority`, `phase-0`
-
-**Title:** Cannot execute pytest to verify test coverage metrics
-
-**Description:**
-Static code analysis by testing-expert agent confirms tests are well-written with ~90% estimated coverage. However, pytest execution is blocked by Issue 114 ("null bytes" error), preventing verification of actual coverage metrics.
-
-**File:** Environment configuration (pytest Issue 114)
-
-**Impact:** MEDIUM - Cannot verify coverage percentage via pytest, but code quality is confirmed through static analysis.
-
-**Test Quality (via static analysis):**
-- ✅ 39 total tests (28 unit + 11 integration)
-- ✅ Perfect AAA pattern adherence
-- ✅ Excellent mocking with AsyncMock
-- ✅ Comprehensive edge case coverage
-- ✅ ~90% estimated coverage (exceeds 80% requirement)
-
-**Recommendation:**
-1. Proceed with commit based on static analysis approval
-2. Resolve pytest Issue 114 immediately after commit
-3. Re-run tests to verify actual coverage matches estimate
-
-**Found in:** testing-expert pre-commit review (2025-11-13)
-
----
-
-**📋 TRACKED (MEDIUM PRIORITY)**
-
-**Priority:** MEDIUM (blocks coverage verification, not code quality)
-**Rationale:** Tests verified via static analysis. Pytest issue is environment-specific.
-**When to Fix:** Immediately after tool call limit feature commit.
+**📋 TRACKED (HIGH PRIORITY)** - Blocks test execution. Workaround: Use code review agents for static analysis.
 
 
 ## Issue 116: Add tool limit configuration example to create_agent docstring
@@ -1172,16 +974,7 @@ addStep(threadId, {
 **Description:**
 Agent gets stuck in an infinite research loop when answering web search queries, making 100+ redundant searches instead of synthesizing results after the first batch. This causes GraphRecursionError when hitting the recursion limit of 25 steps.
 
-**Trace Analysis:**
-- **Trace ID:** 985e4710-046c-474e-a7e6-cde9e7815105
-- **Query:** "what are the latest advancements in AI from last week?"
-- **Duration:** ~2 minutes before timeout
-- **Tool Calls Made:** 127 web_search calls
-- **Unique Queries:** 37 different queries
-- **Most Repeated Query:** 124 times (same 3 queries repeated)
-- **LLM API Calls:** 13 GPT-5 calls
-- **Estimated Cost:** ~$15-20 (127 searches + 13 LLM calls)
-- **User Experience:** ERROR - no response delivered, recursion limit hit
+**Trace:** ID 985e4710 | 127 web_search calls (same 3 queries × 124 times) | 13 GPT-5 calls | ~$15-20 cost | GraphRecursionError (limit: 25)
 
 **Root Cause:**
 Agent receives comprehensive results from first 3-6 searches but **fails to recognize task completion**. Instead of synthesizing, it keeps making the SAME 3 queries in parallel repeatedly:
