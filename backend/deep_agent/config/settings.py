@@ -71,12 +71,11 @@ class Settings(BaseSettings):
             environment-specific behavior like logging and validation.
         DEBUG: Debug mode flag. Enables verbose logging and development features.
 
-        OPENAI_API_KEY: OpenAI API key (required). Used for GPT-5 access.
-        GPT5_MODEL_NAME: GPT-5 model identifier.
-        GPT5_DEFAULT_REASONING_EFFORT: Default reasoning effort level.
-        GPT5_DEFAULT_VERBOSITY: Default response verbosity.
-        GPT5_MAX_TOKENS: Maximum tokens per completion.
-        GPT5_TEMPERATURE: Sampling temperature (0.0-2.0).
+        OPENAI_API_KEY: OpenAI API key (required). Used for GPT models access.
+        GPT_MODEL_NAME: GPT model identifier.
+        GPT_DEFAULT_REASONING_EFFORT: Default reasoning effort level.
+        GPT_DEFAULT_VERBOSITY: Default response verbosity.
+        GPT_MAX_TOKENS: Maximum tokens per completion.
 
         ENABLE_DYNAMIC_REASONING: Enable dynamic reasoning effort adjustment.
         REASONING_MINIMAL_TIMEOUT: Timeout for minimal reasoning (seconds).
@@ -206,13 +205,12 @@ class Settings(BaseSettings):
     ENV: Literal["local", "dev", "staging", "prod", "test"] = "local"
     DEBUG: bool = False
 
-    # GPT-5 Configuration
+    # GPT Configuration (OpenAI-specific)
     OPENAI_API_KEY: str = Field(..., description="OpenAI API key (required)")
-    GPT5_MODEL_NAME: str = "gpt-5"
-    GPT5_DEFAULT_REASONING_EFFORT: Literal["minimal", "low", "medium", "high"] = "medium"
-    GPT5_DEFAULT_VERBOSITY: str = "medium"
-    GPT5_MAX_TOKENS: int = 4096
-    GPT5_TEMPERATURE: float = 0.7
+    GPT_MODEL_NAME: str = "gpt-5"
+    GPT_DEFAULT_REASONING_EFFORT: Literal["minimal", "low", "medium", "high"] = "medium"
+    GPT_DEFAULT_VERBOSITY: str = "medium"
+    GPT_MAX_TOKENS: int = 4096
 
     # Reasoning System Configuration
     ENABLE_DYNAMIC_REASONING: bool = True
