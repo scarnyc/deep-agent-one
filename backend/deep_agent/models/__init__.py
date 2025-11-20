@@ -7,13 +7,13 @@ configuration, and data transfer objects across the application.
 Modules:
     agents: Agent management models (run tracking, HITL workflows, errors)
     chat: Chat API models (messages, requests, responses, streams)
-    gpt5: GPT-5 configuration models (reasoning effort, verbosity, ChatOpenAI config)
+    llm: GPT configuration models (reasoning effort, verbosity, ChatOpenAI config)
 
 Categories:
     API Models: ChatRequest, ChatResponse, StreamEvent
     Agent Models: AgentRunInfo, HITLApprovalRequest, HITLApprovalResponse
     Error Models: ErrorResponse
-    Config Models: GPT5Config, ReasoningEffort, Verbosity
+    Config Models: GPTConfig, ReasoningEffort, Verbosity
     Enum Models: MessageRole, ResponseStatus, AgentRunStatus, HITLAction
 
 Example:

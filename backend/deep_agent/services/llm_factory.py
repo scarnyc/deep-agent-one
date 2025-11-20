@@ -1,4 +1,4 @@
-"""Factory for creating LangChain LLM instances configured for GPT-5."""
+"""Factory for creating LangChain LLM instances configured for GPT models."""
 from typing import Any
 
 from httpx import Timeout
@@ -12,7 +12,7 @@ from tenacity import (
 )
 
 from deep_agent.core.logging import get_logger
-from deep_agent.models.gpt5 import GPT5Config
+from deep_agent.models.llm import GPTConfig
 
 logger = get_logger(__name__)
 
@@ -22,20 +22,20 @@ logger = get_logger(__name__)
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
 )
-def create_gpt5_llm(
+def create_llm(
     api_key: str,
-    config: GPT5Config | None = None,
+    config: GPTConfig | None = None,
     **kwargs: Any,
 ) -> ChatOpenAI:
     """
-    Create a configured ChatOpenAI instance for GPT-5.
+    Create a configured ChatOpenAI instance for GPT models.
 
     This factory function creates LangChain-compatible ChatOpenAI instances
-    configured for GPT-5 with reasoning effort and verbosity settings.
+    configured for GPT models with reasoning effort and verbosity settings.
 
     Args:
         api_key: OpenAI API key
-        config: GPT5Config with model settings (uses defaults if None)
+        config: GPTConfig with model settings (uses defaults if None)
         **kwargs: Additional arguments to pass to ChatOpenAI (override config)
 
     Returns:
@@ -45,9 +45,9 @@ def create_gpt5_llm(
         ValueError: If API key is empty
 
     Example:
-        >>> from deep_agent.models.gpt5 import GPT5Config, ReasoningEffort
-        >>> config = GPT5Config(reasoning_effort=ReasoningEffort.HIGH)
-        >>> llm = create_gpt5_llm(api_key="sk-...", config=config)
+        >>> from deep_agent.models.llm import GPTConfig, ReasoningEffort
+        >>> config = GPTConfig(reasoning_effort=ReasoningEffort.HIGH)
+        >>> llm = create_llm(api_key="sk-...", config=config)
         >>> # Use with DeepAgents:
         >>> agent = create_deep_agent(model=llm, tools=[...])
     """
@@ -64,7 +64,7 @@ def create_gpt5_llm(
 
     # Use default config if none provided
     if config is None:
-        config = GPT5Config()
+        config = GPTConfig()
 
     # Create custom AsyncOpenAI client with extended timeouts
     # Default timeout is 60s which causes BrokenResourceError at 45s
@@ -81,15 +81,14 @@ def create_gpt5_llm(
     )
 
     # Prepare ChatOpenAI parameters
-    # GPT-5 uses reasoning_effort parameter and max_completion_tokens (not max_tokens)
-    # GPT-5 only supports temperature=1.0 - must explicitly set to override ChatOpenAI's default of 0.7
+    # GPT models use reasoning_effort parameter and max_completion_tokens (not max_tokens)
+    # Note: temperature parameter deprecated for GPT-5+ reasoning models
     llm_params = {
         "model": kwargs.get("model", config.model_name),
         "client": http_client,  # Use custom client with extended timeouts
         "api_key": api_key,
         "max_completion_tokens": kwargs.get("max_completion_tokens", config.max_tokens),
         "reasoning_effort": config.reasoning_effort.value,
-        "temperature": 1.0,  # GPT-5 requirement: must be 1.0 (overrides ChatOpenAI's default 0.7)
         "streaming": True,  # Enable streaming for real-time responses
         "request_timeout": 120,  # Request-level timeout (matches read timeout)
     }
@@ -100,7 +99,7 @@ def create_gpt5_llm(
             llm_params[key] = value
 
     logger.info(
-        "Creating GPT-5 LLM with extended timeout configuration",
+        "Creating GPT LLM with extended timeout configuration",
         model=llm_params["model"],
         reasoning_effort=config.reasoning_effort.value,
         max_completion_tokens=llm_params["max_completion_tokens"],
