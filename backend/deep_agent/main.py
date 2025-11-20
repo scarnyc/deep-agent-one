@@ -196,24 +196,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Add request timeout middleware (excludes WebSockets)
     app.add_middleware(
         TimeoutMiddleware,
-        timeout=30,
+        timeout=60,  # Increased to 60s to allow 3 parallel searches + synthesis
         exclude_paths=["/api/v1/ws"]  # WebSocket endpoint uses its own streaming timeout
     )
     logger.debug(
         "Request timeout middleware enabled",
-        timeout_seconds=30,
+        timeout_seconds=60,
         excluded_paths=["/api/v1/ws"]
     )
 
     # Document timeout hierarchy for debugging
     logger.info(
         "Timeout configuration summary",
-        http_timeout_seconds=30,
+        http_timeout_seconds=60,
         websocket_excluded=True,
         stream_timeout_seconds=settings.STREAM_TIMEOUT_SECONDS,
         web_search_timeout_seconds=settings.WEB_SEARCH_TIMEOUT,
         timeout_hierarchy=[
-            "1. HTTP requests: 30s (TimeoutMiddleware)",
+            "1. HTTP requests: 60s (TimeoutMiddleware) - allows 3 parallel searches + synthesis",
             "2. WebSocket streaming: 180s (STREAM_TIMEOUT_SECONDS)",
             "3. Web search tool: 30s (WEB_SEARCH_TIMEOUT)",
             "Note: WebSocket excluded from HTTP timeout"
