@@ -24,7 +24,7 @@
  * - Generic: error with error.message
  */
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useAgentState } from './useAgentState';
 import { useWebSocketContext } from './useWebSocketContext';
 import { validateAGUIEvent, getEventCategory } from '@/lib/eventValidator';
@@ -65,6 +65,59 @@ export function useAGUIEventHandler(threadId: string) {
   const streamingContentRef = useRef<string>('');
   // Track if we just finished a shard (need separator before next token)
   const needsShardSeparatorRef = useRef<boolean>(false);
+  // Fallback completion timer (if completion event never arrives)
+  const completionFallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Stream watchdog timer (if streaming stalls)
+  const streamWatchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastStreamTokenTimeRef = useRef<number>(Date.now());
+
+  /**
+   * Helper: Clear all completion timers
+   * Wrapped in useCallback to prevent recreation on every render
+   */
+  const clearCompletionTimers = useCallback(() => {
+    if (completionFallbackTimerRef.current) {
+      clearTimeout(completionFallbackTimerRef.current);
+      completionFallbackTimerRef.current = null;
+    }
+    if (streamWatchdogTimerRef.current) {
+      clearTimeout(streamWatchdogTimerRef.current);
+      streamWatchdogTimerRef.current = null;
+    }
+  }, []); // No deps - only uses refs which are stable
+
+  /**
+   * Helper: Finalize message (mark complete and clear refs)
+   * Used by both normal completion and fallback completion
+   * Wrapped in useCallback to prevent recreation on every render
+   */
+  const finalizeMessage = useCallback((runId?: string, reason: 'normal' | 'fallback' | 'watchdog' = 'normal') => {
+    if (!streamingMessageIdRef.current) return;
+
+    console.log(`[AG-UI] Finalizing message (reason: ${reason})`);
+
+    // Update message to mark complete
+    updateMessage(threadId, streamingMessageIdRef.current, {
+      content: streamingContentRef.current,
+      metadata: {
+        streaming: false,
+        completed: true,
+        run_id: runId,
+        completion_reason: reason,
+      },
+    });
+
+    // Update agent status to completed
+    setAgentStatus(threadId, 'completed');
+
+    // Clear all timers
+    clearCompletionTimers();
+
+    // Clear streaming refs
+    streamingMessageIdRef.current = null;
+    streamingContentRef.current = '';
+    needsShardSeparatorRef.current = false;
+  }, [threadId, updateMessage, setAgentStatus, clearCompletionTimers]);
 
   /**
    * Handle run started events (chain/llm start)
@@ -97,29 +150,14 @@ export function useAGUIEventHandler(threadId: string) {
   const handleRunFinished = (event: RunFinishedEvent) => {
     console.log('[AG-UI] Run finished:', event.run_id);
 
-    // Mark message as complete (all shards done)
-    if (streamingMessageIdRef.current) {
-      updateMessage(threadId, streamingMessageIdRef.current, {
-        metadata: {
-          streaming: false,
-          completed: true,
-          run_id: event.run_id,
-        },
-      });
-    }
-
     // Update step status
     updateStep(threadId, event.run_id, {
       status: 'completed',
       completed_at: new Date().toISOString(),
     });
 
-    // Update agent status to completed
-    setAgentStatus(threadId, 'completed');
-
-    // NOW clear streaming refs (only when full run is complete)
-    streamingMessageIdRef.current = null;
-    streamingContentRef.current = '';
+    // Finalize message (mark complete and clear refs/timers)
+    finalizeMessage(event.run_id, 'normal');
   };
 
   /**
@@ -128,6 +166,21 @@ export function useAGUIEventHandler(threadId: string) {
   const handleChatModelStream = (event: TextMessageContentEvent) => {
     const token = event.data.chunk.content || '';
     if (!token) return;
+
+    // Update last token timestamp for watchdog
+    lastStreamTokenTimeRef.current = Date.now();
+
+    // Reset watchdog timer (restart countdown on each token)
+    if (streamWatchdogTimerRef.current) {
+      clearTimeout(streamWatchdogTimerRef.current);
+    }
+    streamWatchdogTimerRef.current = setTimeout(() => {
+      const timeSinceLastToken = Date.now() - lastStreamTokenTimeRef.current;
+      if (streamingMessageIdRef.current && timeSinceLastToken >= 8000) {
+        console.warn('[AG-UI] Stream watchdog timeout - no tokens for 8s, assuming completion');
+        finalizeMessage(event.run_id, 'watchdog');
+      }
+    }, 8000); // 8 second watchdog timeout
 
     // If no streaming message exists, create one
     if (!streamingMessageIdRef.current) {
@@ -194,7 +247,19 @@ export function useAGUIEventHandler(threadId: string) {
       needsShardSeparatorRef.current = true;
       console.log('[DEBUG] Set needsShardSeparatorRef = true (next shard will start with \\n\\n)');
 
-      // DON'T clear refs - keep message ID active for next shard
+      // FALLBACK: Set timeout to finalize message if no run finish event arrives
+      // This handles cases where on_chain_end/on_llm_end events are missing
+      if (completionFallbackTimerRef.current) {
+        clearTimeout(completionFallbackTimerRef.current);
+      }
+      completionFallbackTimerRef.current = setTimeout(() => {
+        if (streamingMessageIdRef.current) {
+          console.warn('[AG-UI] Fallback completion timeout - no run finish event received after chat model end');
+          finalizeMessage(event.run_id, 'fallback');
+        }
+      }, 5000); // 5 second fallback timeout
+
+      // DON'T clear refs - keep message ID active for next shard or until timeout
     }
   };
 
@@ -331,7 +396,7 @@ export function useAGUIEventHandler(threadId: string) {
   /**
    * Main event handler router
    */
-  const handleEvent = (event: AGUIEvent) => {
+  const handleEvent = useCallback((event: AGUIEvent) => {
     console.log('[AG-UI] Event received:', event.event, event);
 
     try {
@@ -380,7 +445,7 @@ export function useAGUIEventHandler(threadId: string) {
             });
           } else if (event.data?.status === 'completed') {
             // Use same ID as the running event to update existing step
-            const stepId = event.data.id || event.run_id;
+            const stepId = event.data.id || event.run_id || 'unknown';
 
             updateStep(threadId, stepId, {
               status: 'completed',
@@ -406,7 +471,7 @@ export function useAGUIEventHandler(threadId: string) {
             });
           } else if (event.data?.status === 'completed') {
             // Use same ID as the running event to update existing tool call
-            const toolCallId = event.data.id || event.run_id;
+            const toolCallId = event.data.id || event.run_id || 'unknown';
 
             updateToolCall(threadId, toolCallId, {
               status: 'completed',
@@ -462,7 +527,19 @@ export function useAGUIEventHandler(threadId: string) {
     } catch (error) {
       console.error('[AG-UI] Error handling event:', error, event);
     }
-  };
+  }, [
+    threadId,
+    addMessage,
+    updateMessage,
+    addToolCall,
+    updateToolCall,
+    setAgentStatus,
+    addStep,
+    updateStep,
+    setHITLRequest,
+    finalizeMessage,
+    clearCompletionTimers,
+  ]);
 
   // Get WebSocket context (shared connection)
   const { addEventListener } = useWebSocketContext();
@@ -472,6 +549,38 @@ export function useAGUIEventHandler(threadId: string) {
     const unsubscribe = addEventListener(handleEvent);
     return unsubscribe; // Cleanup on unmount
   }, [addEventListener, handleEvent]);
+
+  // Recovery: Finalize any orphaned streaming messages on mount
+  useEffect(() => {
+    const messages = useAgentState.getState().threads[threadId]?.messages || [];
+    const orphanedMessages = messages.filter(
+      (msg) => msg.metadata?.streaming === true && msg.role === 'assistant'
+    );
+
+    if (orphanedMessages.length > 0) {
+      console.warn(
+        `[AG-UI] Found ${orphanedMessages.length} orphaned streaming messages, finalizing them`
+      );
+
+      orphanedMessages.forEach((msg) => {
+        updateMessage(threadId, msg.id, {
+          metadata: {
+            ...msg.metadata,
+            streaming: false,
+            completed: true,
+            completion_reason: 'recovered',
+          },
+        });
+      });
+    }
+  }, [threadId, updateMessage]); // Run once on mount and when threadId changes
+
+  // Cleanup: Clear all timers on unmount
+  useEffect(() => {
+    return () => {
+      clearCompletionTimers();
+    };
+  }, [clearCompletionTimers]);
 
   return {
     handleEvent,
