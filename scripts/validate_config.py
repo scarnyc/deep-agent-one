@@ -198,17 +198,13 @@ def validate_config() -> bool:
         )
 
     # Max tokens must be positive
-    if settings.GPT5_MAX_TOKENS <= 0:
+    if settings.GPT_MAX_TOKENS <= 0:
         errors.append(
-            f"GPT5_MAX_TOKENS ({settings.GPT5_MAX_TOKENS}) must be positive"
+            f"GPT_MAX_TOKENS ({settings.GPT_MAX_TOKENS}) must be positive"
         )
 
-    # Temperature must be in valid range
-    if not (0.0 <= settings.GPT5_TEMPERATURE <= 2.0):
-        warnings.append(
-            f"GPT5_TEMPERATURE ({settings.GPT5_TEMPERATURE}) outside "
-            "recommended range (0.0-2.0)"
-        )
+    # Temperature validation removed - deprecated for GPT-5+ models
+    # GPT-5+ models use reasoning_effort parameter instead of temperature
 
     # Max tool calls must be reasonable
     if settings.MAX_TOOL_CALLS_PER_INVOCATION < 1:
