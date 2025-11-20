@@ -39,6 +39,16 @@ echo ""
 # Navigate to project root (script is in scripts/ directory)
 cd "$(dirname "$0")/.."
 
+# Load environment variables from root .env file
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+    echo -e "${GREEN}Loaded environment variables from .env${NC}"
+else
+    echo -e "${BLUE}No .env file found, using defaults${NC}"
+fi
+
 echo -e "${BLUE}Starting Next.js dev server${NC}"
 echo -e "${BLUE}Logs: ${LOG_FILE}${NC}"
 echo -e "${BLUE}To tail logs: tail -f ${LOG_FILE}${NC}"
