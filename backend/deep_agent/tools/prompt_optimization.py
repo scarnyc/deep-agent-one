@@ -29,8 +29,8 @@ from deep_agent.integrations.opik_client import (
 logger = get_logger(__name__)
 
 
-# GPT-5 Best Practices Checklist
-GPT5_BEST_PRACTICES = {
+# GPT Best Practices Checklist
+GPT_BEST_PRACTICES = {
     "agentic_behavior": [
         "Decompose complex queries into subtasks",
         "Confirm completion before terminating",
@@ -196,7 +196,7 @@ def analyze_prompt(
         "overall_score": (clarity_score + verbosity_score + structure_score) / 3,
         "task_type": task_type,
         "prompt_length": len(prompt),
-        "gpt5_best_practices": GPT5_BEST_PRACTICES,
+        "gpt_best_practices": GPT_BEST_PRACTICES,
     }
 
     logger.info(

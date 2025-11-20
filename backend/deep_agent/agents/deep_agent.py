@@ -11,8 +11,8 @@ from deep_agent.agents.prompts import get_agent_instructions
 from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.logging import get_logger
 from deep_agent.integrations.langsmith import setup_langsmith
-from deep_agent.models.gpt5 import GPT5Config, ReasoningEffort, Verbosity
-from deep_agent.services.llm_factory import create_gpt5_llm
+from deep_agent.models.llm import GPTConfig, ReasoningEffort, Verbosity
+from deep_agent.services.llm_factory import create_llm
 from deep_agent.tools.web_search import web_search
 
 logger = get_logger(__name__)
@@ -84,27 +84,26 @@ async def create_agent(
 
     logger.info(
         "Creating DeepAgent",
-        model=settings.GPT5_MODEL_NAME,
-        reasoning_effort=settings.GPT5_DEFAULT_REASONING_EFFORT,
+        model=settings.GPT_MODEL_NAME,
+        reasoning_effort=settings.GPT_DEFAULT_REASONING_EFFORT,
         hitl_enabled=settings.ENABLE_HITL,
         subagents_count=len(subagents) if subagents else 0,
     )
 
     # Create LLM using factory
-    config = GPT5Config(
-        model_name=settings.GPT5_MODEL_NAME,
-        reasoning_effort=ReasoningEffort(settings.GPT5_DEFAULT_REASONING_EFFORT),
-        verbosity=Verbosity(settings.GPT5_DEFAULT_VERBOSITY),
-        max_tokens=settings.GPT5_MAX_TOKENS,
-        temperature=settings.GPT5_TEMPERATURE,
+    config = GPTConfig(
+        model_name=settings.GPT_MODEL_NAME,
+        reasoning_effort=ReasoningEffort(settings.GPT_DEFAULT_REASONING_EFFORT),
+        verbosity=Verbosity(settings.GPT_DEFAULT_VERBOSITY),
+        max_tokens=settings.GPT_MAX_TOKENS,
     )
 
     try:
-        llm = create_gpt5_llm(
+        llm = create_llm(
             api_key=settings.OPENAI_API_KEY,
             config=config,
         )
-        logger.debug("Created GPT-5 LLM instance", model=config.model_name)
+        logger.debug("Created GPT LLM instance", model=config.model_name)
     except ValueError as e:
         logger.error("Failed to create LLM", error=str(e))
         raise
