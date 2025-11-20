@@ -85,8 +85,8 @@ class GPTConfig(BaseModel):
     """
 
     model_name: str = Field(
-        default="gpt-5.1-thinking",
-        description="GPT model name (gpt-5.1-instant, gpt-5.1-thinking, gpt-5.1-codex, gpt-5.1-codex-mini)",
+        default="gpt-5.1-2025-11-13",
+        description="GPT model name (use dated release format, e.g., gpt-5.1-2025-11-13)",
     )
     reasoning_effort: ReasoningEffort = Field(
         default=ReasoningEffort.MEDIUM,

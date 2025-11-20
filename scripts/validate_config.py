@@ -135,11 +135,11 @@ def validate_config() -> bool:
             "Must be a valid OpenAI model name."
         )
 
-    # Warn if using old GPT-5 instead of GPT-5.1 variants
-    if settings.GPT_MODEL_NAME == "gpt-5":
+    # Warn if not using dated release format
+    if settings.GPT_MODEL_NAME.startswith("gpt-5") and not any(char.isdigit() and "-" in settings.GPT_MODEL_NAME[-10:] for char in settings.GPT_MODEL_NAME[-10:]):
         warnings.append(
-            "GPT_MODEL_NAME='gpt-5' is deprecated. Use GPT-5.1 variants: "
-            "gpt-5.1-instant, gpt-5.1-thinking, gpt-5.1-codex, or gpt-5.1-codex-mini"
+            f"GPT_MODEL_NAME='{settings.GPT_MODEL_NAME}' should use dated release format. "
+            "Example: gpt-5.1-2025-11-13 (check OpenAI docs for latest releases)"
         )
 
     # =========================================================================

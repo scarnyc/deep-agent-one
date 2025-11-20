@@ -207,7 +207,7 @@ class Settings(BaseSettings):
 
     # GPT Configuration (OpenAI-specific)
     OPENAI_API_KEY: str = Field(..., description="OpenAI API key (required)")
-    GPT_MODEL_NAME: str = "gpt-5.1-thinking"  # Fallback default (override via .env)
+    GPT_MODEL_NAME: str = "gpt-5.1-2025-11-13"  # Fallback default (override via .env)
     GPT_DEFAULT_REASONING_EFFORT: Literal["minimal", "low", "medium", "high"] = "medium"
     GPT_DEFAULT_VERBOSITY: str = "medium"
     GPT_MAX_TOKENS: int = 4096

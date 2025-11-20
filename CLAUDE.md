@@ -121,21 +121,21 @@ ENV=local
 DEBUG=true
 API_RELOAD=true
 STREAM_TIMEOUT_SECONDS=300  # 5 min for debugging
-GPT_MODEL_NAME=gpt-5.1-thinking
+GPT_MODEL_NAME=gpt-5.1-2025-11-13
 
 # Testing (CI/CD)
 # Edit .env and set:
 ENV=test
 MOCK_EXTERNAL_APIS=true
 STREAM_TIMEOUT_SECONDS=60  # 1 min for speed
-GPT_MODEL_NAME=gpt-5.1-thinking
+GPT_MODEL_NAME=gpt-5.1-2025-11-13
 
 # Production
 # Edit .env and set:
 ENV=prod
 DEBUG=false  # NEVER true in production
 # Fill in ALL secrets (no placeholders)
-GPT_MODEL_NAME=gpt-5.1-thinking
+GPT_MODEL_NAME=gpt-5.1-2025-11-13
 # Run: python scripts/validate_config.py
 ```
 

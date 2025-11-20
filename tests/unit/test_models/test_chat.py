@@ -280,12 +280,12 @@ class TestChatResponse:
             messages=[msg],
             thread_id="user-123",
             status=ResponseStatus.SUCCESS,
-            metadata={"tokens": 100, "model": "gpt-5.1-thinking"},
+            metadata={"tokens": 100, "model": "gpt-5.1-2025-11-13"},
         )
 
         assert resp.metadata is not None
         assert resp.metadata["tokens"] == 100
-        assert resp.metadata["model"] == "gpt-5.1-thinking"  # Updated to GPT-5.1
+        assert resp.metadata["model"] == "gpt-5.1-2025-11-13"  # Updated to GPT-5.1
 
     def test_response_default_metadata(self) -> None:
         """Test that metadata defaults to None."""

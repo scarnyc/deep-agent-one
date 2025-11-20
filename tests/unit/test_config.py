@@ -97,7 +97,7 @@ class TestSettings:
         # Check defaults
         assert settings.ENV == "local"
         assert settings.DEBUG is False
-        assert settings.GPT_MODEL_NAME == "gpt-5.1-thinking"  # Updated to GPT-5.1
+        assert settings.GPT_MODEL_NAME == "gpt-5.1-2025-11-13"  # Updated to GPT-5.1
         assert settings.GPT_DEFAULT_REASONING_EFFORT == "medium"
         assert settings.API_HOST == "0.0.0.0"
         assert settings.API_PORT == 8000
