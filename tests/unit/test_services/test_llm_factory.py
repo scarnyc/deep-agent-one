@@ -14,7 +14,7 @@ class TestCreateLLM:
         llm = create_llm(api_key="test_key")
 
         assert isinstance(llm, ChatOpenAI)
-        assert llm.model_name == "gpt-5"
+        assert llm.model_name == "gpt-5.1-thinking"  # Updated to GPT-5.1
 
     def test_create_with_custom_config(self) -> None:
         """Test creating ChatOpenAI with custom GPTConfig."""
@@ -110,13 +110,13 @@ class TestLLMFactoryEdgeCases:
     def test_high_reasoning_with_standard_model(self) -> None:
         """Test most thorough configuration (high reasoning + standard model)."""
         config = GPTConfig(
-            model_name="gpt-5",
+            model_name="gpt-5.1-thinking",
             reasoning_effort=ReasoningEffort.HIGH,
             verbosity=Verbosity.HIGH,
         )
         llm = create_llm(api_key="test_key", config=config)
 
-        assert llm.model_name == "gpt-5"
+        assert llm.model_name == "gpt-5.1-thinking"  # Updated to GPT-5.1
 
     def test_very_high_max_tokens(self) -> None:
         """Test with very high max_tokens value."""

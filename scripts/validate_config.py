@@ -124,6 +124,25 @@ def validate_config() -> bool:
                 )
 
     # =========================================================================
+    # CHECK 3.5: GPT Model Configuration
+    # =========================================================================
+    print("✓ Checking GPT model configuration...")
+
+    # GPT_MODEL_NAME must be a valid OpenAI model
+    if not settings.GPT_MODEL_NAME.startswith("gpt-"):
+        errors.append(
+            f"GPT_MODEL_NAME='{settings.GPT_MODEL_NAME}' does not start with 'gpt-'. "
+            "Must be a valid OpenAI model name."
+        )
+
+    # Warn if using old GPT-5 instead of GPT-5.1 variants
+    if settings.GPT_MODEL_NAME == "gpt-5":
+        warnings.append(
+            "GPT_MODEL_NAME='gpt-5' is deprecated. Use GPT-5.1 variants: "
+            "gpt-5.1-instant, gpt-5.1-thinking, gpt-5.1-codex, or gpt-5.1-codex-mini"
+        )
+
+    # =========================================================================
     # CHECK 4: Security settings
     # =========================================================================
     print("✓ Checking security settings...")

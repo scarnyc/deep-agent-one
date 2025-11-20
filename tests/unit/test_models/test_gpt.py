@@ -49,7 +49,7 @@ class TestGPTConfig:
     def test_default_config(self) -> None:
         """Test GPTConfig with default values."""
         config = GPTConfig()
-        assert config.model_name == "gpt-5"
+        assert config.model_name == "gpt-5.1-thinking"  # Updated to GPT-5.1
         assert config.reasoning_effort == ReasoningEffort.MEDIUM
         assert config.verbosity == Verbosity.MEDIUM
         assert config.max_tokens == 4096
@@ -87,7 +87,7 @@ class TestGPTConfig:
         )
         data = config.model_dump()
 
-        assert data["model_name"] == "gpt-5"
+        assert data["model_name"] == "gpt-5.1-thinking"  # Updated to GPT-5.1
         assert data["reasoning_effort"] == "high"
         assert data["verbosity"] == "low"
         assert data["max_tokens"] == 4096

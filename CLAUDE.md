@@ -112,29 +112,34 @@ python scripts/validate_config.py
 
 #### Environment-Specific Configuration
 
-Use templates for different environments:
+Configure environment-specific settings directly in `.env`:
 
 ```bash
 # Local Development
-cp docs/templates/env.local.template .env
-# - ENV=local
-# - DEBUG=true
-# - API_RELOAD=true
-# - STREAM_TIMEOUT_SECONDS=300 (5 min for debugging)
+# Edit .env and set:
+ENV=local
+DEBUG=true
+API_RELOAD=true
+STREAM_TIMEOUT_SECONDS=300  # 5 min for debugging
+GPT_MODEL_NAME=gpt-5.1-thinking
 
 # Testing (CI/CD)
-cp docs/templates/env.test.template .env
-# - ENV=test
-# - MOCK_EXTERNAL_APIS=true
-# - STREAM_TIMEOUT_SECONDS=60 (1 min for speed)
+# Edit .env and set:
+ENV=test
+MOCK_EXTERNAL_APIS=true
+STREAM_TIMEOUT_SECONDS=60  # 1 min for speed
+GPT_MODEL_NAME=gpt-5.1-thinking
 
 # Production
-cp docs/templates/env.prod.template .env
-# - ENV=prod
-# - DEBUG=false (NEVER true in production)
-# - Fill in ALL secrets (no placeholders)
-# - Run: python scripts/validate_config.py
+# Edit .env and set:
+ENV=prod
+DEBUG=false  # NEVER true in production
+# Fill in ALL secrets (no placeholders)
+GPT_MODEL_NAME=gpt-5.1-thinking
+# Run: python scripts/validate_config.py
 ```
+
+**Single Source of Truth:** All configuration is managed through the root `.env` file. No separate template files are used.
 
 #### Configuration Validation
 
