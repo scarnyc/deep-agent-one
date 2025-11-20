@@ -53,21 +53,131 @@ npx playwright install-deps
 npx playwright --version
 ```
 
-### 2. Environment Separation
+### 2. Configuration Management
 
-**Dependency Management:** Poetry with pyproject.toml
-**Node.js Dependencies:** npm with package.json (for Playwright MCP)
+**Single Source of Truth:** Root `.env` file
 
-**Environment Variables:**
-- Use `python-dotenv` for environment-specific `.env` files
-- Use `pydantic-settings` for configuration management
-- **NEVER commit secrets** - keep `.env.*` files in `.gitignore`
-- Maintain `.env.example` as a template
-- Use separate API keys for each environment
+#### File Structure
+
+```
+deep-agent-agi/
+├── .env                      # Active configuration (gitignored, NOT committed)
+├── .env.example              # Template with comprehensive documentation (committed)
+├── docs/
+│   └── templates/
+│       ├── env.local.template   # Local development defaults (committed)
+│       ├── env.test.template    # Test environment defaults (committed)
+│       └── env.prod.template    # Production template (committed)
+├── frontend/
+│   ├── .env.test             # Frontend test fixtures (committed)
+│   └── .env.local.example    # Documentation only (frontend reads from root .env)
+└── backend/deep_agent/config/
+    └── settings.py           # Pydantic Settings loader
+```
+
+#### How It Works
+
+**Backend (Python/FastAPI):**
+- **Reads:** Root `.env` file
+- **Loader:** `backend/deep_agent/config/settings.py` (Pydantic BaseSettings)
+- **Cache:** `@lru_cache` singleton pattern (loaded once on startup)
+- **Consumers:** 11 backend modules import `get_settings()`
+
+**Frontend (Next.js/React):**
+- **Reads:** Root `.env` file (Next.js default behavior)
+- **Exposed:** Only `NEXT_PUBLIC_*` variables (embedded in browser bundle at build time)
+- **Consumers:** 18 TypeScript files access `process.env.NEXT_PUBLIC_*`
+
+**Key Points:**
+- **ONE active config file** - Root `.env` serves both backend and frontend
+- **NO separate frontend/.env.local** - Consolidated to root for simplicity
+- **Frontend reads from root** - Next.js automatically finds root `.env`
+- **NEXT_PUBLIC_* variables** - Only these are exposed to the browser
+
+#### Setup for New Developers
+
+```bash
+# 1. Copy template to active config
+cp .env.example .env
+
+# 2. Fill in your API keys
+nano .env  # Edit: OPENAI_API_KEY, PERPLEXITY_API_KEY, LANGSMITH_API_KEY
+
+# 3. Validate configuration
+python scripts/validate_config.py
+
+# 4. Start services (validation runs automatically)
+./scripts/start-all.sh
+```
+
+#### Environment-Specific Configuration
+
+Use templates for different environments:
+
+```bash
+# Local Development
+cp docs/templates/env.local.template .env
+# - ENV=local
+# - DEBUG=true
+# - API_RELOAD=true
+# - STREAM_TIMEOUT_SECONDS=300 (5 min for debugging)
+
+# Testing (CI/CD)
+cp docs/templates/env.test.template .env
+# - ENV=test
+# - MOCK_EXTERNAL_APIS=true
+# - STREAM_TIMEOUT_SECONDS=60 (1 min for speed)
+
+# Production
+cp docs/templates/env.prod.template .env
+# - ENV=prod
+# - DEBUG=false (NEVER true in production)
+# - Fill in ALL secrets (no placeholders)
+# - Run: python scripts/validate_config.py
+```
+
+#### Configuration Validation
+
+**Automatic validation on startup:**
+```bash
+./scripts/start-backend.sh  # Runs validation before starting server
+```
+
+**Manual validation:**
+```bash
+python scripts/validate_config.py
+```
+
+**Validation checks:**
+- ✓ ENV consistency (prod must not have DEBUG=true)
+- ✓ Timeout relationships (tool < stream timeout)
+- ✓ Required API keys (unless MOCK_EXTERNAL_APIS=true)
+- ✓ Security settings (strong secrets in production)
+- ✓ Dangerous defaults (no debug tools in production)
+- ✓ Type and range validation
+
+#### Best Practices
+
+- **Use pydantic-settings** for type-safe configuration
+- **NEVER commit `.env`** - keep it gitignored
+- **Maintain `.env.example`** - comprehensive documentation for all settings
+- **Use separate API keys per environment**
+- **Run validation** before deploying (`python scripts/validate_config.py`)
+- **Review templates** when adding new settings
+
+#### Dependency Management
+
+**Python:** Poetry with pyproject.toml
+**Node.js:** npm with package.json (for Playwright MCP)
 
 **Execution:**
 ```bash
+# Backend with specific environment
 ENV=prod poetry run python -m deep_agent
+
+# Or set in .env file (recommended)
+echo "ENV=prod" >> .env
+./scripts/start-backend.sh
 ```
 
 ### 3. Security Auditing Setup (TheAuditor)
