@@ -97,8 +97,14 @@ data/
 # TheAuditor
 .pf/
 
-# MCP (if containing secrets)
-.mcp/*.local.json
+# MCP
+.mcp/
+
+# Claude Code
+.claude/
+
+# Documentation (generated)
+docs/
 
 # Logs
 # Ignore all log files but keep directory structure
@@ -126,7 +132,7 @@ secrets/
 credentials.json
 
 # Alembic
-alembic/versions/*.pyc
+alembic/
 
 # Temporary files
 tmp/
