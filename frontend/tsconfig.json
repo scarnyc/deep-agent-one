@@ -1,0 +1,55 @@
+{
+  // TypeScript Configuration (Phase 0)
+  //
+  // This configuration enforces strict type checking and provides
+  // path aliases for cleaner imports throughout the application.
+  //
+  // Key Features:
+  // - Strict mode enabled for maximum type safety
+  // - Path aliases (@/ imports) for cleaner code
+  // - Next.js plugin integration
+  // - Strict linting rules (no unused vars, implicit returns, etc.)
+  //
+  // References:
+  // - https://www.typescriptlang.org/tsconfig
+  // - https://nextjs.org/docs/app/building-your-application/configuring/typescript
+  "compilerOptions": {
+    "target": "ES2020", // Target modern JavaScript
+    "lib": ["dom", "dom.iterable", "esnext"], // Include DOM and ES Next types
+    "allowJs": true, // Allow JavaScript files
+    "skipLibCheck": true, // Skip type checking of declaration files
+    "strict": true, // Enable all strict type-checking options
+    "noEmit": true, // Don't emit compiled files (Next.js handles this)
+    "esModuleInterop": true, // Enable ES module interoperability
+    "module": "esnext", // Use ES modules
+    "moduleResolution": "bundler", // Use bundler resolution strategy
+    "resolveJsonModule": true, // Allow importing JSON files
+    "isolatedModules": true, // Ensure each file can be safely transpiled
+    "jsx": "preserve", // Preserve JSX for Next.js
+    "incremental": true, // Enable incremental compilation
+    "plugins": [
+      {
+        "name": "next" // Next.js TypeScript plugin
+      }
+    ],
+    // Path aliases for cleaner imports (e.g., @/components/Button)
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/types/*": ["./types/*"],
+      "@/app/*": ["./app/*"]
+    },
+    "baseUrl": ".",
+    // Strict linting rules for code quality
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

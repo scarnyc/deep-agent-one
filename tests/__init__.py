@@ -1,0 +1,54 @@
+"""Test suite for Deep Agent AGI.
+
+This package contains comprehensive tests covering:
+- Unit tests: Isolated component testing with mocked dependencies
+- Integration tests: Component interaction testing with mocked external services
+- E2E tests: Complete workflow testing with minimal mocking
+- UI tests: Playwright-based UI automation testing
+- Experiments: Research and optimization experiments
+
+Test Structure:
+    tests/
+       unit/              # Unit tests (70% of test suite)
+       integration/       # Integration tests (20% of test suite)
+       e2e/               # End-to-end tests (8% of test suite)
+       ui/                # UI tests with Playwright (2% of test suite)
+       experiments/       # Research experiments
+       fixtures/          # Test fixtures and factory functions
+       mocks/             # Mock implementations
+       scripts/           # Test utilities and scripts
+
+Testing Philosophy:
+    - Test-Driven Development (TDD): Write tests first
+    - 80%+ coverage requirement
+    - Fast execution (<5min total suite)
+    - AAA pattern (Arrange, Act, Assert)
+    - Independent, isolated tests
+    - Mock external dependencies
+
+Usage:
+    Run all tests:
+        $ pytest
+
+    Run by category:
+        $ pytest tests/unit/
+        $ pytest tests/integration/
+        $ pytest tests/e2e/
+        $ pytest tests/ui/
+
+    Run with coverage:
+        $ pytest --cov=deep_agent --cov-report=html
+
+    Run with markers:
+        $ pytest -m unit
+        $ pytest -m "not slow"
+
+Configuration:
+    - pytest.ini: Global pytest configuration
+    - conftest.py: Shared fixtures and pytest hooks
+    - .coveragerc: Coverage reporting settings
+
+See Also:
+    - tests/README.md: Detailed testing documentation
+    - CLAUDE.md: Development guide and testing strategy
+"""
