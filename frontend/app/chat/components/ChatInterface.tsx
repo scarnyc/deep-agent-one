@@ -27,6 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, User, Bot, Loader2, AlertCircle } from 'lucide-react';
+import { MarkdownContent } from '@/components/common/MarkdownContent';
 
 /**
  * Get avatar icon for message role
@@ -126,8 +127,12 @@ function MessageItem({ message }: { message: AgentMessage }) {
           </div>
 
           {/* Message text */}
-          <div className={`${messageClass} rounded-lg px-4 py-2 whitespace-pre-wrap break-words`}>
-            {message.content}
+          <div className={`${messageClass} rounded-lg px-4 py-2 break-words`}>
+            {message.role === 'assistant' ? (
+              <MarkdownContent content={message.content} />
+            ) : (
+              <span className="whitespace-pre-wrap">{message.content}</span>
+            )}
           </div>
 
           {/* Metadata (reasoning effort, tokens) */}

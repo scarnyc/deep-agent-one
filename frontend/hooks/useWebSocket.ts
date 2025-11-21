@@ -179,7 +179,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           if (customEvents.includes(data.event)) {
             // Log custom events for visibility but don't pass to AG-UI handler
             if (DEBUG) {
-              console.log('[useWebSocket] Custom event:', data.event, data.data);
+              console.log('[useWebSocket] Custom event:', data.event, (data as { data?: unknown }).data);
             }
             return; // Don't pass to AG-UI handler
           }
