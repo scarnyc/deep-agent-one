@@ -112,12 +112,13 @@ const markdownComponents: Components = {
     <pre className="bg-muted rounded-lg my-3 overflow-x-auto">{children}</pre>
   ),
 
-  // Lists
+  // Lists - using list-outside (default) with padding to prevent orphaned bullets
+  // list-inside causes bullets to visually separate from content on complex list items
   ul: ({ children }) => (
-    <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>
+    <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>
+    <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>
   ),
   li: ({ children }) => {
     // Skip rendering empty list items (fixes orphan bullets from malformed markdown)
