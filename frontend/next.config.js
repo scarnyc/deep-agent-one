@@ -102,7 +102,23 @@ const nextConfig = {
    * Optimizes imports from lucide-react and @radix-ui packages.
    */
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-scroll-area',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-tooltip',
+      'react-markdown',
+    ],
+    turbo: {
+      resolveAlias: {
+        'utf-8-validate': 'utf-8-validate',
+        'bufferutil': 'bufferutil',
+      },
+    },
   },
 };
 
