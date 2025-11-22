@@ -99,6 +99,7 @@ db/data/
 
 # Claude Code
 .claude/
+!.claude/agents/
 
 # Documentation (generated)
 docs/
