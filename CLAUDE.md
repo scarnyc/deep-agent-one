@@ -253,8 +253,16 @@ context7 is a built-in MCP server in Claude Code that provides up-to-date librar
 
 **No installation required** - context7 is pre-configured in Claude Code and ready to use immediately.
 
-**MCP Configuration Directory:**
-Create `.mcp/` directory with configuration files for each MCP server (see README.md for details).
+**MCP Configuration File:**
+Create `.mcp.json` at project root with server configurations:
+```json
+{
+  "mcpServers": {
+    "playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] },
+    "perplexity": { "command": "npx", "args": ["-y", "perplexity-mcp"], "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" } }
+  }
+}
+```
 
 ### 5. Evaluation-Driven Development (EDD)
 
@@ -290,7 +298,7 @@ All 33 architectural decisions have been documented. Key decisions include:
 - Backend: FastAPI + Python 3.10+
 - Frontend: Next.js + AG-UI Protocol
 - Database: PostgreSQL + pgvector (Replit)
-- LLM: OpenAI GPT-5 with variable reasoning
+- LLM: OpenAI GPT-5.1 with variable reasoning
 - Agent Framework: LangGraph DeepAgents
 
 **Development Standards:**
@@ -309,14 +317,14 @@ All 33 architectural decisions have been documented. Key decisions include:
 **Backend:** FastAPI (Python 3.10+)
 **Frontend:** Next.js (React) with AG-UI Protocol
 **Database:** PostgreSQL with pgvector (Replit)
-**LLM:** OpenAI GPT-5 with variable reasoning effort
+**LLM:** OpenAI GPT-5.1 with variable reasoning effort
 **Agent Framework:** LangGraph DeepAgents
 **Monitoring:** LangSmith
 **Search:** Perplexity MCP
 **UI Testing:** Playwright MCP
 
 **Key Patterns:**
-- Reasoning Router (GPT-5 effort optimization)
+- Reasoning Router (GPT-5.1 effort optimization)
 - Event Streaming (AG-UI Protocol)
 - HITL Workflow (Human-in-the-loop approvals)
 - Checkpointer Strategy (State persistence)
@@ -342,10 +350,10 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 - Sub-Agents (general-purpose)
 - Human-in-the-Loop (HITL) with checkpointer
 
-#### 2. LLM Integration (GPT-5)
+#### 2. LLM Integration (GPT-5.1)
 **Documentation:**
 - API: https://platform.openai.com/docs/guides/latest-model
-- Prompting: https://cookbook.openai.com/examples/gpt-5/gpt-5_prompting_guide
+- Prompting: https://cookbook.openai.com/examples/gpt-5/gpt-5-1_prompting_guide
 
 **User Flow:** Fast chat Q&A with streaming responses
 
@@ -391,7 +399,7 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
    - [ ] HITL approval workflow functional
 
 2. **LLM Integration** ✓
-   - [ ] GPT-5 API connected
+   - [ ] GPT-5.1 API connected
    - [ ] Streaming responses work
    - [ ] Token usage tracking implemented
    - [ ] Rate limiting active
@@ -486,7 +494,7 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 
 ### Core Technologies
 - **Framework:** LangGraph DeepAgents
-- **LLM:** OpenAI GPT-5
+- **LLM:** OpenAI GPT-5.1
 - **Backend:** FastAPI (Python 3.10+)
 - **Frontend:** Next.js (React) + shadcn/ui + Tailwind CSS
 - **Database:** PostgreSQL (Replit) with pgvector
@@ -584,9 +592,9 @@ All code quality issues and technical debt items are tracked in `GITHUB_ISSUES.m
 1. Set up environment → **Commit**
 2. Install Node.js + Playwright MCP → **Commit**
 3. Install Playwright browsers → **Commit**
-4. Create .mcp/ config files → **Commit**
+4. Create .mcp.json config → **Commit**
 5. Implement DeepAgents core → **Commit after each tool**
-6. Add GPT-5 integration → **Commit**
+6. Add GPT-5.1 integration → **Commit**
 7. Build basic AG-UI → **Commit after each event type**
 8. Integrate LangSmith → **Commit**
 9. Add Perplexity MCP → **Commit**
@@ -754,7 +762,7 @@ Context: User has just created a new agent and completed its initial implementat
 user: "I've finished implementing the code-reviewer agent. Here's the system prompt I wrote: [prompt content]"
 assistant: "Let me use the context-engineering-expert agent to optimize this system prompt before you deploy it."
 <commentary>
-Since the user has created a new agent, proactively use the context-engineering-expert to optimize the prompt following GPT-5 best practices and Opik recommendations, even though the user didn't explicitly request optimization.
+Since the user has created a new agent, proactively use the context-engineering-expert to optimize the prompt following GPT-5.1 best practices and Opik recommendations, even though the user didn't explicitly request optimization.
 </commentary>
 </example>
 
@@ -791,7 +799,7 @@ High token usage often indicates verbose or inefficient prompts. Proactively use
 2. **Invoke context-engineering-expert:**
    ```bash
    # The agent will:
-   # 1. Analyze current prompt against GPT-5 best practices
+   # 1. Analyze current prompt against GPT-5.1 best practices
    # 2. Create evaluation dataset
    # 3. Run Opik optimizer (MetaPrompt, Evolutionary, etc.)
    # 4. Validate improvements with A/B testing
@@ -806,7 +814,7 @@ High token usage often indicates verbose or inefficient prompts. Proactively use
 
 ### Tools Available
 
-- **analyze_prompt** - GPT-5 best practices analysis
+- **analyze_prompt** - GPT-5.1 best practices analysis
 - **optimize_prompt** - Opik-powered optimization
 - **evaluate_prompt** - Metrics (accuracy, latency, cost)
 - **create_evaluation_dataset** - Generate test cases
@@ -864,8 +872,8 @@ After each phase, validate:
 - LangSmith Python SDK: https://docs.smith.langchain.com/reference/python/reference
 
 ### OpenAI
-- GPT-5 Latest Model: https://platform.openai.com/docs/guides/latest-model
-- GPT-5 Prompting Guide: https://cookbook.openai.com/examples/gpt-5/gpt-5_prompting_guide
+- GPT-5.1 Latest Model: https://platform.openai.com/docs/guides/latest-model
+- GPT-5.1 Prompting Guide: https://cookbook.openai.com/examples/gpt-5/gpt-5-1_prompting_guide
 
 ### Security Tools
 - **TheAuditor:** https://github.com/TheAuditorTool/Auditor
@@ -941,7 +949,7 @@ git commit -m "security(phase-X): address TheAuditor findings"
 
 ### Prompt Optimization
 ```bash
-# Analyze prompt against GPT-5 best practices
+# Analyze prompt against GPT-5.1 best practices
 # (via context-engineering-expert agent)
 analyze_prompt(prompt, task_type="general")
 
@@ -1084,7 +1092,7 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 ### ✅ **Layers 1-7: COMPLETED**
 
 **Layer 1: Foundation** - Configuration, logging, error handling ✓
-**Layer 2: GPT-5 Integration** - Models, LLM factory, reasoning router ✓
+**Layer 2: GPT-5.1 Integration** - Models, LLM factory, reasoning router ✓
 **Layer 3: LangGraph DeepAgents** - Checkpointer, agent initialization, service layer ✓
 **Layer 4: MCP Integration** - Perplexity client, web search tool ✓
 **Layer 5: LangSmith** - Tracing and observability ✓
