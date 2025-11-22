@@ -14,12 +14,12 @@
 #   - Python dependencies installed (poetry install)
 #
 # Output:
-#   - Logs to: out/logs/backend/YYYY-MM-DD-HH-MM-SS.log
+#   - Logs to: logs/backend/YYYY-MM-DD-HH-MM-SS.log
 #   - Server runs on: http://127.0.0.1:8000
 #
 # Examples:
 #   ./scripts/start-backend.sh                # Start backend
-#   tail -f out/logs/backend/2025-11-12-*.log     # Watch logs
+#   tail -f logs/backend/2025-11-*.log        # Watch logs
 
 set -e
 
@@ -30,7 +30,10 @@ NC='\033[0m' # No Color
 
 # Generate datetime-stamped log filename
 TIMESTAMP=$(date +"%Y-%m-%d-%H-%M-%S")
-LOG_FILE="out/logs/backend/${TIMESTAMP}.log"
+LOG_FILE="logs/backend/${TIMESTAMP}.log"
+
+# Ensure log directory exists
+mkdir -p logs/backend
 
 echo -e "${BLUE}Starting Deep Agent AGI Backend...${NC}"
 echo -e "${GREEN}Log file: ${LOG_FILE}${NC}"

@@ -14,12 +14,12 @@
 #   - Backend server running (or NEXT_PUBLIC_BACKEND_URL configured)
 #
 # Output:
-#   - Logs to: out/logs/frontend/YYYY-MM-DD-HH-MM-SS.log
+#   - Logs to: logs/frontend/YYYY-MM-DD-HH-MM-SS.log
 #   - Server runs on: http://localhost:3000
 #
 # Examples:
 #   ./scripts/start-frontend.sh               # Start frontend
-#   tail -f out/logs/frontend/2025-11-12-*.log    # Watch logs
+#   tail -f logs/frontend/2025-11-*.log       # Watch logs
 
 set -e
 
@@ -30,7 +30,10 @@ NC='\033[0m' # No Color
 
 # Generate datetime-stamped log filename
 TIMESTAMP=$(date +"%Y-%m-%d-%H-%M-%S")
-LOG_FILE="out/logs/frontend/${TIMESTAMP}.log"
+LOG_FILE="logs/frontend/${TIMESTAMP}.log"
+
+# Ensure log directory exists
+mkdir -p logs/frontend
 
 echo -e "${BLUE}Starting Deep Agent AGI Frontend...${NC}"
 echo -e "${GREEN}Log file: ${LOG_FILE}${NC}"

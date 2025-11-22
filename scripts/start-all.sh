@@ -15,14 +15,14 @@
 #   - Python dependencies installed (poetry install)
 #
 # Output:
-#   - Backend logs: out/logs/backend/YYYY-MM-DD-HH-MM-SS.log
-#   - Frontend logs: out/logs/frontend/YYYY-MM-DD-HH-MM-SS.log
+#   - Backend logs: logs/backend/YYYY-MM-DD-HH-MM-SS.log
+#   - Frontend logs: logs/frontend/YYYY-MM-DD-HH-MM-SS.log
 #   - Both servers run in background, Ctrl+C stops both
 #
 # Examples:
 #   ./scripts/start-all.sh                    # Start both servers
-#   tail -f out/logs/backend/2025-11-12-*.log     # Watch backend logs
-#   tail -f out/logs/frontend/2025-11-12-*.log    # Watch frontend logs
+#   tail -f logs/backend/2025-11-*.log        # Watch backend logs
+#   tail -f logs/frontend/2025-11-*.log       # Watch frontend logs
 
 set -e
 
@@ -37,8 +37,11 @@ cd "$(dirname "$0")/.."
 
 # Generate datetime-stamped log filenames
 TIMESTAMP=$(date +"%Y-%m-%d-%H-%M-%S")
-BACKEND_LOG="out/logs/backend/${TIMESTAMP}.log"
-FRONTEND_LOG="out/logs/frontend/${TIMESTAMP}.log"
+BACKEND_LOG="logs/backend/${TIMESTAMP}.log"
+FRONTEND_LOG="logs/frontend/${TIMESTAMP}.log"
+
+# Ensure log directories exist
+mkdir -p logs/backend logs/frontend
 
 echo -e "${BLUE}Starting Deep Agent AGI (Backend + Frontend)...${NC}"
 echo ""
