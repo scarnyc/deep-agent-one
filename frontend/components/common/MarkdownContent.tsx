@@ -17,8 +17,9 @@
  * Uses dynamic imports to reduce cold compile time from ~30s to <5s.
  */
 
-import React, { Suspense, lazy, useMemo } from 'react';
+import React, { Suspense, lazy } from 'react';
 import type { Components } from 'react-markdown';
+import type { PluggableList } from 'unified';
 
 // Dynamic imports for react-markdown (reduces cold compile time significantly)
 const ReactMarkdown = lazy(() => import('react-markdown'));
@@ -187,22 +188,31 @@ const markdownComponents: Components = {
  * Uses dynamic imports for react-markdown to reduce cold compile time.
  */
 export function MarkdownContent({ content, className = '' }: MarkdownContentProps) {
-  // Lazy load remark-gfm
-  const remarkGfm = useMemo(() => {
-    return import('remark-gfm').then(mod => mod.default);
-  }, []);
-
-  const [remarkPlugin, setRemarkPlugin] = React.useState<typeof import('remark-gfm').default | null>(null);
+  // Use PluggableList type to avoid ESM module type resolution issues
+  const [remarkPlugins, setRemarkPlugins] = React.useState<PluggableList>([]);
 
   React.useEffect(() => {
-    remarkGfm.then(setRemarkPlugin);
-  }, [remarkGfm]);
+    // Dynamically import remark-gfm to reduce initial bundle size
+    let mounted = true;
+    import('remark-gfm')
+      .then((mod) => {
+        if (mounted) {
+          setRemarkPlugins([mod.default]);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load remark-gfm:', err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className={`markdown-content prose prose-sm dark:prose-invert max-w-none ${className}`}>
       <Suspense fallback={<MarkdownSkeleton />}>
         <ReactMarkdown
-          remarkPlugins={remarkPlugin ? [remarkPlugin] : []}
+          remarkPlugins={remarkPlugins}
           components={markdownComponents}
         >
           {content}
