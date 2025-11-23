@@ -1,7 +1,9 @@
-"""Tests for LLM factory functions (Gemini and GPT)."""
+"""Tests for LLM factory functions (Gemini and GPT).
+
+NOTE: Uses string-based type checking to avoid importing langchain_google_genai
+at module load time, which causes gRPC initialization hangs.
+"""
 import pytest
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
 
 from backend.deep_agent.models.llm import (
     GeminiConfig,
@@ -20,7 +22,8 @@ class TestCreateGeminiLLM:
         """Test creating ChatGoogleGenerativeAI with default config."""
         llm = create_gemini_llm(api_key="test_key")
 
-        assert isinstance(llm, ChatGoogleGenerativeAI)
+        # Use string comparison to avoid importing ChatGoogleGenerativeAI at module level
+        assert llm.__class__.__name__ == "ChatGoogleGenerativeAI"
         # ChatGoogleGenerativeAI.model property returns "models/{model_name}"
         assert "gemini-3-pro-preview" in llm.model
 
@@ -34,7 +37,8 @@ class TestCreateGeminiLLM:
         )
         llm = create_gemini_llm(api_key="test_key", config=config)
 
-        assert isinstance(llm, ChatGoogleGenerativeAI)
+        # Use string comparison to avoid importing ChatGoogleGenerativeAI at module level
+        assert llm.__class__.__name__ == "ChatGoogleGenerativeAI"
         # ChatGoogleGenerativeAI.model property returns "models/{model_name}"
         assert "gemini-3-flash" in llm.model
 
@@ -43,7 +47,7 @@ class TestCreateGeminiLLM:
         for level in [ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH]:
             config = GeminiConfig(thinking_level=level)
             llm = create_gemini_llm(api_key="test_key", config=config)
-            assert isinstance(llm, ChatGoogleGenerativeAI)
+            assert llm.__class__.__name__ == "ChatGoogleGenerativeAI"
 
     def test_create_without_api_key(self) -> None:
         """Test that missing API key raises ValueError."""
@@ -66,7 +70,8 @@ class TestCreateGPTLLM:
         """Test creating ChatOpenAI with default config."""
         llm = create_gpt_llm(api_key="test_key")
 
-        assert isinstance(llm, ChatOpenAI)
+        # Use string comparison to avoid importing ChatOpenAI at module level
+        assert llm.__class__.__name__ == "ChatOpenAI"
         assert llm.model_name == "gpt-5.1-2025-11-13"
 
     def test_create_with_custom_config(self) -> None:
@@ -79,7 +84,8 @@ class TestCreateGPTLLM:
         )
         llm = create_gpt_llm(api_key="test_key", config=config)
 
-        assert isinstance(llm, ChatOpenAI)
+        # Use string comparison to avoid importing ChatOpenAI at module level
+        assert llm.__class__.__name__ == "ChatOpenAI"
         assert llm.model_name == "gpt-5-mini"
 
     def test_create_with_reasoning_effort(self) -> None:
@@ -92,14 +98,14 @@ class TestCreateGPTLLM:
         ]:
             config = GPTConfig(reasoning_effort=effort)
             llm = create_gpt_llm(api_key="test_key", config=config)
-            assert isinstance(llm, ChatOpenAI)
+            assert llm.__class__.__name__ == "ChatOpenAI"
 
     def test_create_with_verbosity(self) -> None:
         """Test verbosity is passed to ChatOpenAI."""
         for verbosity in [Verbosity.LOW, Verbosity.MEDIUM, Verbosity.HIGH]:
             config = GPTConfig(verbosity=verbosity)
             llm = create_gpt_llm(api_key="test_key", config=config)
-            assert isinstance(llm, ChatOpenAI)
+            assert llm.__class__.__name__ == "ChatOpenAI"
 
     def test_create_with_all_model_variants(self) -> None:
         """Test creating LLM with all GPT model variants."""
@@ -108,7 +114,8 @@ class TestCreateGPTLLM:
             config = GPTConfig(model_name=model_name)
             llm = create_gpt_llm(api_key="test_key", config=config)
 
-            assert isinstance(llm, ChatOpenAI)
+            # Use string comparison to avoid importing ChatOpenAI at module level
+            assert llm.__class__.__name__ == "ChatOpenAI"
             assert llm.model_name == model_name
 
     def test_create_without_api_key(self) -> None:
@@ -125,7 +132,8 @@ class TestCreateGPTLLM:
             model="gpt-5-nano",
         )
 
-        assert isinstance(llm, ChatOpenAI)
+        # Use string comparison to avoid importing ChatOpenAI at module level
+        assert llm.__class__.__name__ == "ChatOpenAI"
         assert llm.model_name == "gpt-5-nano"
 
     def test_returns_langchain_compatible_llm(self) -> None:
@@ -165,16 +173,16 @@ class TestLLMFactoryEdgeCases:
         """Test GPT with very high max_tokens value."""
         config = GPTConfig(max_tokens=100000)
         llm = create_gpt_llm(api_key="test_key", config=config)
-        assert isinstance(llm, ChatOpenAI)
+        assert llm.__class__.__name__ == "ChatOpenAI"
 
     def test_very_high_max_tokens_gemini(self) -> None:
         """Test Gemini with very high max_output_tokens value."""
         config = GeminiConfig(max_output_tokens=64000)
         llm = create_gemini_llm(api_key="test_key", config=config)
-        assert isinstance(llm, ChatGoogleGenerativeAI)
+        assert llm.__class__.__name__ == "ChatGoogleGenerativeAI"
 
     def test_gemini_low_thinking_for_speed(self) -> None:
         """Test fastest Gemini configuration (low thinking)."""
         config = GeminiConfig(thinking_level=ThinkingLevel.LOW)
         llm = create_gemini_llm(api_key="test_key", config=config)
-        assert isinstance(llm, ChatGoogleGenerativeAI)
+        assert llm.__class__.__name__ == "ChatGoogleGenerativeAI"

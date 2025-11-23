@@ -9,10 +9,8 @@ import asyncio
 import time
 from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from langgraph.errors import GraphRecursionError
-from langgraph.graph.state import CompiledStateGraph
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -20,7 +18,10 @@ from tenacity import (
     wait_exponential,
 )
 
-from deep_agent.agents.deep_agent import create_agent
+# Type checking imports (not executed at runtime)
+if TYPE_CHECKING:
+    from langgraph.errors import GraphRecursionError
+    from langgraph.graph.state import CompiledStateGraph
 from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.logging import generate_langsmith_url, get_logger
 
@@ -80,7 +81,7 @@ class AgentService:
                            If None, uses environment-specific prompt (dev/prod).
         """
         self.settings = settings if settings is not None else get_settings()
-        self.agent: CompiledStateGraph | None = None
+        self.agent: Any = None  # CompiledStateGraph but using Any to avoid import
         self.prompt_variant = prompt_variant
         self._agent_lock = asyncio.Lock()  # Thread-safe lazy initialization
 
@@ -92,7 +93,7 @@ class AgentService:
             prompt_variant=prompt_variant,
         )
 
-    async def _ensure_agent(self) -> CompiledStateGraph:
+    async def _ensure_agent(self) -> Any:  # Returns CompiledStateGraph
         """
         Ensure agent is created (lazy initialization with thread safety).
 
@@ -118,6 +119,9 @@ class AgentService:
                 return self.agent
 
             logger.debug("Creating agent (lazy initialization)")
+
+            # Lazy import to avoid blocking at module load time
+            from deep_agent.agents.deep_agent import create_agent
 
             # Determine subagents parameter
             subagents = None
@@ -587,7 +591,11 @@ class AgentService:
                 event_types=list(event_types_seen),
             )
 
-        except GraphRecursionError:
+        except Exception as exc:
+            # Check for GraphRecursionError (lazy import to avoid module load blocking)
+            from langgraph.errors import GraphRecursionError
+            if not isinstance(exc, GraphRecursionError):
+                raise
             logger.warning(
                 "Agent recursion limit reached (graceful termination)",
                 thread_id=thread_id,

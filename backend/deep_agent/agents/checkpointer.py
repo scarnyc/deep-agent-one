@@ -1,11 +1,21 @@
 """Checkpointer manager for LangGraph state persistence."""
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import aiosqlite
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from deep_agent.config.settings import Settings, get_settings
+
+# Type checking imports (not executed at runtime)
+if TYPE_CHECKING:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+
+def _lazy_import_checkpointer():
+    """Lazy import of AsyncSqliteSaver to avoid blocking at module load time."""
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+    return AsyncSqliteSaver
 from deep_agent.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -42,7 +52,7 @@ class CheckpointerManager:
                      If None, uses get_settings() default singleton.
         """
         self.settings = settings if settings is not None else get_settings()
-        self._checkpointer: AsyncSqliteSaver | None = None
+        self._checkpointer: Any = None  # AsyncSqliteSaver but using Any to avoid import
         self._connection: aiosqlite.Connection | None = None
 
         logger.info(
@@ -51,7 +61,7 @@ class CheckpointerManager:
             cleanup_days=self.settings.CHECKPOINT_CLEANUP_DAYS,
         )
 
-    async def create_checkpointer(self, env: str = "local") -> AsyncSqliteSaver:
+    async def create_checkpointer(self, env: str = "local") -> Any:  # Returns AsyncSqliteSaver
         """
         Create a checkpointer for the specified environment.
 
@@ -80,7 +90,7 @@ class CheckpointerManager:
 
     async def get_sqlite_checkpointer(
         self, db_path: str | None = None
-    ) -> AsyncSqliteSaver:
+    ) -> Any:  # Returns AsyncSqliteSaver
         """
         Create an AsyncSqliteSaver checkpointer with specified database path.
 
@@ -121,6 +131,9 @@ class CheckpointerManager:
             # Create aiosqlite connection
             conn = await aiosqlite.connect(str(resolved_path))
             self._connection = conn
+
+            # Lazy import to avoid blocking at module load time
+            AsyncSqliteSaver = _lazy_import_checkpointer()
 
             # Create AsyncSqliteSaver with the connection
             checkpointer = AsyncSqliteSaver(conn)

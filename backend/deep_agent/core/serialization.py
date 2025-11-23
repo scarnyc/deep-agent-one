@@ -4,15 +4,26 @@ Event serialization utilities for converting LangChain objects to JSON-safe dict
 Handles serialization of LangChain message objects (HumanMessage, AIMessage, etc.)
 for WebSocket streaming and API responses.
 """
+from __future__ import annotations
 
 import json
-from typing import Any
-
-from langchain_core.messages import BaseMessage
-from langchain_core.messages.ai import AIMessageChunk
-from langgraph.types import Send
+from typing import TYPE_CHECKING, Any
 
 from deep_agent.core.logging import get_logger
+
+# Type checking imports (not executed at runtime)
+if TYPE_CHECKING:
+    from langchain_core.messages import BaseMessage
+    from langchain_core.messages.ai import AIMessageChunk
+    from langgraph.types import Send
+
+
+def _lazy_import_langchain_types():
+    """Lazy import of LangChain types to avoid blocking at module load time."""
+    from langchain_core.messages import BaseMessage
+    from langchain_core.messages.ai import AIMessageChunk
+    from langgraph.types import Send
+    return BaseMessage, AIMessageChunk, Send
 
 logger = get_logger(__name__)
 
@@ -78,6 +89,9 @@ def _serialize_value(value: Any) -> Any:
     Returns:
         JSON-serializable equivalent of the value
     """
+    # Lazy import types to avoid blocking at module load time
+    BaseMessage, AIMessageChunk, Send = _lazy_import_langchain_types()
+
     # Handle LangGraph Send objects (tool routing) - MUST BE FIRST
     # Send objects are used by LangGraph to route tool calls to tool nodes
     if isinstance(value, Send):

@@ -2,6 +2,11 @@
 Web Search Tool for DeepAgents.
 
 Provides web search capabilities to agents via the Perplexity MCP client.
+
+NOTE: The @tool decorator from langchain_core is imported at module level
+because it must be applied at decoration time. This is unavoidable, but the
+actual heavy imports (google-genai, deepagents) are still lazy-loaded elsewhere.
+langchain_core.tools is relatively lightweight compared to LLM-specific packages.
 """
 
 import asyncio

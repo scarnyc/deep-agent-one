@@ -9,11 +9,7 @@ to fallback model on rate limits, timeouts, or other errors.
 """
 
 import traceback
-from typing import Any
-
-from deepagents import create_deep_agent
-from langchain.agents.middleware import ModelFallbackMiddleware
-from langgraph.graph.state import CompiledStateGraph
+from typing import TYPE_CHECKING, Any
 
 from deep_agent.agents.checkpointer import CheckpointerManager
 from deep_agent.agents.prompts import get_agent_instructions
@@ -27,17 +23,33 @@ from deep_agent.models.llm import (
     ThinkingLevel,
     Verbosity,
 )
-from deep_agent.services.llm_factory import create_gemini_llm, create_gpt_llm
-from deep_agent.tools.web_search import web_search
+
+# Type checking imports (not executed at runtime)
+if TYPE_CHECKING:
+    from deepagents import create_deep_agent
+    from langchain.agents.middleware import ModelFallbackMiddleware
+    from langgraph.graph.state import CompiledStateGraph
 
 logger = get_logger(__name__)
+
+
+def _lazy_import_deepagents():
+    """Lazy import of deepagents to avoid blocking at module load time."""
+    from deepagents import create_deep_agent
+    return create_deep_agent
+
+
+def _lazy_import_middleware():
+    """Lazy import of ModelFallbackMiddleware to avoid blocking at module load time."""
+    from langchain.agents.middleware import ModelFallbackMiddleware
+    return ModelFallbackMiddleware
 
 
 async def create_agent(
     settings: Settings | None = None,
     subagents: list[Any] | None = None,
     prompt_variant: str | None = None,
-) -> CompiledStateGraph:
+) -> Any:  # Returns CompiledStateGraph but using Any to avoid import
     """
     Create a DeepAgent with LangGraph using official create_deep_agent() API.
 
@@ -89,6 +101,13 @@ async def create_agent(
         Human-in-the-loop approval is built into DeepAgents.
         Configure via settings.ENABLE_HITL.
     """
+    # Lazy imports to avoid blocking at module load time
+    from deep_agent.services.llm_factory import create_gemini_llm, create_gpt_llm
+    from deep_agent.tools.web_search import web_search
+
+    create_deep_agent = _lazy_import_deepagents()
+    ModelFallbackMiddleware = _lazy_import_middleware()
+
     # Get settings
     if settings is None:
         settings = get_settings()

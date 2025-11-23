@@ -3,13 +3,13 @@
 Supports:
     - Gemini 3 Pro (primary model via ChatGoogleGenerativeAI)
     - GPT-5.1 (fallback model via ChatOpenAI)
+    
+IMPORTANT: Uses lazy imports for langchain_google_genai to prevent
+import-time blocking issues with gRPC/protobuf compilation.
 """
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from httpx import Timeout
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
-from openai import AsyncOpenAI
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -20,7 +20,48 @@ from tenacity import (
 from deep_agent.core.logging import get_logger
 from deep_agent.models.llm import GeminiConfig, GPTConfig
 
+# Type checking imports (not executed at runtime)
+if TYPE_CHECKING:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_openai import ChatOpenAI
+
 logger = get_logger(__name__)
+
+
+def _lazy_import_openai():
+    """
+    Lazy import of langchain_openai and openai to avoid blocking at module load time.
+
+    Returns:
+        Tuple of (ChatOpenAI, AsyncOpenAI) classes
+    """
+    try:
+        from langchain_openai import ChatOpenAI
+        from openai import AsyncOpenAI
+        return ChatOpenAI, AsyncOpenAI
+    except ImportError as e:
+        logger.error("Failed to import langchain_openai/openai", error=str(e))
+        raise
+
+
+def _lazy_import_google_genai():
+    """
+    Lazy import of langchain_google_genai to avoid blocking at module load time.
+    
+    The langchain_google_genai import can block during initialization due to:
+    - gRPC/protobuf compilation
+    - SSL certificate validation
+    - Network initialization
+    
+    Returns:
+        ChatGoogleGenerativeAI class
+    """
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI
+    except ImportError as e:
+        logger.error("Failed to import langchain_google_genai", error=str(e))
+        raise
 
 
 @retry(
@@ -32,12 +73,14 @@ def create_gemini_llm(
     api_key: str,
     config: GeminiConfig | None = None,
     **kwargs: Any,
-) -> ChatGoogleGenerativeAI:
+) -> Any:  # Returns ChatGoogleGenerativeAI but using Any to avoid import
     """
     Create a configured ChatGoogleGenerativeAI instance for Gemini 3 Pro (primary model).
 
     This factory function creates LangChain-compatible ChatGoogleGenerativeAI instances
     configured for Gemini 3 Pro with thinking level and temperature settings.
+    
+    Uses lazy import to prevent blocking during module initialization.
 
     Args:
         api_key: Google API key
@@ -49,6 +92,7 @@ def create_gemini_llm(
 
     Raises:
         ValueError: If API key is empty
+        ImportError: If langchain_google_genai cannot be imported
 
     Example:
         >>> from deep_agent.models.llm import GeminiConfig, ThinkingLevel
@@ -65,12 +109,15 @@ def create_gemini_llm(
         config = GeminiConfig()
 
     logger.info(
-        "Creating Gemini LLM (primary model)",
+        "Creating Gemini LLM (primary model) with lazy import",
         model=config.model_name,
         temperature=config.temperature,
         thinking_level=config.thinking_level.value,
         max_output_tokens=config.max_output_tokens,
     )
+
+    # Lazy import to avoid blocking at module load time
+    ChatGoogleGenerativeAI = _lazy_import_google_genai()
 
     return ChatGoogleGenerativeAI(
         model=kwargs.get("model", config.model_name),
@@ -91,7 +138,7 @@ def create_gpt_llm(
     api_key: str,
     config: GPTConfig | None = None,
     **kwargs: Any,
-) -> ChatOpenAI:
+) -> Any:  # Returns ChatOpenAI but using Any to avoid import
     """
     Create a configured ChatOpenAI instance for GPT-5.1 (fallback model).
 
@@ -130,6 +177,9 @@ def create_gpt_llm(
     # Use default config if none provided
     if config is None:
         config = GPTConfig()
+
+    # Lazy import to avoid blocking at module load time
+    ChatOpenAI, AsyncOpenAI = _lazy_import_openai()
 
     # Create custom AsyncOpenAI client with extended timeouts
     # Default timeout is 60s which causes BrokenResourceError at 45s
