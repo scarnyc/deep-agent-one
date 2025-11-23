@@ -1,7 +1,13 @@
-"""Factory for creating LangChain LLM instances configured for GPT models."""
+"""Factory for creating LangChain LLM instances for multiple providers.
+
+Supports:
+    - Gemini 3 Pro (primary model via ChatGoogleGenerativeAI)
+    - GPT-5.1 (fallback model via ChatOpenAI)
+"""
 from typing import Any
 
 from httpx import Timeout
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from openai import AsyncOpenAI
 from tenacity import (
@@ -12,7 +18,7 @@ from tenacity import (
 )
 
 from deep_agent.core.logging import get_logger
-from deep_agent.models.llm import GPTConfig
+from deep_agent.models.llm import GeminiConfig, GPTConfig
 
 logger = get_logger(__name__)
 
@@ -22,13 +28,72 @@ logger = get_logger(__name__)
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
 )
-def create_llm(
+def create_gemini_llm(
+    api_key: str,
+    config: GeminiConfig | None = None,
+    **kwargs: Any,
+) -> ChatGoogleGenerativeAI:
+    """
+    Create a configured ChatGoogleGenerativeAI instance for Gemini 3 Pro (primary model).
+
+    This factory function creates LangChain-compatible ChatGoogleGenerativeAI instances
+    configured for Gemini 3 Pro with thinking level and temperature settings.
+
+    Args:
+        api_key: Google API key
+        config: GeminiConfig with model settings (uses defaults if None)
+        **kwargs: Additional arguments to pass to ChatGoogleGenerativeAI
+
+    Returns:
+        Configured ChatGoogleGenerativeAI instance ready for use with DeepAgents
+
+    Raises:
+        ValueError: If API key is empty
+
+    Example:
+        >>> from deep_agent.models.llm import GeminiConfig, ThinkingLevel
+        >>> config = GeminiConfig(thinking_level=ThinkingLevel.HIGH)
+        >>> llm = create_gemini_llm(api_key="...", config=config)
+        >>> # Use with DeepAgents:
+        >>> agent = create_deep_agent(model=llm, tools=[...])
+    """
+    if not api_key:
+        raise ValueError("Google API key is required")
+
+    # Use default config if none provided
+    if config is None:
+        config = GeminiConfig()
+
+    logger.info(
+        "Creating Gemini LLM (primary model)",
+        model=config.model_name,
+        temperature=config.temperature,
+        thinking_level=config.thinking_level.value,
+        max_output_tokens=config.max_output_tokens,
+    )
+
+    return ChatGoogleGenerativeAI(
+        model=kwargs.get("model", config.model_name),
+        google_api_key=api_key,
+        temperature=kwargs.get("temperature", config.temperature),
+        max_output_tokens=kwargs.get("max_output_tokens", config.max_output_tokens),
+        streaming=config.streaming,
+        **{k: v for k, v in kwargs.items() if k not in ["model", "temperature", "max_output_tokens"]},
+    )
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+)
+def create_gpt_llm(
     api_key: str,
     config: GPTConfig | None = None,
     **kwargs: Any,
 ) -> ChatOpenAI:
     """
-    Create a configured ChatOpenAI instance for GPT models.
+    Create a configured ChatOpenAI instance for GPT-5.1 (fallback model).
 
     This factory function creates LangChain-compatible ChatOpenAI instances
     configured for GPT models with reasoning effort and verbosity settings.
@@ -47,9 +112,9 @@ def create_llm(
     Example:
         >>> from deep_agent.models.llm import GPTConfig, ReasoningEffort
         >>> config = GPTConfig(reasoning_effort=ReasoningEffort.HIGH)
-        >>> llm = create_llm(api_key="sk-...", config=config)
-        >>> # Use with DeepAgents:
-        >>> agent = create_deep_agent(model=llm, tools=[...])
+        >>> llm = create_gpt_llm(api_key="sk-...", config=config)
+        >>> # Use with DeepAgents (fallback):
+        >>> middleware = [ModelFallbackMiddleware(llm)]
     """
     if not api_key:
         raise ValueError("API key is required")
@@ -99,7 +164,7 @@ def create_llm(
             llm_params[key] = value
 
     logger.info(
-        "Creating GPT LLM with extended timeout configuration",
+        "Creating GPT LLM (fallback model) with extended timeout configuration",
         model=llm_params["model"],
         reasoning_effort=config.reasoning_effort.value,
         max_completion_tokens=llm_params["max_completion_tokens"],

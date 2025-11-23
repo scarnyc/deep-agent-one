@@ -1,9 +1,18 @@
-"""DeepAgent creation and configuration using LangChain's create_deep_agent API."""
+"""DeepAgent creation and configuration using LangChain's create_deep_agent API.
+
+Model Configuration:
+    - Primary: Gemini 3 Pro (Google) - fast, cost-effective
+    - Fallback: GPT-5.1 (OpenAI) - reliable backup on errors
+
+Uses ModelFallbackMiddleware from LangChain to automatically switch
+to fallback model on rate limits, timeouts, or other errors.
+"""
 
 import traceback
 from typing import Any
 
 from deepagents import create_deep_agent
+from langchain.agents.middleware import ModelFallbackMiddleware
 from langgraph.graph.state import CompiledStateGraph
 
 from deep_agent.agents.checkpointer import CheckpointerManager
@@ -11,8 +20,14 @@ from deep_agent.agents.prompts import get_agent_instructions
 from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.logging import get_logger
 from deep_agent.integrations.langsmith import setup_langsmith
-from deep_agent.models.llm import GPTConfig, ReasoningEffort, Verbosity
-from deep_agent.services.llm_factory import create_llm
+from deep_agent.models.llm import (
+    GeminiConfig,
+    GPTConfig,
+    ReasoningEffort,
+    ThinkingLevel,
+    Verbosity,
+)
+from deep_agent.services.llm_factory import create_gemini_llm, create_gpt_llm
 from deep_agent.tools.web_search import web_search
 
 logger = get_logger(__name__)
@@ -83,30 +98,65 @@ async def create_agent(
     setup_langsmith(settings)
 
     logger.info(
-        "Creating DeepAgent",
-        model=settings.GPT_MODEL_NAME,
-        reasoning_effort=settings.GPT_DEFAULT_REASONING_EFFORT,
+        "Creating DeepAgent with model fallback",
+        primary_model=settings.GEMINI_MODEL_NAME,
+        fallback_model=settings.GPT_MODEL_NAME,
+        fallback_enabled=settings.ENABLE_MODEL_FALLBACK,
         hitl_enabled=settings.ENABLE_HITL,
         subagents_count=len(subagents) if subagents else 0,
     )
 
-    # Create LLM using factory
-    config = GPTConfig(
-        model_name=settings.GPT_MODEL_NAME,
-        reasoning_effort=ReasoningEffort(settings.GPT_DEFAULT_REASONING_EFFORT),
-        verbosity=Verbosity(settings.GPT_DEFAULT_VERBOSITY),
-        max_tokens=settings.GPT_MAX_TOKENS,
+    # Create primary model (Gemini 3 Pro)
+    gemini_config = GeminiConfig(
+        model_name=settings.GEMINI_MODEL_NAME,
+        temperature=settings.GEMINI_TEMPERATURE,
+        thinking_level=ThinkingLevel(settings.GEMINI_THINKING_LEVEL),
+        max_output_tokens=settings.GEMINI_MAX_OUTPUT_TOKENS,
     )
 
     try:
-        llm = create_llm(
-            api_key=settings.OPENAI_API_KEY,
-            config=config,
+        primary_llm = create_gemini_llm(
+            api_key=settings.GOOGLE_API_KEY,
+            config=gemini_config,
         )
-        logger.debug("Created GPT LLM instance", model=config.model_name)
+        logger.debug("Created Gemini LLM instance (primary)", model=gemini_config.model_name)
     except ValueError as e:
-        logger.error("Failed to create LLM", error=str(e))
+        logger.error("Failed to create primary LLM (Gemini)", error=str(e))
         raise
+
+    # Create fallback model (GPT-5.1) and middleware
+    middleware_list: list[Any] = []
+
+    if settings.ENABLE_MODEL_FALLBACK and settings.OPENAI_API_KEY:
+        gpt_config = GPTConfig(
+            model_name=settings.GPT_MODEL_NAME,
+            reasoning_effort=ReasoningEffort(settings.GPT_DEFAULT_REASONING_EFFORT),
+            verbosity=Verbosity(settings.GPT_DEFAULT_VERBOSITY),
+            max_tokens=settings.GPT_MAX_TOKENS,
+        )
+
+        try:
+            fallback_llm = create_gpt_llm(
+                api_key=settings.OPENAI_API_KEY,
+                config=gpt_config,
+            )
+            middleware_list.append(ModelFallbackMiddleware(fallback_llm))
+            logger.info(
+                "Model fallback enabled",
+                primary=settings.GEMINI_MODEL_NAME,
+                fallback=settings.GPT_MODEL_NAME,
+            )
+        except ValueError as e:
+            logger.warning(
+                "Failed to create fallback LLM (GPT), continuing without fallback",
+                error=str(e),
+            )
+    else:
+        logger.info(
+            "Model fallback disabled",
+            enable_fallback=settings.ENABLE_MODEL_FALLBACK,
+            has_openai_key=bool(settings.OPENAI_API_KEY),
+        )
 
     # Create checkpointer for state persistence
     # Note: Checkpointer is disabled in test environment to prevent streaming hangs
@@ -161,21 +211,23 @@ async def create_agent(
             prompt_length=len(system_prompt),
         )
 
-    # Create DeepAgent using official API
+    # Create DeepAgent using official API with ModelFallbackMiddleware
     try:
         logger.debug(
             "Calling create_deep_agent with parameters",
-            model_type=type(llm).__name__,
+            model_type=type(primary_llm).__name__,
             tools_count=1,  # [web_search]
             system_prompt_length=len(system_prompt) if system_prompt else 0,
             subagents=subagents,
             has_checkpointer=checkpointer is not None,
+            middleware_count=len(middleware_list),
         )
 
         compiled_graph = create_deep_agent(
-            model=llm,
+            model=primary_llm,
             tools=[web_search],  # Custom tools in addition to built-in tools
             system_prompt=system_prompt,  # DeepAgents 0.2.0: parameter renamed from 'instructions'
+            middleware=middleware_list,  # ModelFallbackMiddleware for Gemini -> GPT fallback
             subagents=subagents,
             checkpointer=checkpointer,
         )
@@ -189,7 +241,9 @@ async def create_agent(
         agent = compiled_graph.with_config({"recursion_limit": recursion_limit})
 
         logger.info(
-            "Successfully created and compiled DeepAgent with recursion limit",
+            "Successfully created DeepAgent with model fallback",
+            primary_model=settings.GEMINI_MODEL_NAME,
+            fallback_model=settings.GPT_MODEL_NAME if middleware_list else None,
             has_checkpointer=checkpointer is not None,
             subagents_enabled=subagents is not None and len(subagents) > 0,
             max_tool_calls=max_tool_calls,

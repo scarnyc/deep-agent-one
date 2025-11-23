@@ -19,6 +19,7 @@ python-dotenv = "^1.0.0"
 langchain = "^1.0.0"           # Stable 1.0.2 (Oct 21, 2025)
 langchain-core = "^1.0.0"      # Required by DeepAgents 0.2.0
 langchain-openai = "^0.3.0"    # Compatible with langchain-core 1.0
+langchain-google-genai = "^2.1.0"  # Gemini 3 Pro integration
 langgraph = "^1.0.0"           # Stable 1.0.1 (Oct 20, 2025)
 langgraph-checkpoint = "^3.0.0"  # Compatible with LangGraph 1.0+
 langgraph-checkpoint-sqlite = "^3.0.0"  # SQLite checkpoint storage
@@ -126,6 +127,7 @@ strict_equality = true
 [[tool.mypy.overrides]]
 module = [
     "langchain.*",
+    "langchain_google_genai.*",
     "langgraph.*",
     "langsmith.*",
     "deepagents.*",

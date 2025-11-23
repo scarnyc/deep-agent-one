@@ -205,12 +205,25 @@ class Settings(BaseSettings):
     ENV: Literal["local", "dev", "staging", "prod", "test"] = "local"
     DEBUG: bool = False
 
-    # GPT Configuration (OpenAI-specific)
-    OPENAI_API_KEY: str = Field(..., description="OpenAI API key (required)")
-    GPT_MODEL_NAME: str = "gpt-5.1-2025-11-13"  # Fallback default (override via .env)
+    # Primary Model: Gemini 3 Pro (Google)
+    GOOGLE_API_KEY: str = Field(
+        default="",
+        description="Google API key for Gemini models (required for primary model)",
+    )
+    GEMINI_MODEL_NAME: str = "gemini-3-pro-preview"
+    GEMINI_TEMPERATURE: float = 1.0  # Keep at 1.0 per Google docs (lower can cause issues)
+    GEMINI_THINKING_LEVEL: Literal["low", "medium", "high"] = "high"
+    GEMINI_MAX_OUTPUT_TOKENS: int = 4096
+
+    # Fallback Model: GPT-5.1 (OpenAI)
+    OPENAI_API_KEY: str = Field(..., description="OpenAI API key (required for fallback)")
+    GPT_MODEL_NAME: str = "gpt-5.1-2025-11-13"
     GPT_DEFAULT_REASONING_EFFORT: Literal["minimal", "low", "medium", "high"] = "medium"
     GPT_DEFAULT_VERBOSITY: str = "medium"
     GPT_MAX_TOKENS: int = 4096
+
+    # Model Fallback Configuration
+    ENABLE_MODEL_FALLBACK: bool = True  # Auto-fallback from Gemini to GPT on errors
 
     # Reasoning System Configuration
     ENABLE_DYNAMIC_REASONING: bool = True

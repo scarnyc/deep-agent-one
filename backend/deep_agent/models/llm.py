@@ -1,46 +1,31 @@
 """
-LLM configuration models for LangChain ChatOpenAI integration.
+LLM configuration models for multi-provider LangChain integration.
 
-This module provides configuration models for creating ChatOpenAI instances
-with GPT models (gpt-4, gpt-5, gpt-6+), including reasoning effort and verbosity controls.
-
-Note: Parameters are GPT-specific. Future multi-provider support will add provider-specific
-config classes (e.g., ClaudeConfig, GeminiConfig) in model fallback middleware.
+This module provides configuration models for creating LLM instances with
+different providers (OpenAI GPT, Google Gemini) using provider-specific parameters.
 
 Models:
-    ReasoningEffort: Enum for reasoning levels (minimal, low, medium, high) - GPT-specific
-    Verbosity: Enum for response verbosity levels (low, medium, high) - GPT-specific
-    GPTConfig: Configuration for ChatOpenAI with GPT parameters
+    ReasoningEffort: Enum for GPT reasoning levels (minimal, low, medium, high)
+    Verbosity: Enum for GPT response verbosity (low, medium, high)
+    ThinkingLevel: Enum for Gemini thinking depth (low, medium, high)
+    GPTConfig: Configuration for ChatOpenAI with GPT-5.1 parameters
+    GeminiConfig: Configuration for ChatGoogleGenerativeAI with Gemini 3 Pro parameters
 
-Configuration Options:
-    - model_name: GPT model name (gpt-4, gpt-5, gpt-6+, gpt-5-mini, gpt-5-nano)
-    - reasoning_effort: Control thinking depth (maps to OpenAI {"effort": "level"})
-    - verbosity: Control response detail level (GPT-specific parameter)
-    - max_tokens: Token limit for responses (default 4096)
-
-Design Notes:
-    - ReasoningEffort maps directly to OpenAI's reasoning parameter
-    - Higher reasoning effort = slower but more thorough responses
-    - Verbosity is independent of reasoning effort (can have high reasoning + low verbosity)
-    - Temperature parameter DEPRECATED for GPT-5+ reasoning models
+Provider Differences:
+    - GPT-5.1: Uses `reasoning_effort` (no temperature support)
+    - Gemini 3 Pro: Uses `temperature` (keep at 1.0) + `thinking_level`
 
 Example:
-    >>> from deep_agent.models.llm import GPTConfig, ReasoningEffort, Verbosity
-    >>> # Create config for deep reasoning with concise output
-    >>> config = GPTConfig(
-    ...     model_name="gpt-5",
-    ...     reasoning_effort=ReasoningEffort.HIGH,
-    ...     verbosity=Verbosity.LOW
-    ... )
-    >>> # Use with LangChain ChatOpenAI
-    >>> # llm = create_llm(config)  # See backend/deep_agent/services/llm_factory.py
+    >>> from deep_agent.models.llm import GPTConfig, GeminiConfig, ReasoningEffort
+    >>> # GPT-5.1 config (fallback)
+    >>> gpt_config = GPTConfig(reasoning_effort=ReasoningEffort.HIGH)
+    >>> # Gemini 3 Pro config (primary)
+    >>> gemini_config = GeminiConfig(thinking_level=ThinkingLevel.HIGH)
 
 Usage with LLMFactory:
-    >>> from deep_agent.services.llm_factory import create_llm
-    >>> llm = create_llm(
-    ...     api_key="sk-...",
-    ...     config=GPTConfig(reasoning_effort=ReasoningEffort.HIGH, verbosity=Verbosity.LOW)
-    ... )
+    >>> from deep_agent.services.llm_factory import create_gpt_llm, create_gemini_llm
+    >>> primary_llm = create_gemini_llm(api_key="...", config=gemini_config)
+    >>> fallback_llm = create_gpt_llm(api_key="sk-...", config=gpt_config)
 """
 from enum import Enum
 
@@ -69,6 +54,23 @@ class Verbosity(str, Enum):
     Controls the length and depth of model responses.
 
     Note: This is OpenAI-specific. Other providers have different verbosity controls.
+    """
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class ThinkingLevel(str, Enum):
+    """
+    Thinking depth levels for Gemini 3 Pro models (Gemini-specific parameter).
+
+    Controls the maximum depth of the model's internal reasoning process.
+    Gemini 3 treats these as relative allowances for thinking rather than strict guarantees.
+
+    WARNING: If not specified, Gemini 3 Pro defaults to HIGH.
+
+    Note: This is Gemini-specific. GPT uses `reasoning_effort` instead.
     """
 
     LOW = "low"
@@ -109,6 +111,54 @@ class GPTConfig(BaseModel):
                 "reasoning_effort": "medium",
                 "verbosity": "medium",
                 "max_tokens": 4096,
+            }
+        }
+    }
+
+
+class GeminiConfig(BaseModel):
+    """
+    Configuration for creating ChatGoogleGenerativeAI instances with Gemini 3 Pro.
+
+    Note: Parameters are Gemini-specific. GPT models use different parameters
+    (reasoning_effort instead of temperature/thinking_level).
+
+    WARNING: Keep temperature at 1.0 per Google documentation. Lower values
+    can cause looping or degraded performance on complex reasoning tasks.
+    """
+
+    model_name: str = Field(
+        default="gemini-3-pro-preview",
+        description="Gemini model name (e.g., gemini-3-pro-preview)",
+    )
+    temperature: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for sampling (keep at 1.0 for Gemini 3 Pro)",
+    )
+    thinking_level: ThinkingLevel = Field(
+        default=ThinkingLevel.HIGH,
+        description="Thinking depth level (Gemini-specific, default: high)",
+    )
+    max_output_tokens: int = Field(
+        default=4096,
+        gt=0,
+        description="Maximum tokens in response",
+    )
+    streaming: bool = Field(
+        default=True,
+        description="Enable streaming responses",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "model_name": "gemini-3-pro-preview",
+                "temperature": 1.0,
+                "thinking_level": "high",
+                "max_output_tokens": 4096,
+                "streaming": True,
             }
         }
     }

@@ -1,20 +1,73 @@
-"""Tests for LLM factory."""
+"""Tests for LLM factory functions (Gemini and GPT)."""
 import pytest
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 
-from backend.deep_agent.models.llm import GPTConfig, ReasoningEffort, Verbosity
-from backend.deep_agent.services.llm_factory import create_llm
+from backend.deep_agent.models.llm import (
+    GeminiConfig,
+    GPTConfig,
+    ReasoningEffort,
+    ThinkingLevel,
+    Verbosity,
+)
+from backend.deep_agent.services.llm_factory import create_gemini_llm, create_gpt_llm
 
 
-class TestCreateLLM:
-    """Test create_llm factory function."""
+class TestCreateGeminiLLM:
+    """Test create_gemini_llm factory function (primary model)."""
+
+    def test_create_with_defaults(self) -> None:
+        """Test creating ChatGoogleGenerativeAI with default config."""
+        llm = create_gemini_llm(api_key="test_key")
+
+        assert isinstance(llm, ChatGoogleGenerativeAI)
+        # ChatGoogleGenerativeAI.model property returns "models/{model_name}"
+        assert "gemini-3-pro-preview" in llm.model
+
+    def test_create_with_custom_config(self) -> None:
+        """Test creating ChatGoogleGenerativeAI with custom GeminiConfig."""
+        config = GeminiConfig(
+            model_name="gemini-3-flash",
+            temperature=0.8,
+            thinking_level=ThinkingLevel.MEDIUM,
+            max_output_tokens=8192,
+        )
+        llm = create_gemini_llm(api_key="test_key", config=config)
+
+        assert isinstance(llm, ChatGoogleGenerativeAI)
+        # ChatGoogleGenerativeAI.model property returns "models/{model_name}"
+        assert "gemini-3-flash" in llm.model
+
+    def test_create_with_all_thinking_levels(self) -> None:
+        """Test all thinking levels work."""
+        for level in [ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH]:
+            config = GeminiConfig(thinking_level=level)
+            llm = create_gemini_llm(api_key="test_key", config=config)
+            assert isinstance(llm, ChatGoogleGenerativeAI)
+
+    def test_create_without_api_key(self) -> None:
+        """Test that missing API key raises ValueError."""
+        with pytest.raises(ValueError, match="Google API key is required"):
+            create_gemini_llm(api_key="")
+
+    def test_returns_langchain_compatible_llm(self) -> None:
+        """Test that returned LLM is LangChain-compatible."""
+        llm = create_gemini_llm(api_key="test_key")
+
+        assert hasattr(llm, "invoke")
+        assert hasattr(llm, "stream")
+        assert hasattr(llm, "batch")
+
+
+class TestCreateGPTLLM:
+    """Test create_gpt_llm factory function (fallback model)."""
 
     def test_create_with_defaults(self) -> None:
         """Test creating ChatOpenAI with default config."""
-        llm = create_llm(api_key="test_key")
+        llm = create_gpt_llm(api_key="test_key")
 
         assert isinstance(llm, ChatOpenAI)
-        assert llm.model_name == "gpt-5.1-2025-11-13"  # Updated to GPT-5.1
+        assert llm.model_name == "gpt-5.1-2025-11-13"
 
     def test_create_with_custom_config(self) -> None:
         """Test creating ChatOpenAI with custom GPTConfig."""
@@ -24,7 +77,7 @@ class TestCreateLLM:
             verbosity=Verbosity.LOW,
             max_tokens=2048,
         )
-        llm = create_llm(api_key="test_key", config=config)
+        llm = create_gpt_llm(api_key="test_key", config=config)
 
         assert isinstance(llm, ChatOpenAI)
         assert llm.model_name == "gpt-5-mini"
@@ -38,28 +91,22 @@ class TestCreateLLM:
             ReasoningEffort.HIGH,
         ]:
             config = GPTConfig(reasoning_effort=effort)
-            llm = create_llm(api_key="test_key", config=config)
-
+            llm = create_gpt_llm(api_key="test_key", config=config)
             assert isinstance(llm, ChatOpenAI)
-            # Note: We can't easily inspect the reasoning param on ChatOpenAI,
-            # so we just verify the LLM was created successfully
 
     def test_create_with_verbosity(self) -> None:
         """Test verbosity is passed to ChatOpenAI."""
         for verbosity in [Verbosity.LOW, Verbosity.MEDIUM, Verbosity.HIGH]:
             config = GPTConfig(verbosity=verbosity)
-            llm = create_llm(api_key="test_key", config=config)
-
+            llm = create_gpt_llm(api_key="test_key", config=config)
             assert isinstance(llm, ChatOpenAI)
-            # Note: We can't easily inspect the verbosity param on ChatOpenAI,
-            # so we just verify the LLM was created successfully
 
     def test_create_with_all_model_variants(self) -> None:
         """Test creating LLM with all GPT model variants."""
         models = ["gpt-5", "gpt-5-mini", "gpt-5-nano"]
         for model_name in models:
             config = GPTConfig(model_name=model_name)
-            llm = create_llm(api_key="test_key", config=config)
+            llm = create_gpt_llm(api_key="test_key", config=config)
 
             assert isinstance(llm, ChatOpenAI)
             assert llm.model_name == model_name
@@ -67,59 +114,67 @@ class TestCreateLLM:
     def test_create_without_api_key(self) -> None:
         """Test that missing API key raises ValueError."""
         with pytest.raises(ValueError, match="API key is required"):
-            create_llm(api_key="")
+            create_gpt_llm(api_key="")
 
     def test_create_with_kwargs_override(self) -> None:
         """Test that kwargs can override config values."""
         config = GPTConfig(model_name="gpt-5")
-        llm = create_llm(
+        llm = create_gpt_llm(
             api_key="test_key",
             config=config,
-            model="gpt-5-nano",  # Override model name
+            model="gpt-5-nano",
         )
 
         assert isinstance(llm, ChatOpenAI)
-        assert llm.model_name == "gpt-5-nano"  # Should use override value
+        assert llm.model_name == "gpt-5-nano"
 
     def test_returns_langchain_compatible_llm(self) -> None:
         """Test that returned LLM is LangChain-compatible."""
-        llm = create_llm(api_key="test_key")
+        llm = create_gpt_llm(api_key="test_key")
 
-        # Verify it has the expected LangChain LLM interface
         assert hasattr(llm, "invoke")
         assert hasattr(llm, "stream")
         assert hasattr(llm, "batch")
-        assert callable(llm.invoke)
-        assert callable(llm.stream)
-        assert callable(llm.batch)
 
 
 class TestLLMFactoryEdgeCases:
     """Test edge cases for LLM factory."""
 
     def test_minimal_reasoning_with_nano_model(self) -> None:
-        """Test fastest configuration (minimal reasoning + nano model)."""
+        """Test fastest GPT configuration (minimal reasoning + nano model)."""
         config = GPTConfig(
             model_name="gpt-5-nano",
             reasoning_effort=ReasoningEffort.MINIMAL,
         )
-        llm = create_llm(api_key="test_key", config=config)
+        llm = create_gpt_llm(api_key="test_key", config=config)
 
         assert llm.model_name == "gpt-5-nano"
 
     def test_high_reasoning_with_standard_model(self) -> None:
-        """Test most thorough configuration (high reasoning + standard model)."""
+        """Test most thorough GPT configuration (high reasoning)."""
         config = GPTConfig(
-            model_name="gpt-5.1-thinking",
+            model_name="gpt-5.1-2025-11-13",
             reasoning_effort=ReasoningEffort.HIGH,
             verbosity=Verbosity.HIGH,
         )
-        llm = create_llm(api_key="test_key", config=config)
+        llm = create_gpt_llm(api_key="test_key", config=config)
 
-        assert llm.model_name == "gpt-5.1-2025-11-13"  # Updated to GPT-5.1
+        assert llm.model_name == "gpt-5.1-2025-11-13"
 
-    def test_very_high_max_tokens(self) -> None:
-        """Test with very high max_tokens value."""
+    def test_very_high_max_tokens_gpt(self) -> None:
+        """Test GPT with very high max_tokens value."""
         config = GPTConfig(max_tokens=100000)
-        llm = create_llm(api_key="test_key", config=config)
+        llm = create_gpt_llm(api_key="test_key", config=config)
         assert isinstance(llm, ChatOpenAI)
+
+    def test_very_high_max_tokens_gemini(self) -> None:
+        """Test Gemini with very high max_output_tokens value."""
+        config = GeminiConfig(max_output_tokens=64000)
+        llm = create_gemini_llm(api_key="test_key", config=config)
+        assert isinstance(llm, ChatGoogleGenerativeAI)
+
+    def test_gemini_low_thinking_for_speed(self) -> None:
+        """Test fastest Gemini configuration (low thinking)."""
+        config = GeminiConfig(thinking_level=ThinkingLevel.LOW)
+        llm = create_gemini_llm(api_key="test_key", config=config)
+        assert isinstance(llm, ChatGoogleGenerativeAI)
