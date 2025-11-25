@@ -24,6 +24,31 @@ def add_app_context(logger: Any, method_name: str, event_dict: EventDict) -> Eve
     return event_dict
 
 
+def safe_fallback_handler(obj: Any) -> str:
+    """
+    Safely convert any object to string for JSON serialization.
+
+    Provides multi-level fallback strategy to ensure logging never fails due to
+    serialization issues (broken __repr__, circular references, etc.).
+
+    Args:
+        obj: Object that failed standard JSON serialization
+
+    Returns:
+        String representation of the object (or generic placeholder as last resort)
+    """
+    try:
+        return repr(obj)
+    except Exception:
+        try:
+            return str(obj)
+        except Exception:
+            try:
+                return f"<{obj.__class__.__name__} at {hex(id(obj))}>"
+            except Exception:
+                return "<unprintable object>"
+
+
 def setup_logging(
     log_level: LogLevel = LogLevel.INFO,
     log_format: Literal["json", "standard"] = "json",
@@ -62,7 +87,7 @@ def setup_logging(
     if log_format == "json":
         processors.extend([
             structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer(),
+            structlog.processors.JSONRenderer(default=safe_fallback_handler),
         ])
     else:  # standard format
         processors.extend([
@@ -94,6 +119,31 @@ def setup_logging(
         root_logger.handlers.clear()
         root_logger.addHandler(handler)
         root_logger.setLevel(numeric_level)
+
+    # Configure uvicorn loggers explicitly to use structlog formatters
+    # This ensures consistent log format across uvicorn and application logs
+    uvicorn_logger_names = ["uvicorn", "uvicorn.error", "uvicorn.access"]
+
+    for logger_name in uvicorn_logger_names:
+        uvicorn_logger = logging.getLogger(logger_name)
+        uvicorn_logger.handlers.clear()
+
+        handler = logging.StreamHandler(sys.stdout)
+
+        if log_format == "standard":
+            # Use structlog formatter for colored output
+            formatter = structlog.stdlib.ProcessorFormatter(
+                processors=[
+                    structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+                    structlog.dev.ConsoleRenderer(colors=True),
+                ],
+            )
+            handler.setFormatter(formatter)
+        # For JSON format, use basic formatter (structlog handles JSON rendering)
+
+        uvicorn_logger.addHandler(handler)
+        uvicorn_logger.setLevel(numeric_level)
+        uvicorn_logger.propagate = False  # Prevent duplicate log entries
 
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:

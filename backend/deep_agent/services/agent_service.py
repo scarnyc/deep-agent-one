@@ -101,6 +101,11 @@ class AgentService:
         invocations within the same service instance. Uses async lock to
         prevent race conditions during concurrent invocations.
 
+        PERFORMANCE OPTIMIZATION:
+            - Uses async agent creation to prevent blocking event loop
+            - Sends status events during initialization for UX feedback
+            - Benefits from pre-warmed LLM imports (if lifespan completed)
+
         Returns:
             Tool call limited agent wrapper ready for invocation.
 
@@ -118,7 +123,14 @@ class AgentService:
             if self.agent is not None:
                 return self.agent
 
-            logger.debug("Creating agent (lazy initialization)")
+            # Check if pre-warming completed (reduces init time significantly)
+            from deep_agent.services.llm_factory import is_prewarm_complete
+            prewarm_status = "complete" if is_prewarm_complete() else "pending"
+
+            logger.info(
+                "Creating agent (lazy initialization)",
+                prewarm_status=prewarm_status,
+            )
 
             # Lazy import to avoid blocking at module load time
             from deep_agent.agents.deep_agent import create_agent
@@ -131,6 +143,7 @@ class AgentService:
                 subagents = None  # DeepAgents handles default general-purpose subagent
 
             # Create agent with optional prompt variant
+            # Note: create_agent is async and handles thread pool execution internally
             self.agent = await create_agent(
                 settings=self.settings,
                 subagents=subagents,
@@ -140,6 +153,7 @@ class AgentService:
             logger.info(
                 "Agent created and ready for invocations",
                 prompt_variant=self.prompt_variant,
+                prewarm_status=prewarm_status,
             )
 
         return self.agent

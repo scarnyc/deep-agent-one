@@ -56,6 +56,11 @@ async def create_agent(
     This function wraps LangChain's create_deep_agent() with our configuration,
     LLM factory, and checkpointer integration for state persistence.
 
+    PERFORMANCE OPTIMIZATION:
+        - Uses async imports via thread pool to avoid blocking event loop
+        - Benefits from pre-warmed imports (if lifespan handler ran first)
+        - gRPC compilation happens in background thread, not main event loop
+
     Args:
         settings: Settings instance with configuration. If None, uses get_settings().
         subagents: Optional list of sub-agents for delegation. Defaults to None.
@@ -70,7 +75,7 @@ async def create_agent(
     Raises:
         ValueError: If API key is missing or invalid, or prompt_variant is unknown
         OSError: If checkpointer database cannot be created
-        RuntimeError: If graph compilation fails
+        RuntimeError: If graph compilation fails or LLM initialization times out
 
     Example:
         >>> from deep_agent.agents.deep_agent import create_agent
@@ -101,9 +106,26 @@ async def create_agent(
         Human-in-the-loop approval is built into DeepAgents.
         Configure via settings.ENABLE_HITL.
     """
-    # Lazy imports to avoid blocking at module load time
-    from deep_agent.services.llm_factory import create_gemini_llm, create_gpt_llm
+    import asyncio
+
+    # Use async imports to prevent blocking event loop during gRPC compilation
+    from deep_agent.services.llm_factory import (
+        async_import_google_genai,
+        async_import_openai,
+        create_gemini_llm,
+        create_gpt_llm,
+    )
     from deep_agent.tools.web_search import web_search
+
+    # Pre-load LLM classes asynchronously (uses thread pool, won't block event loop)
+    # This is the key optimization - gRPC compilation runs in background thread
+    logger.debug("Starting async LLM class imports")
+    await asyncio.gather(
+        async_import_google_genai(),
+        async_import_openai(),
+        return_exceptions=True,  # Continue even if one fails
+    )
+    logger.debug("Async LLM class imports completed")
 
     create_deep_agent = _lazy_import_deepagents()
     ModelFallbackMiddleware = _lazy_import_middleware()

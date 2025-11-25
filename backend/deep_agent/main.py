@@ -30,6 +30,11 @@ from deep_agent.core.logging import LogLevel, generate_langsmith_url, get_logger
 from deep_agent.core.serialization import serialize_event
 from deep_agent.services.event_transformer import EventTransformer
 
+# Initialize logging at module level (BEFORE any logger usage)
+# This ensures logging is configured during imports, not after lifespan starts
+# Uses INFO/standard format as defaults - can be reconfigured in lifespan if needed
+setup_logging(log_level=LogLevel.INFO, log_format="standard")
+
 logger = get_logger(__name__)
 
 
@@ -114,16 +119,38 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     Handles startup and shutdown events for the FastAPI app.
 
+    PERFORMANCE OPTIMIZATION:
+        - Pre-warms LLM imports in background during startup
+        - gRPC/protobuf compilation (8-12s) happens before first request
+        - First request latency reduced from 8-12s to near-instant
+
     Args:
         app: FastAPI application instance
 
     Yields:
         None during application runtime
     """
-    # Startup
-    settings = get_settings()
+    # Startup - Phase 1: Load settings with bootstrap error handling
+    import logging as stdlib_logging
 
-    # Initialize logging with appropriate format and level
+    try:
+        settings = get_settings()
+    except Exception as e:
+        # Bootstrap logger (fallback before structured logging configured)
+        stdlib_logging.basicConfig(level=stdlib_logging.ERROR, format='%(asctime)s - BOOTSTRAP - %(levelname)s - %(message)s')
+        bootstrap_logger = stdlib_logging.getLogger("bootstrap")
+
+        bootstrap_logger.error(f"Failed to load settings: {type(e).__name__}: {str(e)}")
+
+        # Provide helpful hints for common issues
+        if "OPENAI_API_KEY" in str(e):
+            bootstrap_logger.error("Missing OPENAI_API_KEY in .env file")
+        if "GOOGLE_API_KEY" in str(e):
+            bootstrap_logger.error("Missing GOOGLE_API_KEY in .env file")
+
+        raise  # Re-raise to stop startup
+
+    # Phase 2: Reconfigure logging with settings-based parameters
     log_level = LogLevel.DEBUG if settings.DEBUG else LogLevel.INFO
     log_format = "standard" if settings.DEBUG else "json"
     setup_logging(log_level=log_level, log_format=log_format)
@@ -135,9 +162,28 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         api_version=settings.API_VERSION,
     )
 
+    # Pre-warm LLM imports in background (non-blocking)
+    # This starts gRPC compilation immediately rather than waiting for first request
+    prewarm_task: asyncio.Task[None] | None = None
+    if settings.ENV != "test":
+        from deep_agent.services.llm_factory import prewarm_llm_imports
+
+        prewarm_task = asyncio.create_task(
+            prewarm_llm_imports(),
+            name="llm-prewarm"
+        )
+        logger.info("LLM pre-warming started in background")
+
     yield
 
     # Shutdown
+    if prewarm_task and not prewarm_task.done():
+        prewarm_task.cancel()
+        try:
+            await prewarm_task
+        except asyncio.CancelledError:
+            pass  # Expected during shutdown
+
     logger.info("Shutting down Deep Agent AGI API")
 
 

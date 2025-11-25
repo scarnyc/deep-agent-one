@@ -1,67 +1,61 @@
 /**
- * Root Layout - Next.js 14 App Router Root Layout (Phase 0)
+ * Root Layout Component (App Router)
  *
- * @fileoverview Root layout component that wraps all pages in the application.
- * This is a Server Component that sets up the HTML structure, font loading,
- * and client-side providers. Uses Inter font from Google Fonts and provides
- * global metadata for SEO.
+ * @fileoverview Root layout wrapping all pages in the application.
+ * Provides HTML structure, metadata, and global styles.
+ * Required for Next.js App Router - cannot be deleted.
  *
  * @example
- * // Automatically applied to all routes in the app
- * // app/page.tsx inherits this layout
- * // app/chat/page.tsx inherits this layout
+ * // Automatically wraps all pages at all routes
+ * // Cannot be opted out - mandatory for App Router
  *
+ * @see ./page.tsx - Home page using this layout
+ * @see ./chat/page.tsx - Chat page using this layout
  * @see {@link https://nextjs.org/docs/app/api-reference/file-conventions/layout|Next.js Layout Documentation}
- * @see ./providers.tsx - Client-side providers (ErrorBoundary, WebSocketProvider)
- * @see ./globals.css - Global styles and Tailwind configuration
  */
 
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { Providers } from './providers';
-import './globals.css';
+import type { Metadata } from 'next'
+import './globals.css'
 
 /**
- * Inter font configuration
- * Optimized for Latin character subset to reduce initial load
- */
-const inter = Inter({ subsets: ['latin'] });
-
-/**
- * Application metadata for SEO and social sharing
- * Generated at build time (static)
+ * Application metadata for SEO and browser tabs
+ *
+ * @property {string} title - Displayed in browser tab
+ * @property {string} description - Meta description for search engines
  */
 export const metadata: Metadata = {
   title: 'Deep Agent AGI',
-  description: 'General-purpose deep agent framework with cost optimization',
-};
+  description: 'General-purpose deep agent framework',
+}
 
 /**
  * Root layout component wrapping all pages
  *
  * @param {Object} props - Component props
- * @param {React.ReactNode} props.children - Child pages/layouts to render
- * @returns {JSX.Element} HTML structure with providers and font configuration
+ * @param {React.ReactNode} props.children - Page content to render
+ * @returns {JSX.Element} HTML document structure with page content
  *
  * @remarks
- * - Server Component by default (no 'use client')
- * - Wraps all routes in the application
- * - Provides global HTML structure and metadata
- * - Delegates client-side logic to Providers component
- * - Sets Inter font on body element via className
+ * - Server Component (no 'use client' directive)
+ * - Renders once per navigation
+ * - Provides <html> and <body> tags
+ * - Imports global CSS styles
+ * - Cannot use hooks or browser-only APIs
  *
- * @see {@link Providers} - Client-side error boundary and WebSocket provider
+ * Required Elements:
+ * - Must export default function
+ * - Must render <html> and <body> tags
+ * - Must render {children} inside <body>
+ * - Should include lang attribute for accessibility
  */
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
-      </body>
+      <body>{children}</body>
     </html>
-  );
+  )
 }

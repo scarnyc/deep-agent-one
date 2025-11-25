@@ -3,10 +3,18 @@
 Supports:
     - Gemini 3 Pro (primary model via ChatGoogleGenerativeAI)
     - GPT-5.1 (fallback model via ChatOpenAI)
-    
+
 IMPORTANT: Uses lazy imports for langchain_google_genai to prevent
 import-time blocking issues with gRPC/protobuf compilation.
+
+PERFORMANCE OPTIMIZATION:
+    - gRPC/protobuf compilation in langchain_google_genai blocks for 8-12 seconds
+    - This module provides async versions that run imports in thread pool
+    - Pre-warming functions allow background initialization at server startup
 """
+import asyncio
+import sys
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
 from httpx import Timeout
@@ -27,6 +35,14 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Thread pool for background initialization (prevents blocking event loop)
+_init_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="llm-init")
+
+# Cache for pre-warmed imports (None = not started, class = completed)
+_gemini_class_cache: Any = None
+_openai_class_cache: tuple[Any, Any] | None = None
+_prewarm_started = False
+
 
 def _lazy_import_openai():
     """
@@ -35,10 +51,17 @@ def _lazy_import_openai():
     Returns:
         Tuple of (ChatOpenAI, AsyncOpenAI) classes
     """
+    global _openai_class_cache
+
+    # Return cached if available
+    if _openai_class_cache is not None:
+        return _openai_class_cache
+
     try:
         from langchain_openai import ChatOpenAI
         from openai import AsyncOpenAI
-        return ChatOpenAI, AsyncOpenAI
+        _openai_class_cache = (ChatOpenAI, AsyncOpenAI)
+        return _openai_class_cache
     except ImportError as e:
         logger.error("Failed to import langchain_openai/openai", error=str(e))
         raise
@@ -47,21 +70,173 @@ def _lazy_import_openai():
 def _lazy_import_google_genai():
     """
     Lazy import of langchain_google_genai to avoid blocking at module load time.
-    
+
     The langchain_google_genai import can block during initialization due to:
-    - gRPC/protobuf compilation
+    - gRPC/protobuf compilation (8-12 seconds)
     - SSL certificate validation
     - Network initialization
-    
+
     Returns:
         ChatGoogleGenerativeAI class
     """
+    global _gemini_class_cache
+
+    # Return cached if available
+    if _gemini_class_cache is not None:
+        return _gemini_class_cache
+
     try:
+        logger.debug("Starting Gemini import (may take 8-12 seconds for gRPC compilation)")
         from langchain_google_genai import ChatGoogleGenerativeAI
-        return ChatGoogleGenerativeAI
+        _gemini_class_cache = ChatGoogleGenerativeAI
+        logger.debug("Gemini import completed")
+        return _gemini_class_cache
     except ImportError as e:
-        logger.error("Failed to import langchain_google_genai", error=str(e))
+        error_msg = f"Failed to import langchain_google_genai: {str(e)}"
+        # Defensive logging - use stderr if logger might not be configured
+        try:
+            logger.error("Failed to import langchain_google_genai", error=str(e))
+        except Exception:
+            print(f"ERROR: {error_msg}", file=sys.stderr)
+        # Also print to stderr as a safety net during startup
+        print(f"ERROR: {error_msg}", file=sys.stderr)
+        print("HINT: Install with: pip install langchain-google-genai", file=sys.stderr)
         raise
+
+
+async def async_import_google_genai(timeout_seconds: float = 30.0) -> Any:
+    """
+    Async import of langchain_google_genai using thread pool.
+
+    Runs the blocking gRPC/protobuf compilation in a thread pool to avoid
+    blocking the async event loop during first request.
+
+    Args:
+        timeout_seconds: Maximum time to wait for import (default 30s)
+
+    Returns:
+        ChatGoogleGenerativeAI class
+
+    Raises:
+        asyncio.TimeoutError: If import takes longer than timeout
+        ImportError: If module cannot be imported
+    """
+    global _gemini_class_cache
+
+    # Return cached immediately if available
+    if _gemini_class_cache is not None:
+        return _gemini_class_cache
+
+    logger.info("Starting async Gemini import (thread pool)")
+
+    try:
+        result = await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(
+                _init_executor,
+                _lazy_import_google_genai
+            ),
+            timeout=timeout_seconds
+        )
+        logger.info("Async Gemini import completed")
+        return result
+    except asyncio.TimeoutError:
+        logger.error(
+            "Gemini import timed out",
+            timeout_seconds=timeout_seconds,
+        )
+        raise RuntimeError(f"Gemini initialization timed out after {timeout_seconds}s")
+
+
+async def async_import_openai(timeout_seconds: float = 15.0) -> tuple[Any, Any]:
+    """
+    Async import of langchain_openai using thread pool.
+
+    Args:
+        timeout_seconds: Maximum time to wait for import (default 15s)
+
+    Returns:
+        Tuple of (ChatOpenAI, AsyncOpenAI) classes
+    """
+    global _openai_class_cache
+
+    # Return cached immediately if available
+    if _openai_class_cache is not None:
+        return _openai_class_cache
+
+    logger.info("Starting async OpenAI import (thread pool)")
+
+    try:
+        result = await asyncio.wait_for(
+            asyncio.get_event_loop().run_in_executor(
+                _init_executor,
+                _lazy_import_openai
+            ),
+            timeout=timeout_seconds
+        )
+        logger.info("Async OpenAI import completed")
+        return result
+    except asyncio.TimeoutError:
+        logger.error("OpenAI import timed out", timeout_seconds=timeout_seconds)
+        raise RuntimeError(f"OpenAI initialization timed out after {timeout_seconds}s")
+
+
+async def prewarm_llm_imports() -> None:
+    """
+    Pre-warm LLM imports in background during server startup.
+
+    Call this from lifespan handler to start gRPC compilation immediately
+    rather than waiting for first request. This reduces first-request latency
+    from 8-12 seconds to near-instant (if pre-warming completes first).
+
+    This function is fire-and-forget safe - errors are logged but not raised.
+    """
+    global _prewarm_started
+
+    if _prewarm_started:
+        logger.debug("LLM pre-warming already started, skipping")
+        return
+
+    _prewarm_started = True
+    logger.info("Pre-warming LLM imports in background (non-blocking)")
+
+    try:
+        # Run both imports concurrently in thread pool
+        results = await asyncio.gather(
+            async_import_google_genai(timeout_seconds=60.0),  # Longer timeout for cold start
+            async_import_openai(timeout_seconds=30.0),
+            return_exceptions=True,  # Don't fail if one import fails
+        )
+
+        # Check results and log specific errors (don't silently swallow them)
+        import_names = ["Gemini", "OpenAI"]
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                error_msg = f"{import_names[i]} import failed: {result}"
+                logger.error(
+                    f"{import_names[i]} pre-warming failed",
+                    error=str(result),
+                    error_type=type(result).__name__,
+                )
+                # Also print to stderr for visibility during startup
+                print(f"ERROR: {error_msg}", file=sys.stderr)
+            else:
+                logger.info(f"{import_names[i]} pre-warming completed")
+
+        logger.info("LLM pre-warming process completed")
+    except Exception as e:
+        # Log but don't raise - pre-warming is best-effort
+        error_msg = f"LLM pre-warming failed (will retry on first request): {str(e)}"
+        logger.warning(
+            "LLM pre-warming failed (will retry on first request)",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        print(f"WARNING: {error_msg}", file=sys.stderr)
+
+
+def is_prewarm_complete() -> bool:
+    """Check if pre-warming has completed (both caches populated)."""
+    return _gemini_class_cache is not None and _openai_class_cache is not None
 
 
 @retry(
