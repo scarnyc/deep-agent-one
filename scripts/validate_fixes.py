@@ -198,7 +198,7 @@ def main():
         print("=" * 70)
         print("\nNext Steps:")
         print("1. Start backend: poetry run uvicorn deep_agent.main:app --reload --port 8000")
-        print("2. Start frontend: cd frontend && npm run dev")
+        print("2. Start frontend: cd frontend && pnpm run dev")
         print("3. Test WebSocket streaming with parallel tool execution")
         print("4. Monitor logs for:")
         print("   - No BrokenResourceError")

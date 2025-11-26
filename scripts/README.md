@@ -133,7 +133,7 @@ python scripts/setup_env.py
 **Requirements:**
 - .env file with API keys (OPENAI_API_KEY, etc.)
 - Virtual environment at venv/bin/activate
-- Dependencies installed (poetry install, npm install)
+- Dependencies installed (poetry install, pnpm install)
 
 **Output:**
 - Backend: http://127.0.0.1:8000
@@ -196,7 +196,7 @@ tail -f logs/backend/2025-11-12-*.log
 
 **Requirements:**
 - Node.js 18+ installed
-- Node.js dependencies installed (npm install in frontend/)
+- Node.js dependencies installed (pnpm install in frontend/)
 - Backend server running (or NEXT_PUBLIC_BACKEND_URL configured)
 
 **Output:**

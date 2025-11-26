@@ -11,7 +11,7 @@
 # Requirements:
 #   - .env file with API keys (OPENAI_API_KEY, etc.)
 #   - Virtual environment at venv/bin/activate
-#   - Node.js dependencies installed (npm install in frontend/)
+#   - Node.js dependencies installed (pnpm install in frontend/)
 #   - Python dependencies installed (poetry install)
 #
 # Output:
@@ -95,7 +95,7 @@ sleep 3
 # Start frontend in background
 echo -e "${BLUE}Starting frontend server on http://localhost:3000${NC}"
 (
-    cd frontend && CI=true npm run dev 2>&1 | tee ../${FRONTEND_LOG}
+    cd frontend && CI=true pnpm run dev 2>&1 | tee ../${FRONTEND_LOG}
 ) &
 FRONTEND_PID=$!
 

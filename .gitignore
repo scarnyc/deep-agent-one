@@ -75,7 +75,7 @@ yarn-error.log*
 .pnpm-debug.log*
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
+# pnpm-lock.yaml is committed for reproducible builds
 
 # Next.js
 .next/
