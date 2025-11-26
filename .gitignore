@@ -91,8 +91,9 @@ test-results/
 playwright-report/
 playwright/.cache/
 
-# Database (db/data/ but track db/migrations/)
+# Database (db/data/ and backend/data/ but track db/migrations/)
 db/data/
+backend/data/
 *.db
 *.sqlite
 *.sqlite3
