@@ -9,8 +9,8 @@
 #   ./scripts/security_scan.sh
 #
 # Requirements:
-#   - TheAuditor installed in .auditor/venv/
-#   - Install: .auditor/venv/bin/pip install -e /path/to/Auditor
+#   - TheAuditor installed in .pf/venv/
+#   - Install: .pf/venv/bin/pip install -e /path/to/Auditor
 #
 # What It Does:
 #   1. Checks if TheAuditor is installed
@@ -41,17 +41,17 @@ set -e
 echo "🔒 Running TheAuditor security scan..."
 
 # Use local auditor venv
-AUD_BIN="./.auditor/venv/bin/aud"
+AUD_BIN="./.pf/venv/bin/aud"
 
 # Check if TheAuditor is installed in local venv
 if [ ! -f "$AUD_BIN" ]; then
-    echo "❌ TheAuditor not found in .auditor/venv. Please install it."
-    echo "Run: ./.auditor/venv/bin/pip install -e /path/to/Auditor"
+    echo "❌ TheAuditor not found in .pf/venv. Please install it."
+    echo "Run: ./.pf/venv/bin/pip install -e /path/to/Auditor"
     exit 1
 fi
 
 # Initialize if needed
-if [ ! -d ".auditor/reports" ]; then
+if [ ! -d ".pf/readthis" ]; then
     echo "🔧 Initializing TheAuditor..."
     $AUD_BIN init
 fi
@@ -64,12 +64,12 @@ $AUD_BIN full
 echo ""
 echo "📄 Security scan complete!"
 echo ""
-echo "Results available in .auditor/reports/readthis/ directory"
+echo "Results available in .pf/readthis/ directory"
 echo ""
 
 # Check for critical vulnerabilities
-if grep -r "CRITICAL" .auditor/reports/readthis/ &> /dev/null; then
-    echo "⚠️  CRITICAL vulnerabilities found! Review .auditor/reports/readthis/ immediately."
+if grep -r "CRITICAL" .pf/readthis/ &> /dev/null; then
+    echo "⚠️  CRITICAL vulnerabilities found! Review .pf/readthis/ immediately."
     exit 1
 else
     echo "✅ No critical vulnerabilities detected"

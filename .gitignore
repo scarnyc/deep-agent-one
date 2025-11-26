@@ -50,6 +50,9 @@ env/
 # Consolidated TheAuditor (venv + reports)
 .auditor/
 
+# TheAuditor (project-local installation)
+.pf/
+
 # Environment Variables
 .env
 .env.dev
