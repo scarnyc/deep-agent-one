@@ -10,7 +10,7 @@
 #
 # Requirements:
 #   - Node.js 18+ installed
-#   - Node.js dependencies installed (npm install in frontend/)
+#   - Node.js dependencies installed (pnpm install in frontend/)
 #   - Backend server running (or NEXT_PUBLIC_BACKEND_URL configured)
 #
 # Output:
@@ -58,4 +58,4 @@ echo -e "${BLUE}To tail logs: tail -f ${LOG_FILE}${NC}"
 echo ""
 
 # Start frontend with logging
-cd frontend && CI=true npm run dev 2>&1 | tee ../${LOG_FILE}
+cd frontend && CI=true pnpm run dev 2>&1 | tee ../${LOG_FILE}

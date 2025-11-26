@@ -56,7 +56,7 @@ pytest \
 
 # Run Playwright UI tests
 echo "🎭 Running UI tests with Playwright..."
-npm run test:ui
+cd frontend && pnpm run test:ui && cd ..
 
 # Display summary
 echo ""

@@ -54,7 +54,7 @@ poetry install
 
 # Install Node.js dependencies
 echo "📥 Installing Node.js dependencies..."
-npm install
+cd frontend && pnpm install && cd ..
 
 # Install Playwright browsers if needed
 if [ ! -d "$HOME/.cache/ms-playwright" ]; then
@@ -80,5 +80,5 @@ echo ""
 echo "Next steps:"
 echo "  1. Edit .env file with your API keys"
 echo "  2. Run 'poetry run uvicorn backend.deep_agent.main:app --reload' to start backend"
-echo "  3. Run 'npm run dev' from frontend/ to start frontend"
+echo "  3. Run 'pnpm run dev' from frontend/ to start frontend"
 echo ""
