@@ -18,7 +18,7 @@
 
 ## 📊 Summary Statistics
 
-**Total Issues:** 76 (added Issue 122: Agent infinite loop)
+**Total Issues:** 77 (added Issue 123: TheAuditor Python 3.14 compatibility)
 
 ### By Category:
 - **⏭️ DEFERRED:** 7 backend issues (9%) - Fix during service implementation
@@ -1038,4 +1038,72 @@ Updated system prompt with explicit loop prevention guidance:
 | Execution Time | 2+ min (timeout) | <45s |
 
 **Found in:** GraphRecursionError investigation (2025-11-17)
+
+
+## Issue 123: TheAuditor Python 3.14 build compatibility issue
+
+**Labels:** `infrastructure`, `tooling`, `low-priority`, `phase-0`
+
+**Title:** TheAuditor fails to install in Python 3.14 due to hatchling build system error
+
+**Description:**
+TheAuditor cannot be installed in editable mode (`pip install -e`) with Python 3.14.0 due to a timeout error in hatchling's license file processing during build metadata preparation. This blocks the project-local TheAuditor setup in `.pf/venv/`.
+
+**Error:**
+```
+× Preparing editable metadata (pyproject.toml) did not run successfully.
+│ exit code: 1
+╰─> TimeoutError: [Errno 60] Operation timed out
+    File ".../hatchling/builders/wheel.py", line 718, in add_licenses
+      record = archive.write_metadata(f'licenses/{relative_path}', f.read())
+```
+
+**Context:**
+- TheAuditor documentation specifies requirement: Python >=3.14
+- Installed Python 3.14.0 via Homebrew (`/opt/homebrew/bin/python3`)
+- Created `.pf/venv` with Python 3.14.0 successfully
+- TheAuditor v1.6.4-dev1 cloned at `.pf/venv/src/auditor`
+- Installation command: `.pf/venv/bin/pip install -e .pf/venv/src/auditor`
+
+**Files:**
+- TheAuditor source: `.pf/venv/src/auditor/` (not tracked in git)
+- Virtual environment: `.pf/venv/` (excluded via `.gitignore`)
+- Security scan script: `scripts/security_scan.sh:44` (references `.pf/venv/bin/aud`)
+
+**Impact:** LOW - Security scanning deferred but not blocking development. Manual security reviews (via code-review-expert) continue to provide comprehensive coverage.
+
+**Workarounds:**
+1. **Current:** Manual security reviews via code-review-expert agent (no gaps)
+2. **Alternative:** Use Python 3.13 in `.pf/venv` (may have other compatibility issues)
+3. **Alternative:** Wait for TheAuditor fix for Python 3.14 compatibility
+
+**Related Configuration:**
+```bash
+# Completed setup steps:
+✅ Python 3.14.0 installed via Homebrew
+✅ .pf/venv created with Python 3.14
+✅ .gitignore updated to exclude .pf/
+✅ CLAUDE.md → AGENTS.md symlink created
+✅ scripts/security_scan.sh updated to use .pf/venv/bin/aud
+
+# Blocked:
+❌ TheAuditor installation in .pf/venv
+❌ Automated security scanning via `aud full`
+```
+
+**Next Steps:**
+- Monitor TheAuditor repo for Python 3.14 build fixes
+- OR test with Python 3.13 in isolated venv
+- Re-attempt installation once compatibility resolved
+
+**Found in:** TheAuditor setup (2025-11-26)
+
+---
+
+**📋 TRACKED (LOW PRIORITY)**
+
+**Priority:** NON-BLOCKING
+**Rationale:** Manual security reviews via code-review-expert provide comprehensive coverage. Automated tool is nice-to-have but not critical for Phase 0 completion.
+**When to Fix:** After TheAuditor releases Python 3.14 compatibility update, or when revisiting security tooling in Phase 1.
+**Workaround:** Continue using code-review-expert agent for pre-commit security reviews (no gaps in coverage).
 
