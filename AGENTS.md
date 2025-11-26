@@ -34,11 +34,11 @@ git commit -m "Initial commit: Deep Agent AGI"
 git checkout -b phase-0-mvp
 ```
 
-**CRITICAL: Install Node.js/npm and Playwright MCP**
+**CRITICAL: Install Node.js/pnpm and Playwright MCP**
 ```bash
 # Verify Node.js installation (required for Playwright MCP)
 node --version  # Must be 18+
-npm --version
+pnpm --version  # If not installed: npm install -g pnpm
 
 # If not installed, install Node.js 18+ from https://nodejs.org/
 
@@ -173,7 +173,7 @@ python scripts/validate_config.py
 #### Dependency Management
 
 **Python:** Poetry with pyproject.toml
-**Node.js:** npm with package.json (for Playwright MCP)
+**Node.js:** pnpm with package.json (for frontend and Playwright MCP)
 
 **Execution:**
 ```bash
@@ -503,7 +503,7 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 - **Search:** Perplexity MCP
 - **UI Protocol:** AG-UI (Python SDK)
 - **Runtime:** Python 3.10+, Node.js 18+
-- **Package Management:** Poetry (Python), npm (Node.js)
+- **Package Management:** Poetry (Python), pnpm (Node.js)
 
 ### Development Tools
 - **Testing:** pytest, Playwright MCP, pytest-html, pytest-cov
@@ -1156,6 +1156,6 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - **Fix validation:** After making code changes, ALWAYS validate the fix comprehensively before asking the user to manually test in browser. Validation steps:
   1. Analyze the fix to understand what it does and why it solves the issue
   2. Run TypeScript compilation (`npx tsc --noEmit`) to verify no new type errors
-  3. Run relevant tests (`pytest` for backend, `npm test` for frontend) to verify no regressions
+  3. Run relevant tests (`pytest` for backend, `pnpm test` for frontend) to verify no regressions
   4. Explain the fix to the user with evidence (test results, compilation success)
   5. Only THEN ask the user to manually test if automated validation passes
