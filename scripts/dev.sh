@@ -11,6 +11,7 @@
 # Requirements:
 #   - Python 3.10+ installed
 #   - Node.js 18+ installed
+#   - pnpm installed (curl -fsSL https://get.pnpm.io | sh -)
 #   - Poetry installed (curl -sSL https://install.python-poetry.org | python3 -)
 #
 # What It Does:
@@ -51,6 +52,12 @@ pip install --upgrade pip
 # Install dependencies
 echo "📥 Installing Python dependencies..."
 poetry install
+
+# Verify pnpm is available
+if ! command -v pnpm &> /dev/null; then
+    echo "❌ pnpm not found. Install it with: curl -fsSL https://get.pnpm.io | sh -"
+    exit 1
+fi
 
 # Install Node.js dependencies
 echo "📥 Installing Node.js dependencies..."

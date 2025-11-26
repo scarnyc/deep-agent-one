@@ -586,7 +586,7 @@ if __name__ == "__main__":
 ### System Requirements
 - **Node.js 18+** - For frontend development
 - **Poetry** - For Python dependency management
-- **npm** - For Node.js dependency management
+- **pnpm** - For Node.js dependency management
 - **TheAuditor** - For security scanning (optional in .auditor_venv/)
 
 ---
@@ -676,7 +676,7 @@ lsof -ti:3000 | xargs kill -9  # Frontend
 
 ### Dependency Updates
 - Update Poetry dependencies: `poetry update`
-- Update Node.js dependencies: `npm update`
+- Update Node.js dependencies: `pnpm update`
 - Update Playwright: `npx playwright install`
 
 ---
