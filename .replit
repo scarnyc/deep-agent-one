@@ -1,24 +1,61 @@
 run = "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000 --reload"
 entrypoint = "backend/deep_agent/main.py"
-modules = ["python-3.10", "nodejs-18"]
+modules = ["python-3.11", "nodejs-20"]
 
 [nix]
 channel = "stable-24_05"
 
 [deployment]
-run = ["sh", "-c", "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000"]
-deploymentTarget = "cloudrun"
+run = ["bash", "-c", "cd frontend && pnpm start --port 5000 --hostname 0.0.0.0"]
+deploymentTarget = "autoscale"
+build = ["bash", "-c", "cd frontend && pnpm install && pnpm run build"]
+publicDir = "frontend/out"
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
 
 [[ports]]
 localPort = 8000
 externalPort = 80
 
 [[ports]]
-localPort = 3000
-externalPort = 3000
+localPort = 34347
+externalPort = 3001
 
 [env]
 PYTHON_LD_LIBRARY_PATH = "/nix/store/*-python3-*/lib"
 PYTHONBIN = "/home/runner/${REPL_SLUG}/.pythonlibs/bin/python3.10"
 POETRY_CACHE_DIR = "/home/runner/${REPL_SLUG}/.cache/pypoetry"
 ENV = "dev"
+
+[agent]
+expertMode = true
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend"
+
+[[workflows.workflow]]
+name = "Frontend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && pnpm run dev --port 5000 --hostname 0.0.0.0"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
