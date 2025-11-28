@@ -102,7 +102,13 @@ export const useAgentState = create<AgentState>()(
         set(
           (state) => {
             const thread = state.threads[thread_id];
-            if (!thread) return state;
+            if (!thread) {
+              // Defensive logging for debugging race conditions
+              console.error('[useAgentState] addMessage failed: thread not found');
+              console.error('[useAgentState]   requested thread_id:', thread_id);
+              console.error('[useAgentState]   available threads:', Object.keys(state.threads));
+              return state;
+            }
 
             const newMessage: AgentMessage = {
               ...message,
@@ -139,7 +145,14 @@ export const useAgentState = create<AgentState>()(
         set(
           (state) => {
             const thread = state.threads[thread_id];
-            if (!thread) return state;
+            if (!thread) {
+              // Defensive logging for debugging race conditions
+              console.error('[useAgentState] updateMessage failed: thread not found');
+              console.error('[useAgentState]   requested thread_id:', thread_id);
+              console.error('[useAgentState]   message_id:', message_id);
+              console.error('[useAgentState]   available threads:', Object.keys(state.threads));
+              return state;
+            }
 
             return {
               threads: {

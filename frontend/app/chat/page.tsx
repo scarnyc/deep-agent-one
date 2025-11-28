@@ -79,61 +79,30 @@ function ChatErrorFallback({
 }
 
 /**
- * Chat page content component (wrapped in error boundary)
+ * Chat content component - renders the actual chat UI
  *
- * @returns {JSX.Element} Chat interface with 3-column layout or loading spinner
+ * @param {Object} props - Component props
+ * @param {string} props.threadId - Valid thread ID (guaranteed to exist in store)
+ * @returns {JSX.Element} Chat interface with 3-column layout
  *
  * @remarks
- * Main chat page logic including:
- * - Thread creation and initialization on mount
- * - WebSocket event handler setup via useAGUIEventHandler
- * - Loading state management until thread ready
- * - 3-column responsive grid layout:
- *   - Left (col-span-3): AgentStatus + ProgressTracker
- *   - Center (col-span-6): ChatInterface (main conversation)
- *   - Right (col-span-3): ToolCallDisplay (tool execution details)
+ * This component is rendered ONLY after the thread is created, ensuring
+ * the useAGUIEventHandler hook always receives a valid threadId.
+ * This prevents the race condition where events arrive before the thread exists.
  *
- * Thread Initialization:
- * - Uses crypto.randomUUID() if available
- * - Falls back to timestamp + random string for older browsers
- * - Creates thread in Zustand store
- * - Sets as active thread for WebSocket connection
+ * Layout:
+ * - Left (col-span-3): AgentStatus + ProgressTracker
+ * - Center (col-span-6): ChatInterface (main conversation)
+ * - Right (col-span-3): ToolCallDisplay (tool execution details)
  *
- * @see {@link useAgentState} - Zustand store for thread/message management
+ * @see {@link ChatPageContent} - Parent component that manages thread initialization
  * @see {@link useAGUIEventHandler} - WebSocket event processor
  */
-function ChatPageContent() {
-  const [isReady, setIsReady] = useState(false);
-  const { createThread, setActiveThread, active_thread_id } = useAgentState();
-
-  // Initialize WebSocket event handler
-  useAGUIEventHandler(active_thread_id || '');
-
-  useEffect(() => {
-    // Create a new thread on page load (runs once)
-    // Issue 81 fix: Fallback for crypto.randomUUID()
-    const threadId =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-    createThread(threadId);
-    setActiveThread(threadId);
-    setIsReady(true);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - run once on mount
-
-  // Show loading state until thread is initialized
-  if (!isReady) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
-          <p className="text-muted-foreground">Initializing chat...</p>
-        </div>
-      </div>
-    );
-  }
+function ChatContent({ threadId }: { threadId: string }) {
+  // Initialize WebSocket event handler with VALID threadId
+  // This is guaranteed to be a real thread ID because ChatPageContent
+  // only renders this component after thread creation is complete
+  useAGUIEventHandler(threadId);
 
   return (
     <div
@@ -163,6 +132,66 @@ function ChatPageContent() {
       </div>
     </div>
   );
+}
+
+/**
+ * Chat page content component (wrapped in error boundary)
+ *
+ * @returns {JSX.Element} Chat interface with 3-column layout or loading spinner
+ *
+ * @remarks
+ * Main chat page logic including:
+ * - Thread creation and initialization on mount
+ * - Loading state management until thread ready
+ * - Delegates to ChatContent for actual UI rendering
+ *
+ * Thread Initialization:
+ * - Uses crypto.randomUUID() if available
+ * - Falls back to timestamp + random string for older browsers
+ * - Creates thread in Zustand store
+ * - Sets as active thread for WebSocket connection
+ *
+ * IMPORTANT: WebSocket event handler (useAGUIEventHandler) is NOT called here.
+ * It's called in ChatContent to ensure threadId is valid when hook registers.
+ * This prevents the race condition where events arrive before thread exists.
+ *
+ * @see {@link useAgentState} - Zustand store for thread/message management
+ * @see {@link ChatContent} - Child component that registers event handler
+ */
+function ChatPageContent() {
+  const [isReady, setIsReady] = useState(false);
+  const { createThread, setActiveThread, active_thread_id } = useAgentState();
+
+  useEffect(() => {
+    // Create a new thread on page load (runs once)
+    // Issue 81 fix: Fallback for crypto.randomUUID()
+    const threadId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    createThread(threadId);
+    setActiveThread(threadId);
+    setIsReady(true);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - run once on mount
+
+  // Show loading state until thread is initialized AND active_thread_id is set
+  // Both conditions must be true to ensure thread exists before rendering ChatContent
+  if (!isReady || !active_thread_id) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+          <p className="text-muted-foreground">Initializing chat...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Render ChatContent ONLY after thread exists
+  // This ensures useAGUIEventHandler receives a valid threadId
+  return <ChatContent threadId={active_thread_id} />;
 }
 
 /**

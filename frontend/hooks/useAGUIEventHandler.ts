@@ -164,8 +164,48 @@ export function useAGUIEventHandler(threadId: string) {
    * Handle streaming token events
    */
   const handleChatModelStream = (event: TextMessageContentEvent) => {
-    const token = event.data.chunk.content || '';
-    if (!token) return;
+    // Extract token from serialized chunk - backend serializes AIMessageChunk to {type, content}
+    // Supports multiple formats from different LLM providers (OpenAI, Gemini, etc.)
+    const chunk = event.data?.chunk;
+    let token = '';
+
+    // Debug: Log raw chunk format to diagnose provider-specific issues
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AG-UI] Raw chunk received:', JSON.stringify(chunk)?.substring(0, 200));
+    }
+
+    if (typeof chunk === 'string') {
+      // Direct string content (some providers may send raw strings)
+      token = chunk;
+    } else if (chunk && typeof chunk.content === 'string') {
+      // Standard format from backend serialization: {type: "ai_chunk", content: "text"}
+      // This is what serialize_event() produces for AIMessageChunk
+      token = chunk.content;
+    } else if (chunk && typeof chunk === 'object') {
+      // Handle nested object cases from different LLM providers:
+      // - Gemini may send: {content: {type: "ai_chunk", content: "text"}}
+      // - Some providers may send: {text: "content"}
+      // - Others may send: {delta: {content: "text"}}
+      const nestedContent = (chunk.content as { content?: string })?.content;
+      const textContent = (chunk as { text?: string })?.text;
+      const deltaContent = (chunk as { delta?: { content?: string } })?.delta?.content;
+
+      if (typeof nestedContent === 'string') {
+        token = nestedContent;
+      } else if (typeof textContent === 'string') {
+        token = textContent;
+      } else if (typeof deltaContent === 'string') {
+        token = deltaContent;
+      }
+    }
+
+    // If no token extracted, log the chunk format for debugging
+    if (!token) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[AG-UI] Failed to extract token from chunk:', JSON.stringify(chunk)?.substring(0, 500));
+      }
+      return;
+    }
 
     // Update last token timestamp for watchdog
     lastStreamTokenTimeRef.current = Date.now();

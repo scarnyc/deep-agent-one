@@ -209,6 +209,15 @@ export function MarkdownContent({ content, className = '' }: MarkdownContentProp
     };
   }, []);
 
+  // Guard against invalid content - react-markdown v10.x requires non-empty string
+  if (typeof content !== 'string' || !content.trim()) {
+    return (
+      <div className={`markdown-content prose prose-sm dark:prose-invert max-w-none ${className}`}>
+        <span className="text-muted-foreground animate-pulse">...</span>
+      </div>
+    );
+  }
+
   return (
     <div className={`markdown-content prose prose-sm dark:prose-invert max-w-none ${className}`}>
       <Suspense fallback={<MarkdownSkeleton />}>
