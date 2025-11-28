@@ -1,4 +1,13 @@
-run = "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000 --reload"
+# =============================================================================
+# Deep Agent AGI - Replit Configuration
+# =============================================================================
+# This file configures the Replit environment for development and deployment.
+#
+# Development: Click "Run" to start both backend and frontend
+# Deployment: Autoscale target with production startup script
+# =============================================================================
+
+run = "./scripts/start-replit.sh"
 entrypoint = "backend/deep_agent/main.py"
 modules = ["python-3.11", "nodejs-20"]
 
@@ -6,10 +15,9 @@ modules = ["python-3.11", "nodejs-20"]
 channel = "stable-24_05"
 
 [deployment]
-run = ["bash", "-c", "cd frontend && pnpm start --port 5000 --hostname 0.0.0.0"]
+run = ["bash", "-c", "./scripts/start-replit-prod.sh"]
 deploymentTarget = "autoscale"
-build = ["bash", "-c", "cd frontend && pnpm install && pnpm run build"]
-publicDir = "frontend/out"
+build = ["bash", "-c", "poetry install --only main && cd frontend && pnpm install && pnpm run build"]
 
 [[ports]]
 localPort = 3000
@@ -21,20 +29,21 @@ externalPort = 80
 
 [[ports]]
 localPort = 8000
-externalPort = 80
-
-[[ports]]
-localPort = 34347
-externalPort = 3001
+externalPort = 8000
 
 [env]
 PYTHON_LD_LIBRARY_PATH = "/nix/store/*-python3-*/lib"
-PYTHONBIN = "/home/runner/${REPL_SLUG}/.pythonlibs/bin/python3.10"
+PYTHONBIN = "/home/runner/${REPL_SLUG}/.pythonlibs/bin/python3.11"
 POETRY_CACHE_DIR = "/home/runner/${REPL_SLUG}/.cache/pypoetry"
 ENV = "dev"
+API_HOST = "0.0.0.0"
 
 [agent]
 expertMode = true
+
+# =============================================================================
+# Workflows - Run both backend and frontend in parallel
+# =============================================================================
 
 [workflows]
 runButton = "Project"
@@ -46,7 +55,20 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
+args = "Backend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
 args = "Frontend"
+
+[[workflows.workflow]]
+name = "Backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000 --reload"
+waitForPort = 8000
 
 [[workflows.workflow]]
 name = "Frontend"

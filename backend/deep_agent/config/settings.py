@@ -364,6 +364,47 @@ class Settings(BaseSettings):
     # Replit Specific
     REPL_SLUG: str | None = None
     REPL_OWNER: str | None = None
+    REPLIT_DEV_DOMAIN: str | None = None  # Auto-set by Replit (e.g., "abc123.replit.dev")
+    REPLIT_DOMAINS: str | None = None  # Comma-separated Replit domains
+
+    @property
+    def is_replit(self) -> bool:
+        """Check if running in Replit environment.
+
+        Returns:
+            True if Replit environment variables are detected.
+
+        Example:
+            >>> settings = Settings(REPLIT_DEV_DOMAIN="abc.replit.dev")
+            >>> settings.is_replit
+            True
+        """
+        return self.REPLIT_DEV_DOMAIN is not None or self.REPL_SLUG is not None
+
+    @property
+    def replit_cors_origins(self) -> list[str]:
+        """Generate CORS origins for Replit deployment.
+
+        Automatically builds CORS origins from Replit environment variables
+        to allow requests from Replit's preview domains.
+
+        Returns:
+            List of Replit origin URLs with https:// prefix.
+
+        Example:
+            >>> settings = Settings(REPLIT_DEV_DOMAIN="abc.replit.dev")
+            >>> settings.replit_cors_origins
+            ["https://abc.replit.dev"]
+        """
+        origins = []
+        if self.REPLIT_DEV_DOMAIN:
+            origins.append(f"https://{self.REPLIT_DEV_DOMAIN}")
+        if self.REPLIT_DOMAINS:
+            for domain in self.REPLIT_DOMAINS.split(","):
+                domain = domain.strip()
+                if domain:
+                    origins.append(f"https://{domain}")
+        return origins
 
     @field_validator("LOG_LEVEL")
     @classmethod
@@ -384,7 +425,10 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        """Parse CORS origins from comma-separated string.
+        """Parse CORS origins from comma-separated string, including Replit domains.
+
+        Automatically includes Replit preview domains when running in Replit
+        environment for seamless development and deployment.
 
         Returns:
             List of CORS origin URLs with whitespace stripped.
@@ -393,8 +437,23 @@ class Settings(BaseSettings):
             >>> settings = Settings(CORS_ORIGINS="http://localhost:3000, http://localhost:8000")
             >>> settings.cors_origins_list
             ["http://localhost:3000", "http://localhost:8000"]
+
+            >>> settings = Settings(
+            ...     CORS_ORIGINS="http://localhost:3000",
+            ...     REPLIT_DEV_DOMAIN="abc.replit.dev"
+            ... )
+            >>> settings.cors_origins_list
+            ["http://localhost:3000", "https://abc.replit.dev"]
         """
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        base_origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+
+        # Automatically include Replit domains when in Replit environment
+        if self.is_replit:
+            for origin in self.replit_cors_origins:
+                if origin not in base_origins:
+                    base_origins.append(origin)
+
+        return base_origins
 
     @property
     def stream_allowed_events_list(self) -> list[str]:

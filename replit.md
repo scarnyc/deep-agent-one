@@ -26,29 +26,61 @@ Deep Agent AGI is a Phase 0 prototype deep agent framework built on LangGraph De
 ├── db/                   # Database files
 │   ├── data/             # SQLite checkpoints
 │   └── migrations/       # Database migrations
+├── scripts/              # Startup and utility scripts
+│   ├── start-replit.sh   # Development startup (Run button)
+│   └── start-replit-prod.sh  # Production deployment
 └── tests/                # Test suites
 ```
 
-## Recent Changes (Nov 27, 2025)
+## Running the Application
 
-### Replit Environment Setup
-- **Modules Installed:** Python 3.11, Node.js 20
-- **Dependencies Installed:** 
-  - Backend: Poetry managed Python packages (FastAPI, LangChain, etc.)
-  - Frontend: pnpm managed Node.js packages (Next.js, React, AG-UI, etc.)
-- **Configuration Updates:**
-  - Created `.env` file with basic configuration
-  - Created `frontend/.env.local` with Next.js port configuration
-  - Updated `next.config.js` to support Replit's proxy/iframe preview with `allowedDevOrigins: ['*']`
-- **Workflows Configured:**
-  - Frontend workflow: Runs on port 5000 with hostname 0.0.0.0 for Replit webview
+### Quick Start (Development)
+1. **Add API keys** to Replit Secrets (Tools > Secrets):
+   - `OPENAI_API_KEY` - OpenAI GPT-5.1 (fallback)
+   - `GOOGLE_API_KEY` - Google Gemini 3 Pro (primary)
+   - `PERPLEXITY_API_KEY` - Web search (optional)
+   - `LANGSMITH_API_KEY` - Tracing (optional)
+
+2. **Click the Run button** - Both services start automatically:
+   - **Backend:** FastAPI on port 8000 (internal)
+   - **Frontend:** Next.js on port 5000 (visible in webview)
+
+3. **Use the webview** to interact with the chat interface
+
+### Services
+| Service | Port | Access |
+|---------|------|--------|
+| Frontend | 5000 | Replit webview (external port 80) |
+| Backend | 8000 | Internal API (external port 8000) |
+
+### Deployment
+The app is configured for Replit Deployments with autoscale:
+- Build: `poetry install --only main && pnpm install && pnpm build`
+- Run: `./scripts/start-replit-prod.sh`
+
+## Configuration
+
+### Secrets (Sensitive - Store in Replit Secrets)
+**Required:**
+- `OPENAI_API_KEY` - OpenAI API key for GPT-5.1 fallback model
+- `GOOGLE_API_KEY` - Google API key for Gemini 3 Pro primary model
+
+**Optional:**
+- `PERPLEXITY_API_KEY` - Web search functionality
+- `LANGSMITH_API_KEY` - Agent tracing and monitoring
+- `OPIK_API_KEY` - Prompt optimization
+- `SECRET_KEY` - App security (generate: `openssl rand -hex 32`)
+- `JWT_SECRET` - Token signing (generate: `openssl rand -hex 32`)
+
+### Environment Variables (Non-Sensitive - in `.env`)
+The `.env` file contains non-sensitive configuration like model names, timeouts, and feature flags. See `.env.example` for all options.
 
 ## Technology Stack
 
 ### Backend
 - **Framework:** FastAPI (async Python 3.11+)
 - **AI Framework:** LangGraph DeepAgents
-- **LLMs:** 
+- **LLMs:**
   - Primary: Google Gemini 3 Pro
   - Fallback: OpenAI GPT-5.1
 - **State Management:** SQLite checkpointer
@@ -66,42 +98,6 @@ Deep Agent AGI is a Phase 0 prototype deep agent framework built on LangGraph De
 - LangSmith: Agent tracing and observability
 - Opik: Prompt optimization (optional)
 
-## Configuration
-
-### Required Environment Variables
-The application requires the following API keys to function:
-- `OPENAI_API_KEY` - OpenAI API key for GPT-5 (fallback model)
-- `GOOGLE_API_KEY` - Google API key for Gemini 3 Pro (primary model)
-
-### Optional Environment Variables
-- `PERPLEXITY_API_KEY` - For web search functionality
-- `LANGSMITH_API_KEY` - For agent tracing and monitoring
-- `OPIK_API_KEY` - For prompt optimization
-
-See `.env.example` for complete configuration template.
-
-## Running the Application
-
-### Development Mode
-The frontend is configured to run automatically via Replit workflow:
-- **Frontend:** Accessible via Replit webview (port 5000)
-- **Backend:** Not yet configured (requires API keys)
-
-### Backend Setup (To Do)
-1. Set up API keys in Replit Secrets or .env file:
-   - `OPENAI_API_KEY`
-   - `GOOGLE_API_KEY`
-2. Backend will run on port 8000 (localhost)
-3. Frontend proxies API requests to backend
-
-## User Preferences
-
-### Development Setup
-- Using Python 3.11 and Node.js 20
-- Poetry for Python dependency management
-- pnpm for Node.js dependency management
-- Frontend runs on port 5000 for Replit compatibility
-
 ## Project Goals
 
 ### Phase 0 (Current)
@@ -111,6 +107,7 @@ The frontend is configured to run automatically via Replit workflow:
 - ✅ Real-time streaming responses
 - ✅ Web search via Perplexity MCP
 - ✅ File operation tools
+- ✅ Replit deployment configuration
 
 ### Future Phases
 - **Phase 1:** Production-grade features (memory systems, advanced auth)
@@ -129,15 +126,47 @@ The frontend is configured to run automatically via Replit workflow:
 - No persistent user database in Phase 0
 - LangSmith for trace persistence (optional)
 
-## Important Notes
+## Replit-Specific Configuration
 
-### Replit-Specific Configuration
-- Frontend must bind to `0.0.0.0:5000` for webview
-- Backend should bind to `localhost:8000` (internal only)
-- Next.js config dynamically derives `allowedDevOrigins` from REPLIT_DEV_DOMAIN and REPLIT_DOMAINS environment variables with https:// protocol
-- CORS configured to allow Replit domains
+### Port Bindings
+- Frontend binds to `0.0.0.0:5000` for webview access
+- Backend binds to `0.0.0.0:8000` for API access
+- CORS automatically includes Replit preview domains
 
-### Security Considerations
-- API keys stored in Replit Secrets (not committed to repo)
+### Workflows
+The `.replit` file configures parallel workflows:
+- **Project** - Runs both Backend and Frontend in parallel
+- **Backend** - Starts FastAPI with uvicorn (auto-reload)
+- **Frontend** - Starts Next.js dev server
+
+### Startup Scripts
+- `scripts/start-replit.sh` - Development (used by Run button)
+- `scripts/start-replit-prod.sh` - Production deployment
+
+## Security Considerations
+- API keys stored in Replit Secrets (never committed)
 - No authentication system in Phase 0 (single-user testing)
-- Rate limiting enabled (60 requests/minute per IP)
+- Rate limiting enabled (100 requests/hour per IP)
+- CORS automatically configured for Replit domains
+
+## Troubleshooting
+
+### Backend not starting
+1. Check Replit Secrets are configured correctly
+2. Verify Poetry dependencies: `poetry install`
+3. Check logs in console output
+
+### Frontend not loading
+1. Verify pnpm dependencies: `cd frontend && pnpm install`
+2. Check if backend is running (port 8000)
+3. Look for errors in webview console
+
+### CORS errors
+The backend automatically includes Replit domains in CORS. If issues persist:
+1. Check `REPLIT_DEV_DOMAIN` environment variable is set
+2. Verify backend logs show Replit CORS origins loaded
+
+### WebSocket disconnects
+1. Check backend is running on port 8000
+2. Verify no firewall blocking WebSocket connections
+3. Try refreshing the webview

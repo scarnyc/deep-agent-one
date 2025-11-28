@@ -24,13 +24,11 @@ const nextConfig = {
   reactStrictMode: false,
 
   // Allow dev origins for Replit proxy (required for iframe preview)
-  // Dynamically derive Replit preview domains from environment with https:// protocol
-  allowedDevOrigins: process.env.REPLIT_DEV_DOMAIN 
-    ? [
-        `https://${process.env.REPLIT_DEV_DOMAIN}`,
-        ...(process.env.REPLIT_DOMAINS?.split(',').map(d => `https://${d.trim()}`) || [])
-      ]
-    : undefined,
+  // Use wildcard pattern to cover all Replit preview domains
+  allowedDevOrigins: [
+    '*.replit.dev',
+    '*.repl.co',
+  ],
 
   /**
    * Webpack Configuration

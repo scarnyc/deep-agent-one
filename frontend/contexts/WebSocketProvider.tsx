@@ -117,8 +117,10 @@ export function WebSocketProvider({
 
   /**
    * Get WebSocket URL from props or environment
+   * Handles Replit proxy environment where localhost:8000 isn't accessible from browser
    */
   const getWebSocketUrl = useCallback((): string => {
+    // Priority 1: Use explicit URL prop if provided
     if (url) {
       try {
         // Validate URL format
@@ -139,7 +141,28 @@ export function WebSocketProvider({
       }
     }
 
-    // Default: Construct from environment
+    // Priority 2: Use explicit WebSocket URL environment variable
+    if (process.env.NEXT_PUBLIC_WS_URL) {
+      return `${process.env.NEXT_PUBLIC_WS_URL}/api/v1/ws`;
+    }
+
+    // Priority 3: For browser environments, derive from current location
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const hostname = window.location.hostname;
+
+      // For Replit: connect directly to backend on port 8000
+      // Replit exposes port 8000 externally at hostname:8000
+      if (hostname.includes('.replit.dev') || hostname.includes('.repl.co')) {
+        return `${protocol}//${hostname}:8000/api/v1/ws`;
+      }
+
+      // For local development: use same origin (Next.js may proxy, or direct)
+      // If running on port 5000, try same origin first
+      return `${protocol}//${window.location.host}/api/v1/ws`;
+    }
+
+    // Priority 4: Fallback for SSR - use API URL
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const wsUrl = apiUrl.replace(/^http/, 'ws'); // Convert http(s):// to ws(s)://
     return `${wsUrl}/api/v1/ws`;
