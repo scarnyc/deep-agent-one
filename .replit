@@ -30,6 +30,7 @@ externalPort = 80
 [[ports]]
 localPort = 8000
 externalPort = 8000
+exposeLocalhost = true
 
 [env]
 PYTHON_LD_LIBRARY_PATH = "/nix/store/*-python3-*/lib"
