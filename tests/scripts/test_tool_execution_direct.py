@@ -12,8 +12,8 @@ from datetime import datetime
 try:
     import websockets
 except ImportError:
-    print("❌ Error: websockets library not installed")
-    print("📦 Install with: pip install websockets")
+    print("Error: websockets library not installed")
+    print("Install with: pip install websockets")
     sys.exit(1)
 
 
@@ -22,10 +22,10 @@ async def test_direct_tool_execution():
     uri = "ws://localhost:8000/api/v1/ws"
 
     print("=" * 70)
-    print("🧪 DIRECT TOOL EXECUTION TEST")
+    print("DIRECT TOOL EXECUTION TEST")
     print("=" * 70)
-    print(f"📡 Connecting to: {uri}")
-    print(f"🕐 Started at: {datetime.now().strftime('%H:%M:%S')}")
+    print(f"Connecting to: {uri}")
+    print(f"Started at: {datetime.now().strftime('%H:%M:%S')}")
     print()
 
     try:
@@ -33,7 +33,7 @@ async def test_direct_tool_execution():
             thread_id = f"test-direct-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
             # Direct command that should trigger tool use
-            print("👤 USER PROMPT:")
+            print("USER PROMPT:")
             print("   'Search the web for the current weather in New York City'")
             print()
 
@@ -53,7 +53,7 @@ async def test_direct_tool_execution():
             errors = []
             ai_response = []
 
-            print("📥 Receiving events...")
+            print("Receiving events...")
             print("-" * 70)
 
             while not complete:
@@ -72,37 +72,37 @@ async def test_direct_tool_execution():
 
                     # Log important events
                     if event_type == 'on_chain_start':
-                        print(f"  ▶️  Chain started: {event.get('name', 'unknown')}")
+                        print(f"  Chain started: {event.get('name', 'unknown')}")
                     elif event_type == 'on_tool_start':
                         tool_executed = True
                         tool_name = event.get('name', 'unknown')
                         tools_called.append(tool_name)
-                        print(f"  🔧 Tool started: {tool_name}")
+                        print(f"  Tool started: {tool_name}")
                         # Print tool arguments if available
                         if 'input' in event:
                             print(f"     Args: {event['input']}")
                     elif event_type == 'on_tool_end':
-                        print("  ✅ Tool completed")
+                        print("  Tool completed")
                     elif event_type == 'on_chat_model_end':
-                        print("  ✅ Chat model finished")
+                        print("  Chat model finished")
                     elif event_type in ['on_error', 'on_chain_error', 'on_llm_error', 'error']:
                         errors.append(event)
-                        print(f"  ❌ ERROR: {event_type}")
+                        print(f"  ERROR: {event_type}")
                         error_data = event.get('data') or event.get('error')
                         print(f"     Details: {error_data}")
                     elif event_type == 'hitl_request':
-                        print(f"  🚦 HITL Request: {event.get('data', {}).get('tool_name', 'unknown')}")
+                        print(f"  HITL Request: {event.get('data', {}).get('tool_name', 'unknown')}")
 
                     # Check for completion
                     if event_type in ['on_chain_end', 'on_llm_end']:
-                        print("  🏁 Conversation complete")
+                        print("  Conversation complete")
                         complete = True
 
                 except TimeoutError:
-                    print("  ⏱️  Timeout waiting for response (60s)")
+                    print("  Timeout waiting for response (60s)")
                     break
                 except Exception as e:
-                    print(f"  ❌ Error receiving event: {e}")
+                    print(f"  Error receiving event: {e}")
                     break
 
             print("-" * 70)
@@ -110,30 +110,30 @@ async def test_direct_tool_execution():
             # Display AI response
             if ai_response:
                 full_response = ''.join(ai_response)
-                print("\n🤖 AI RESPONSE:")
+                print("\nAI RESPONSE:")
                 print("-" * 70)
                 print(full_response[:500] + ('...' if len(full_response) > 500 else ''))
                 print("-" * 70)
 
             # Results
             print("\n" + "=" * 70)
-            print("📊 TEST RESULTS")
+            print("TEST RESULTS")
             print("=" * 70)
             print(f"Total events: {len(events)}")
-            print(f"Tool execution: {'✅ YES' if tool_executed else '❌ NO'}")
+            print(f"Tool execution: {'YES' if tool_executed else 'NO'}")
             if tools_called:
                 print(f"  Tools called: {', '.join(tools_called)}")
             print(f"Errors: {len(errors)}")
 
             if errors:
-                print("\n⚠️  ERROR DETAILS:")
+                print("\nERROR DETAILS:")
                 for i, error in enumerate(errors, 1):
                     print(f"\n  Error {i}:")
                     print(f"    Event: {error.get('event')}")
                     print(f"    Data: {error.get('data') or error.get('error')}")
 
             # Event breakdown
-            print("\n📋 EVENT BREAKDOWN:")
+            print("\nEVENT BREAKDOWN:")
             event_counts = {}
             for event in events:
                 event_type = event.get('event', 'unknown')
@@ -148,11 +148,11 @@ async def test_direct_tool_execution():
             success = len(errors) == 0
 
             if success:
-                print("✅ TEST PASSED - No errors occurred")
+                print("TEST PASSED - No errors occurred")
                 if not tool_executed:
-                    print("ℹ️  Note: No tools were executed (agent may not have decided to use tools)")
+                    print("Note: No tools were executed (agent may not have decided to use tools)")
             else:
-                print("❌ TEST FAILED - Errors occurred")
+                print("TEST FAILED - Errors occurred")
 
             print("=" * 70)
 
@@ -168,8 +168,8 @@ async def test_direct_tool_execution():
             }
 
     except websockets.exceptions.WebSocketException as e:
-        print(f"\n❌ WebSocket connection failed: {e}")
-        print("\n💡 Make sure the backend is running:")
+        print(f"\nWebSocket connection failed: {e}")
+        print("\nMake sure the backend is running:")
         print("   cd backend && uvicorn deep_agent.main:app --reload --port 8000")
         return {
             "success": False,
@@ -177,7 +177,7 @@ async def test_direct_tool_execution():
             "connection_failed": True
         }
     except Exception as e:
-        print(f"\n💥 Test failed with exception: {e}")
+        print(f"\nTest failed with exception: {e}")
         import traceback
         traceback.print_exc()
         return {
@@ -191,7 +191,7 @@ if __name__ == "__main__":
         result = asyncio.run(test_direct_tool_execution())
 
         print("\n" + "=" * 70)
-        print("🎯 FINAL RESULT")
+        print("FINAL RESULT")
         print("=" * 70)
         print(json.dumps({k: v for k, v in result.items() if k != 'error_events'}, indent=2))
         print("=" * 70)
@@ -200,10 +200,10 @@ if __name__ == "__main__":
         sys.exit(0 if result.get("success") else 1)
 
     except KeyboardInterrupt:
-        print("\n\n⚠️  Test interrupted by user")
+        print("\n\nTest interrupted by user")
         sys.exit(130)
     except Exception as e:
-        print(f"\n💥 Fatal error: {e}")
+        print(f"\nFatal error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

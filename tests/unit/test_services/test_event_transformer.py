@@ -6,7 +6,7 @@ Tests transformation logic for LangGraph events → UI-compatible format.
 
 
 import pytest
-from deep_agent.services.event_transformer import EventTransformer
+from backend.deep_agent.services.event_transformer import EventTransformer
 
 
 @pytest.fixture
