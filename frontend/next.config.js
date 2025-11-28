@@ -24,10 +24,16 @@ const nextConfig = {
   reactStrictMode: false,
 
   // Allow dev origins for Replit proxy (required for iframe preview)
-  // Use wildcard pattern to cover all Replit preview domains
+  // Replit uses multi-level subdomains: xxx-xxx.cluster.replit.dev
+  // Single wildcards (*.replit.dev) only match one subdomain level
+  // Must explicitly list known cluster subdomains for proper matching
   allowedDevOrigins: [
     '*.replit.dev',
     '*.repl.co',
+    '*.kirk.replit.dev',
+    '*.picard.replit.dev',
+    '*.janeway.replit.dev',
+    '*.sisko.replit.dev',
   ],
 
   /**

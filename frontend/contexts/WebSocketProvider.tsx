@@ -151,10 +151,28 @@ export function WebSocketProvider({
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const hostname = window.location.hostname;
 
-      // For Replit: connect directly to backend on port 8000
-      // Replit exposes port 8000 externally at hostname:8000
+      // For Replit: Connect DIRECTLY to backend WebSocket endpoint on port 8000
+      // IMPORTANT: Next.js rewrites() only work for HTTP requests, NOT WebSocket upgrades
+      // Attempting to proxy WebSocket through Next.js causes "Cannot read properties of undefined (reading 'bind')" error
       if (hostname.includes('.replit.dev') || hostname.includes('.repl.co')) {
-        return `${protocol}//${hostname}:8000/api/v1/ws`;
+        // Priority 1: Use explicit API URL from environment
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (apiUrl && !apiUrl.includes('localhost')) {
+          const wsUrl = apiUrl.replace(/^http/, 'ws');
+          if (DEBUG) {
+            console.log('[WebSocketProvider] Replit: using NEXT_PUBLIC_API_URL', wsUrl);
+          }
+          return `${wsUrl}/api/v1/ws`;
+        }
+
+        // Priority 2: Construct WebSocket URL from current hostname + backend port 8000
+        // Replit exposes backend on port 8000 with exposeLocalhost=true
+        // Frontend runs on port 80 (external) / 5000 (internal), backend on 8000
+        const wsUrl = `${protocol}//${hostname}:8000`;
+        if (DEBUG) {
+          console.log('[WebSocketProvider] Replit: connecting to backend on port 8000', wsUrl);
+        }
+        return `${wsUrl}/api/v1/ws`;
       }
 
       // For local development: use same origin (Next.js may proxy, or direct)
