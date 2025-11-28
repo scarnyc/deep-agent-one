@@ -212,7 +212,7 @@ class Settings(BaseSettings):
     )
     GEMINI_MODEL_NAME: str = "gemini-3-pro-preview"
     GEMINI_TEMPERATURE: float = 1.0  # Keep at 1.0 per Google docs (lower can cause issues)
-    GEMINI_THINKING_LEVEL: Literal["low", "medium", "high"] = "high"
+    GEMINI_THINKING_LEVEL: Literal["low", "high"] = "high"  # API only accepts 'low' or 'high'
     GEMINI_MAX_OUTPUT_TOKENS: int = 4096
 
     # Fallback Model: GPT-5.1 (OpenAI)

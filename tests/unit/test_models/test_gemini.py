@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from backend.deep_agent.models.llm import (
     GeminiConfig,
     ThinkingLevel,
+    THINKING_LEVEL_TO_BUDGET,
 )
 
 
@@ -12,16 +13,45 @@ class TestThinkingLevel:
     """Test ThinkingLevel enum."""
 
     def test_thinking_level_values(self) -> None:
-        """Test all thinking level enum values."""
+        """Test all thinking level enum values (API only accepts 'low' or 'high')."""
         assert ThinkingLevel.LOW == "low"
-        assert ThinkingLevel.MEDIUM == "medium"
         assert ThinkingLevel.HIGH == "high"
 
     def test_thinking_level_from_string(self) -> None:
         """Test creating ThinkingLevel from string."""
         assert ThinkingLevel("low") == ThinkingLevel.LOW
-        assert ThinkingLevel("medium") == ThinkingLevel.MEDIUM
         assert ThinkingLevel("high") == ThinkingLevel.HIGH
+
+
+class TestThinkingLevelToBudget:
+    """Test THINKING_LEVEL_TO_BUDGET mapping constant.
+
+    This mapping is required because google-ai-generativelanguage v0.9.0
+    ThinkingConfig only supports thinking_budget (token count), not thinking_level.
+    """
+
+    def test_mapping_has_all_levels(self) -> None:
+        """Test that mapping covers all ThinkingLevel values."""
+        assert "low" in THINKING_LEVEL_TO_BUDGET
+        assert "high" in THINKING_LEVEL_TO_BUDGET
+
+    def test_low_level_budget(self) -> None:
+        """Test low thinking level maps to 1024 tokens."""
+        assert THINKING_LEVEL_TO_BUDGET["low"] == 1024
+
+    def test_high_level_budget(self) -> None:
+        """Test high thinking level maps to 8192 tokens."""
+        assert THINKING_LEVEL_TO_BUDGET["high"] == 8192
+
+    def test_budget_values_are_positive(self) -> None:
+        """Test all budget values are positive integers."""
+        for level, budget in THINKING_LEVEL_TO_BUDGET.items():
+            assert isinstance(budget, int)
+            assert budget > 0
+
+    def test_high_budget_greater_than_low(self) -> None:
+        """Test high thinking budget is greater than low."""
+        assert THINKING_LEVEL_TO_BUDGET["high"] > THINKING_LEVEL_TO_BUDGET["low"]
 
 
 class TestGeminiConfig:
@@ -41,13 +71,13 @@ class TestGeminiConfig:
         config = GeminiConfig(
             model_name="gemini-3-pro",
             temperature=0.8,
-            thinking_level=ThinkingLevel.MEDIUM,
+            thinking_level=ThinkingLevel.LOW,
             max_output_tokens=8192,
             streaming=False,
         )
         assert config.model_name == "gemini-3-pro"
         assert config.temperature == 0.8
-        assert config.thinking_level == ThinkingLevel.MEDIUM
+        assert config.thinking_level == ThinkingLevel.LOW
         assert config.max_output_tokens == 8192
         assert config.streaming is False
 
@@ -86,14 +116,14 @@ class TestGeminiConfig:
         data = {
             "model_name": "gemini-3-flash",
             "temperature": 1.5,
-            "thinking_level": "medium",
+            "thinking_level": "high",
             "max_output_tokens": 2048,
         }
         config = GeminiConfig(**data)
 
         assert config.model_name == "gemini-3-flash"
         assert config.temperature == 1.5
-        assert config.thinking_level == ThinkingLevel.MEDIUM
+        assert config.thinking_level == ThinkingLevel.HIGH
 
     def test_default_temperature_is_one(self) -> None:
         """Test default temperature is 1.0 per Google recommendation."""

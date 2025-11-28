@@ -71,11 +71,21 @@ class ThinkingLevel(str, Enum):
     WARNING: If not specified, Gemini 3 Pro defaults to HIGH.
 
     Note: This is Gemini-specific. GPT uses `reasoning_effort` instead.
+    Note: Gemini 3 API only accepts 'low' or 'high' (not 'medium').
     """
 
     LOW = "low"
-    MEDIUM = "medium"
     HIGH = "high"
+
+
+# Mapping from thinking level string to token budget for Gemini 3 Pro
+# This is required because langchain-google-genai v3.2.0 passes `thinking_level` to
+# google-ai-generativelanguage ThinkingConfig, but v0.9.0 only supports `thinking_budget`
+# See: https://github.com/langchain-ai/langchain-google/issues/XXX
+THINKING_LEVEL_TO_BUDGET: dict[str, int] = {
+    "low": 1024,   # Minimal reasoning - faster, cheaper
+    "high": 8192,  # Deep reasoning - more thorough
+}
 
 
 class GPTConfig(BaseModel):

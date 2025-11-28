@@ -11,6 +11,7 @@ from backend.deep_agent.models.llm import (
     ReasoningEffort,
     ThinkingLevel,
     Verbosity,
+    THINKING_LEVEL_TO_BUDGET,
 )
 from backend.deep_agent.services.llm_factory import create_gemini_llm, create_gpt_llm
 
@@ -32,7 +33,7 @@ class TestCreateGeminiLLM:
         config = GeminiConfig(
             model_name="gemini-3-flash",
             temperature=0.8,
-            thinking_level=ThinkingLevel.MEDIUM,
+            thinking_level=ThinkingLevel.LOW,
             max_output_tokens=8192,
         )
         llm = create_gemini_llm(api_key="test_key", config=config)
@@ -43,11 +44,32 @@ class TestCreateGeminiLLM:
         assert "gemini-3-flash" in llm.model
 
     def test_create_with_all_thinking_levels(self) -> None:
-        """Test all thinking levels work."""
-        for level in [ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH]:
+        """Test all thinking levels work (API only accepts 'low' or 'high')."""
+        for level in [ThinkingLevel.LOW, ThinkingLevel.HIGH]:
             config = GeminiConfig(thinking_level=level)
             llm = create_gemini_llm(api_key="test_key", config=config)
             assert llm.__class__.__name__ == "ChatGoogleGenerativeAI"
+
+    def test_thinking_budget_is_set_correctly(self) -> None:
+        """Test that thinking_budget is correctly mapped from thinking_level.
+
+        This test verifies the fix for the ValueError:
+        'Unknown field for ThinkingConfig: thinking_level'
+
+        The fix converts thinking_level to thinking_budget (token count)
+        since google-ai-generativelanguage v0.9.0 only supports thinking_budget.
+        """
+        # Test LOW thinking level -> 1024 tokens
+        config_low = GeminiConfig(thinking_level=ThinkingLevel.LOW)
+        llm_low = create_gemini_llm(api_key="test_key", config=config_low)
+        assert llm_low.thinking_budget == THINKING_LEVEL_TO_BUDGET["low"]
+        assert llm_low.thinking_budget == 1024
+
+        # Test HIGH thinking level -> 8192 tokens
+        config_high = GeminiConfig(thinking_level=ThinkingLevel.HIGH)
+        llm_high = create_gemini_llm(api_key="test_key", config=config_high)
+        assert llm_high.thinking_budget == THINKING_LEVEL_TO_BUDGET["high"]
+        assert llm_high.thinking_budget == 8192
 
     def test_create_without_api_key(self) -> None:
         """Test that missing API key raises ValueError."""

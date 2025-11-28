@@ -26,7 +26,7 @@ from tenacity import (
 )
 
 from deep_agent.core.logging import get_logger
-from deep_agent.models.llm import GeminiConfig, GPTConfig
+from deep_agent.models.llm import GeminiConfig, GPTConfig, THINKING_LEVEL_TO_BUDGET
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
@@ -283,11 +283,18 @@ def create_gemini_llm(
     if config is None:
         config = GeminiConfig()
 
+    # Map thinking_level to thinking_budget tokens
+    # This is required because google-ai-generativelanguage v0.9.0 ThinkingConfig
+    # only supports `thinking_budget` (token count), not `thinking_level` (string)
+    thinking_level_str = kwargs.get("thinking_level", config.thinking_level.value)
+    thinking_budget = THINKING_LEVEL_TO_BUDGET.get(thinking_level_str, 8192)  # Default to high
+
     logger.info(
         "Creating Gemini LLM (primary model) with lazy import",
         model=config.model_name,
         temperature=config.temperature,
-        thinking_level=config.thinking_level.value,
+        thinking_level=thinking_level_str,
+        thinking_budget=thinking_budget,
         max_output_tokens=config.max_output_tokens,
     )
 
@@ -298,9 +305,10 @@ def create_gemini_llm(
         model=kwargs.get("model", config.model_name),
         google_api_key=api_key,
         temperature=kwargs.get("temperature", config.temperature),
+        thinking_budget=thinking_budget,  # Use token budget instead of level string
         max_output_tokens=kwargs.get("max_output_tokens", config.max_output_tokens),
         streaming=config.streaming,
-        **{k: v for k, v in kwargs.items() if k not in ["model", "temperature", "max_output_tokens"]},
+        **{k: v for k, v in kwargs.items() if k not in ["model", "temperature", "max_output_tokens", "thinking_level", "thinking_budget"]},
     )
 
 
