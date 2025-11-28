@@ -288,12 +288,14 @@ class PerplexityClient:
         try:
             # Enforce timeout (security: MEDIUM-3 fix)
             async with asyncio.timeout(self.timeout):
-                # Server configuration from .mcp/perplexity.json
-                # Use installed console script (not python -m) - see trace f4a77df6
+                # Server configuration from .mcp.json (root)
+                # Use the installed console script directly (perplexity-mcp package doesn't have __main__.py)
+                # See regression test: TestPerplexityMCPServerConfiguration (trace f4a77df6)
                 server_params = StdioServerParameters(
                     command="perplexity-mcp",
                     args=[],
                     env={
+                        **os.environ,  # Inherit PATH and other env vars
                         "PERPLEXITY_API_KEY": self.api_key,
                         "PERPLEXITY_MODEL": os.getenv("PERPLEXITY_MODEL", "sonar"),
                     },
@@ -352,22 +354,30 @@ class PerplexityClient:
             raise TimeoutError(f"MCP request exceeded {self.timeout}s timeout") from e
 
         except Exception as e:
-            # Capture subprocess stderr and nested exceptions for better debugging
+            # Handle ExceptionGroup (Python 3.11+) which wraps actual errors from TaskGroup
             error_msg = str(e)
-            if hasattr(e, "__cause__") and e.__cause__:
-                error_msg += f" (caused by: {e.__cause__})"
+            actual_error = e
+
+            # ExceptionGroup contains the real errors as sub-exceptions
+            if isinstance(e, ExceptionGroup):
+                if e.exceptions:
+                    actual_error = e.exceptions[0]
+                    error_msg = f"{type(actual_error).__name__}: {actual_error}"
+
+            if hasattr(actual_error, "__cause__") and actual_error.__cause__:
+                error_msg += f" (caused by: {actual_error.__cause__})"
 
             logger.error(
                 "MCP call failed",
                 query=query,
                 error=error_msg,
-                error_type=type(e).__name__,
-                command="perplexity-mcp",  # Log the command for debugging
+                error_type=type(actual_error).__name__,
+                command="perplexity-mcp",
             )
             raise ConnectionError(
                 f"Failed to connect to Perplexity MCP: {error_msg}. "
-                f"Ensure 'perplexity-mcp' command is available and PERPLEXITY_API_KEY is set."
-            ) from e
+                f"Ensure 'perplexity-mcp' is installed and PERPLEXITY_API_KEY is set."
+            ) from actual_error
 
     def _parse_perplexity_response(
         self,
