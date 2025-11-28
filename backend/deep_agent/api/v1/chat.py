@@ -98,6 +98,14 @@ async def chat(
         for msg in messages_data:
             # Handle LangChain message objects (have .type and .content attributes)
             if hasattr(msg, 'type') and hasattr(msg, 'content'):
+                # Skip messages with empty content (e.g., Gemini thinking/reasoning output)
+                if not msg.content or not msg.content.strip():
+                    logger.debug(
+                        "Skipping message with empty content",
+                        message_type=msg.type,
+                    )
+                    continue
+
                 # Map LangChain message types to API MessageRole
                 role_map = {
                     "ai": "assistant",
@@ -111,15 +119,29 @@ async def chat(
                 ))
             # Fallback for dictionary format (for backward compatibility)
             elif isinstance(msg, dict):
+                content = msg.get("content", "")
+                # Skip messages with empty content
+                if not content or not content.strip():
+                    logger.debug(
+                        "Skipping dict message with empty content",
+                        message_role=msg.get("role", "unknown"),
+                    )
+                    continue
+
                 messages.append(Message(
                     role=MessageRole(msg.get("role", "assistant")),
-                    content=msg.get("content", ""),
+                    content=content,
                 ))
             else:
                 # Unknown format, convert to string
+                str_content = str(msg)
+                # Skip if conversion results in empty string
+                if not str_content.strip():
+                    continue
+
                 messages.append(Message(
                     role=MessageRole("assistant"),
-                    content=str(msg),
+                    content=str_content,
                 ))
 
         logger.info(
