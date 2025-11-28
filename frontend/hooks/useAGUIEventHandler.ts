@@ -162,12 +162,23 @@ export function useAGUIEventHandler(threadId: string) {
 
   /**
    * Handle streaming token events
+   *
+   * Supports multiple LLM providers:
+   * - OpenAI: Streams tokens as {type: "ai_chunk", content: "text"}
+   * - Gemini: May send tool call events with content: [] (empty array) - skip these
    */
   const handleChatModelStream = (event: TextMessageContentEvent) => {
     // Extract token from serialized chunk - backend serializes AIMessageChunk to {type, content}
     // Supports multiple formats from different LLM providers (OpenAI, Gemini, etc.)
     const chunk = event.data?.chunk;
     let token = '';
+
+    // Skip empty array content (Gemini tool call events)
+    // These events have content: [] and additional_kwargs.function_call for tool invocations
+    // They are NOT text content events - skip silently
+    if (chunk && Array.isArray(chunk.content) && chunk.content.length === 0) {
+      return;
+    }
 
     // Debug: Log raw chunk format to diagnose provider-specific issues
     if (process.env.NODE_ENV === 'development') {
@@ -265,16 +276,58 @@ export function useAGUIEventHandler(threadId: string) {
    * Marks the end of a response "shard" (one reasoning cycle).
    * Sets flag so next shard's first token will be preceded by \n\n separator.
    * Message is only marked complete when full agent run finishes (handleRunFinished).
+   *
+   * For non-streaming providers (like Gemini), extracts content from event.data.output
+   * since these providers don't stream tokens character-by-character.
    */
   const handleChatModelEnd = (event: TextMessageEndEvent) => {
     console.log('[AG-UI] Chat model end - marking end of shard');
+
+    // Check if we have accumulated streaming content
+    // If not, try to get content from event.data.output (for non-streaming responses like Gemini)
+    let finalContent = streamingContentRef.current;
+
+    if (!finalContent || finalContent.trim() === '') {
+      // Try to extract from event.data.output (LangChain AIMessage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const output = (event as any).data?.output;
+      if (output) {
+        // Handle AIMessage object: {type: "ai", content: "..."}
+        if (typeof output.content === 'string' && output.content.trim()) {
+          finalContent = output.content;
+          console.log('[AG-UI] Extracted content from on_chat_model_end output:', finalContent.substring(0, 100));
+        }
+        // Handle direct string output
+        else if (typeof output === 'string' && output.trim()) {
+          finalContent = output;
+          console.log('[AG-UI] Extracted direct string from on_chat_model_end output:', finalContent.substring(0, 100));
+        }
+      }
+    }
+
+    // If we now have content but no message exists, create one
+    // This handles Gemini and other non-streaming providers
+    if (finalContent && finalContent.trim() && !streamingMessageIdRef.current) {
+      const messageId = addMessage(threadId, {
+        role: 'assistant',
+        content: finalContent,
+        metadata: {
+          run_id: event.run_id,
+          streaming: false,
+          completed: true,
+        },
+      });
+      streamingMessageIdRef.current = messageId;
+      streamingContentRef.current = finalContent;
+      console.log('[AG-UI] Created message from non-streaming output, id:', messageId);
+    }
 
     if (streamingMessageIdRef.current) {
       // DON'T add separator at end - we'll add it at the BEGINNING of the next shard
       console.log('[DEBUG] Shard ended, content length:', streamingContentRef.current.length);
       console.log('[DEBUG] Last 100 chars:', streamingContentRef.current.slice(-100));
 
-      // Update message to mark shard complete but keep streaming
+      // Update message content (may have been extracted from output)
       updateMessage(threadId, streamingMessageIdRef.current, {
         content: streamingContentRef.current,
         metadata: {
