@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The `tests/fixtures/` directory provides reusable test fixtures, mock data, and shared test utilities for the Deep Agent AGI test suite. Fixtures promote test isolation, maintainability, and consistent test setup across the entire codebase.
+The `tests/fixtures/` directory provides reusable test fixtures, mock data, and shared test utilities for the Deep Agent One test suite. Fixtures promote test isolation, maintainability, and consistent test setup across the entire codebase.
 
 **Key Benefits:**
 - **Reusability:** Share common test setup across multiple tests
@@ -269,7 +269,7 @@ Defined in `tests/ui/conftest.py` for browser automation testing.
   @pytest.mark.ui
   def test_homepage(page):
       page.goto("/")
-      assert page.title() == "Deep Agent AGI"
+      assert page.title() == "Deep Agent One"
   ```
 
 #### `authenticated_page`

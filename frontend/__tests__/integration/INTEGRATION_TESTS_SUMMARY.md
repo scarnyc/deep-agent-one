@@ -1,10 +1,10 @@
 # WebSocket Integration Tests Summary
 
 ## Overview
-Comprehensive integration tests for the WebSocket flow in Deep Agent AGI frontend, verifying that the singleton WebSocketProvider correctly broadcasts AG-UI Protocol events to multiple subscriber components and that state updates propagate throughout the application.
+Comprehensive integration tests for the WebSocket flow in Deep Agent One frontend, verifying that the singleton WebSocketProvider correctly broadcasts AG-UI Protocol events to multiple subscriber components and that state updates propagate throughout the application.
 
 ## Test File
-`/Users/scar_nyc/Documents/GitHub/deep-agent-agi/frontend/__tests__/integration/websocket-flow.test.tsx`
+`/Users/scar_nyc/Documents/GitHub/deep-agent-one/frontend/__tests__/integration/websocket-flow.test.tsx`
 
 ## Architecture Under Test
 

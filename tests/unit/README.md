@@ -1,6 +1,6 @@
 # Unit Tests
 
-Isolated unit tests for Deep Agent AGI components. Fast, focused tests with extensive mocking.
+Isolated unit tests for Deep Agent One components. Fast, focused tests with extensive mocking.
 
 ## Purpose
 

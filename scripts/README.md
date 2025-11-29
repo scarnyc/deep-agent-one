@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Development, testing, deployment, and utility scripts for Deep Agent AGI.
+Development, testing, deployment, and utility scripts for Deep Agent One.
 
 All scripts in this directory support the Phase 0 MVP development workflow with automated setup, testing, security scanning, and server management.
 

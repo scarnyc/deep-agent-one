@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Utility libraries and helper functions for Deep Agent AGI frontend.
+Utility libraries and helper functions for Deep Agent One frontend.
 
 This directory contains core utilities for AG-UI Protocol integration, WebSocket event handling, structured logging, and general UI helpers.
 
@@ -617,4 +617,4 @@ logger.debug('Test'); // Only shows in development
 ---
 
 **Last Updated:** 2025-11-12
-**Maintained By:** Deep Agent AGI Team
+**Maintained By:** Deep Agent One Team

@@ -316,7 +316,7 @@ STREAM_ALLOWED_EVENTS=["on_chat_model_stream","on_tool_start","on_tool_end"]
 # LangSmith Configuration
 LANGCHAIN_TRACING_V2=true     # Enable tracing
 LANGCHAIN_API_KEY=lsv2_...    # LangSmith API key
-LANGCHAIN_PROJECT=deep-agent-agi-dev  # Project name
+LANGCHAIN_PROJECT=deep-agent-one-dev  # Project name
 ```
 
 ### Prompt Variants (A/B Testing)

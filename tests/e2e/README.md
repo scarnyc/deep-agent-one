@@ -2,7 +2,7 @@
 
 ## Overview
 
-The E2E test suite validates complete user workflows and journeys through the Deep Agent AGI system with minimal mocking. These tests simulate real user interactions to verify that all components (API, services, agents, tools, database, external APIs) work together correctly.
+The E2E test suite validates complete user workflows and journeys through the Deep Agent One system with minimal mocking. These tests simulate real user interactions to verify that all components (API, services, agents, tools, database, external APIs) work together correctly.
 
 ## Purpose
 

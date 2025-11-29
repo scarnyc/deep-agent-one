@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Pydantic data models for request/response validation, configuration, and data transfer objects across the Deep Agent AGI application. All models use Pydantic v2 for runtime validation, JSON schema generation, and type safety.
+Pydantic data models for request/response validation, configuration, and data transfer objects across the Deep Agent One application. All models use Pydantic v2 for runtime validation, JSON schema generation, and type safety.
 
 ## Key Files
 

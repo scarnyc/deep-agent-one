@@ -1,4 +1,4 @@
-# Deep Agent AGI - Development Guide for Claude Code
+# Deep Agent One - Development Guide for Claude Code
 
 ## Project Overview
 
@@ -21,8 +21,8 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install --upgrade pip
 
 # Initialize repository
-git init deep-agent-agi
-cd deep-agent-agi
+git init deep-agent-one
+cd deep-agent-one
 
 # Install Poetry for dependency management
 curl -sSL https://install.python-poetry.org | python3 -
@@ -30,7 +30,7 @@ poetry install
 
 # Initialize git
 git add .
-git commit -m "Initial commit: Deep Agent AGI"
+git commit -m "Initial commit: Deep Agent One"
 git checkout -b phase-0-mvp
 ```
 
@@ -60,7 +60,7 @@ npx playwright --version
 #### File Structure
 
 ```
-deep-agent-agi/
+deep-agent-one/
 ├── .env                      # Active configuration (gitignored, NOT committed)
 ├── .env.example              # Template with comprehensive documentation (committed)
 ├── docs/
@@ -195,7 +195,7 @@ git clone github.com/TheAuditorTool/Auditor
 cd TheAuditor && pip install -e .
 
 # Return to your project
-cd ~/deep-agent-agi
+cd ~/deep-agent-one
 
 # Initialize and run first audit
 # old: aud init && aud full

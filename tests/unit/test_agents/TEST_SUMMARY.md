@@ -178,8 +178,8 @@ pytest-mock = "^3.14.0"
 
 ## Files Created
 
-1. `/Users/scar_nyc/Documents/GitHub/deep-agent-agi/tests/unit/test_agents/test_deep_agent.py` (545 lines, 16 tests)
-2. `/Users/scar_nyc/Documents/GitHub/deep-agent-agi/backend/deep_agent/agents/deep_agent.py` (165 lines, 100% covered)
+1. `/Users/scar_nyc/Documents/GitHub/deep-agent-one/tests/unit/test_agents/test_deep_agent.py` (545 lines, 16 tests)
+2. `/Users/scar_nyc/Documents/GitHub/deep-agent-one/backend/deep_agent/agents/deep_agent.py` (165 lines, 100% covered)
 
 ## Commit Message
 

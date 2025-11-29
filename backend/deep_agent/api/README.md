@@ -1,7 +1,7 @@
 # API
 
 ## Purpose
-FastAPI application setup and route registration for Deep Agent AGI backend. Provides RESTful HTTP endpoints, Server-Sent Events (SSE) streaming, and WebSocket connections for real-time agent interaction.
+FastAPI application setup and route registration for Deep Agent One backend. Provides RESTful HTTP endpoints, Server-Sent Events (SSE) streaming, and WebSocket connections for real-time agent interaction.
 
 ## Key Files
 - `__init__.py` - API package initialization with module docstrings

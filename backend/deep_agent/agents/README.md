@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The agents module is the core orchestration layer of the Deep Agent AGI system, responsible for creating and managing AI agents powered by LangGraph's DeepAgents framework and OpenAI's GPT-5 model. It provides a complete implementation of agent lifecycle management, state persistence, reasoning optimization, and prompt engineering capabilities.
+The agents module is the core orchestration layer of the Deep Agent One system, responsible for creating and managing AI agents powered by LangGraph's DeepAgents framework and OpenAI's GPT-5 model. It provides a complete implementation of agent lifecycle management, state persistence, reasoning optimization, and prompt engineering capabilities.
 
 This module abstracts the complexity of agent creation, allowing the rest of the system to easily instantiate fully-configured agents with checkpointing, observability (LangSmith), custom tools (web search), and environment-specific behavior. It serves as the bridge between low-level LLM interactions (services layer) and high-level API endpoints (FastAPI backend).
 
@@ -345,4 +345,4 @@ open htmlcov/index.html
 
 **Version:** 1.0.0 (Phase 0 Complete)
 **Last Updated:** 2025-11-12
-**Maintainers:** Deep Agent AGI Team
+**Maintainers:** Deep Agent One Team

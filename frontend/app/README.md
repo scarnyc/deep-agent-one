@@ -1,7 +1,7 @@
 # App (Next.js App Router)
 
 ## Purpose
-Next.js 14 App Router pages and layouts for Deep Agent AGI UI. This directory contains all route definitions, page components, and layouts that make up the application's routing structure.
+Next.js 14 App Router pages and layouts for Deep Agent One UI. This directory contains all route definitions, page components, and layouts that make up the application's routing structure.
 
 ## Directory Structure
 ```
@@ -72,7 +72,7 @@ Layouts wrap child pages and persist across navigation:
 Static metadata in `layout.tsx`:
 ```tsx
 export const metadata: Metadata = {
-  title: 'Deep Agent AGI',
+  title: 'Deep Agent One',
   description: 'General-purpose deep agent framework with cost optimization',
 };
 ```

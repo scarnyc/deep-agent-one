@@ -139,7 +139,7 @@ These settings must be provided via environment variables:
 
 **LangSmith (Tracing):**
 - `LANGSMITH_API_KEY` - LangSmith API key - Default: None
-- `LANGSMITH_PROJECT` - Project name - Default: "deep-agent-agi"
+- `LANGSMITH_PROJECT` - Project name - Default: "deep-agent-one"
 - `LANGSMITH_ENDPOINT` - API endpoint - Default: "https://api.smith.langchain.com"
 - `LANGSMITH_TRACING_V2` - Enable v2 tracing - Default: True
 

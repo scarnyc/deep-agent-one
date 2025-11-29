@@ -701,7 +701,7 @@ Pytest consistently fails with `SyntaxError: source code string cannot contain n
 
 **Error Message:**
 ```
-ImportError while loading conftest '/Users/scar_nyc/Documents/GitHub/deep-agent-agi/tests/conftest.py'.
+ImportError while loading conftest '/Users/scar_nyc/Documents/GitHub/deep-agent-one/tests/conftest.py'.
 SyntaxError: source code string cannot contain null bytes
 ```
 

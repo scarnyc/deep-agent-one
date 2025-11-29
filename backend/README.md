@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Backend API and agent infrastructure for Deep Agent AGI - a FastAPI-based service that orchestrates LangGraph DeepAgents with GPT-5, providing real-time agent interactions, tool execution, and human-in-the-loop workflows.
+Backend API and agent infrastructure for Deep Agent One - a FastAPI-based service that orchestrates LangGraph DeepAgents with GPT-5, providing real-time agent interactions, tool execution, and human-in-the-loop workflows.
 
 ---
 
@@ -10,7 +10,7 @@ Backend API and agent infrastructure for Deep Agent AGI - a FastAPI-based servic
 
 ```
 backend/
-└── deep_agent/             # Core Deep Agent AGI implementation
+└── deep_agent/             # Core Deep Agent One implementation
     ├── agents/             # LangGraph agent implementations
     ├── api/                # FastAPI routes and endpoints
     ├── config/             # Configuration management
@@ -98,7 +98,7 @@ cd ..
 ## Core Modules
 
 ### [`deep_agent/`](deep_agent/README.md)
-Core Deep Agent AGI implementation with agents, API, services, and integrations.
+Core Deep Agent One implementation with agents, API, services, and integrations.
 
 **Key Components:**
 - Agent orchestration and lifecycle management
@@ -324,7 +324,7 @@ OPENAI_API_KEY=sk-...
 # LangSmith (optional but recommended)
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_API_KEY=lsv2_...
-LANGCHAIN_PROJECT=deep-agent-agi
+LANGCHAIN_PROJECT=deep-agent-one
 
 # Server
 HOST=127.0.0.1
@@ -576,4 +576,4 @@ Before requesting review:
 ---
 
 **Last Updated**: 2025-11-12
-**Maintained By**: Deep Agent AGI Team
+**Maintained By**: Deep Agent One Team

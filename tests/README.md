@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Comprehensive test suite for Deep Agent AGI covering unit tests, integration tests, end-to-end workflows, UI testing with Playwright, and research experiments.
+Comprehensive test suite for Deep Agent One covering unit tests, integration tests, end-to-end workflows, UI testing with Playwright, and research experiments.
 
 ## Directory Structure
 
@@ -535,4 +535,4 @@ git commit -m "test(phase-0): add comprehensive test suite"
 ---
 
 **Last Updated**: 2025-11-12
-**Maintained By**: Deep Agent AGI Team
+**Maintained By**: Deep Agent One Team

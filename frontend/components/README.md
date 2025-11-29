@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Reusable UI components for Deep Agent AGI frontend built with React, TypeScript, and Tailwind CSS.
+Reusable UI components for Deep Agent One frontend built with React, TypeScript, and Tailwind CSS.
 
 This directory contains all React components organized by category:
 - **AG-UI Components**: Agent-specific UI implementing the AG-UI Protocol

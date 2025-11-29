@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains documentation and organization for mock implementations used throughout the Deep Agent AGI test suite. Mocks provide test doubles for external services, APIs, and complex internal components, enabling fast, deterministic, and cost-free testing.
+This directory contains documentation and organization for mock implementations used throughout the Deep Agent One test suite. Mocks provide test doubles for external services, APIs, and complex internal components, enabling fast, deterministic, and cost-free testing.
 
 ## Purpose
 
@@ -865,7 +865,7 @@ poetry add --group dev pytest-mock
 - **unittest.mock docs**: https://docs.python.org/3/library/unittest.mock.html
 - **pytest fixtures**: https://docs.pytest.org/en/stable/fixture.html
 - **pytest-mock**: https://pytest-mock.readthedocs.io/
-- **Testing Deep Agent AGI**: See test suite documentation in test directories
+- **Testing Deep Agent One**: See test suite documentation in test directories
 
 ## Best Practices
 
@@ -1094,7 +1094,7 @@ def mock_service():
 
 ## Summary
 
-The Deep Agent AGI test suite uses pytest fixtures as the primary mocking mechanism, centralized in `tests/conftest.py`. This approach provides:
+The Deep Agent One test suite uses pytest fixtures as the primary mocking mechanism, centralized in `tests/conftest.py`. This approach provides:
 
 ✅ **Consistency**: All tests use same mock implementations
 ✅ **Simplicity**: Automatic dependency injection via pytest

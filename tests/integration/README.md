@@ -2,7 +2,7 @@
 
 **Location:** `/tests/integration/`
 
-**Purpose:** Integration tests verify interactions between multiple components of the Deep Agent AGI system. Unlike unit tests that test isolated functions, integration tests ensure components work together correctly across architectural boundaries.
+**Purpose:** Integration tests verify interactions between multiple components of the Deep Agent One system. Unlike unit tests that test isolated functions, integration tests ensure components work together correctly across architectural boundaries.
 
 ## Overview
 

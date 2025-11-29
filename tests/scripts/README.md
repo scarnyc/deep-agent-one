@@ -2,7 +2,7 @@
 
 ## Overview
 
-These scripts test the Deep Agent AGI backend via WebSocket connections to validate agent behavior, tool execution, and streaming functionality.
+These scripts test the Deep Agent One backend via WebSocket connections to validate agent behavior, tool execution, and streaming functionality.
 
 ## Scripts
 
@@ -34,7 +34,7 @@ These scripts connect to a live backend instance. They do NOT start the backend.
 
 ```bash
 # Start backend with production settings (ENV=local)
-cd /Users/scar_nyc/Documents/GitHub/deep-agent-agi
+cd /Users/scar_nyc/Documents/GitHub/deep-agent-one
 source .env  # Loads ENV=local
 cd backend
 source ../venv/bin/activate

@@ -1,6 +1,6 @@
 # UI Tests Directory
 
-Comprehensive browser automation and UI testing for Deep Agent AGI frontend using Playwright.
+Comprehensive browser automation and UI testing for Deep Agent One frontend using Playwright.
 
 ## Purpose
 
@@ -837,6 +837,6 @@ playwright show-trace test-results/trace.zip
 
 **Last Updated:** 2025-11-12
 
-**Maintained By:** Deep Agent AGI Development Team
+**Maintained By:** Deep Agent One Team
 
 **Questions?** See `CLAUDE.md` for development guidelines or `docs/development/testing.md` for testing strategy.

@@ -1,21 +1,22 @@
-# Deep Agent AGI
+# Deep Agent One
 
 > **Phase 0 Prototype: Core framework demonstrating intelligent reasoning optimization and cost reduction**
 
 [![Phase](https://img.shields.io/badge/Phase-0--Prototype-orange)]()
 [![Python](https://img.shields.io/badge/Python-3.10+-green)]()
 [![Node](https://img.shields.io/badge/Node.js-18+-green)]()
-[![License](https://img.shields.io/badge/License-MIT-yellow)]()
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue)]()
 
 ---
 
 ## 🎯 Overview
 
-Deep Agent AGI is a **Phase 0 prototype** deep agent framework built on LangGraph DeepAgents with GPT-5 reasoning optimization. This prototype demonstrates the core framework capabilities with basic features.
+Deep Agent One is a **Phase 0 prototype** deep agent framework built on LangGraph DeepAgents with **Gemini 3 Pro** as the primary model and **GPT-5.1** as automatic fallback. This prototype demonstrates the core framework capabilities with basic features.
 
 **What This Prototype Provides:**
 
-- **Cost Reduction:** Intelligent GPT-5 reasoning effort routing (minimal/low/medium/high)
+- **Dual-Model Stack:** Gemini 3 Pro (primary) with GPT-5.1 automatic fallback on errors
+- **Prompt Optimization:** Opik integration with 6 optimization algorithms (Hierarchical, Bayesian, Evolutionary, MetaPrompt, GEPA, Parameter)
 - **Human-in-the-Loop:** Built-in approval workflows for critical decisions
 - **Real-time Transparency:** AG-UI protocol for streaming events and tool call visibility
 - **Web Search:** Perplexity MCP integration for web queries
@@ -37,11 +38,23 @@ This is a working prototype demonstrating core framework capabilities. Future ph
 - Conversation history and context tracking
 - WebSocket-based bidirectional communication
 
-**GPT-5 Reasoning Optimization**
-- 4 effort levels: minimal, low, medium, high
-- Automatic effort selection based on query complexity
-- Manual override via trigger phrases ("think harder about...")
-- Per-request cost tracking and display
+**Dual-Model Architecture**
+- **Primary:** Google Gemini 3 Pro with configurable thinking depth (low/medium/high)
+- **Fallback:** OpenAI GPT-5.1 with automatic failover on rate limits, timeouts, or errors
+- Intelligent model routing with seamless switching
+- Per-request cost tracking and model attribution
+
+**Opik Prompt Optimization** (Available)
+- 6 optimization algorithms: Hierarchical, Bayesian, Evolutionary, MetaPrompt, GEPA, Parameter
+- Prompt analysis against GPT best practices
+- A/B testing infrastructure for prompt comparison
+- Automatic evaluation dataset generation
+
+**Reasoning Effort Routing** (Phase 0 Stub)
+- Infrastructure for 4 effort levels: minimal, low, medium, high
+- Phase 0: Fixed at MEDIUM effort (dynamic routing coming in Phase 1)
+- Configurable timeouts per effort level
+- Trigger phrase detection (Phase 1)
 
 **Web Search**
 - Perplexity MCP integration for web queries
@@ -104,8 +117,8 @@ This is a working prototype demonstrating core framework capabilities. Future ph
 │  ┌────────────────────────┴─────────────────────────────────┐   │
 │  │           Services Layer                                 │   │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │   │
-│  │  │ Agent        │  │ GPT-5        │  │ Reasoning    │    │   │
-│  │  │ Service      │  │ Service      │  │ Router       │    │   │
+│  │  │ Agent        │  │ LLM          │  │ Reasoning    │    │   │
+│  │  │ Service      │  │ Factory      │  │ Router       │    │   │
 │  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘    │   │
 │  └─────────┼─────────────────┼─────────────────┼──────────┘     │
 │            │                 │                 │                │
@@ -116,10 +129,11 @@ This is a working prototype demonstrating core framework capabilities. Future ph
 │                           │                                     │
 │  ┌────────────────────────┴─────────────────────────────────┐   │
 │  │              External Integrations                       │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐               │   │
-│  │  │ OpenAI   │  │Perplexity│  │LangSmith │               │   │
-│  │  │ GPT-5    │  │   MCP    │  │  Traces  │               │   │
-│  │  └──────────┘  └──────────┘  └──────────┘               │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │   │
+│  │  │ Google   │  │ OpenAI   │  │Perplexity│  │LangSmith │ │   │
+│  │  │ Gemini   │  │ GPT-5.1  │  │   MCP    │  │  Traces  │ │   │
+│  │  │(Primary) │  │(Fallback)│  │          │  │          │ │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘ │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
@@ -134,27 +148,33 @@ This is a working prototype demonstrating core framework capabilities. Future ph
 
 ### Key Architectural Patterns
 
-#### 1. **Reasoning Router Pattern**
-Dynamically routes queries to appropriate GPT-5 reasoning effort levels:
-- **Minimal:** Simple factual queries (`2+2`, `weather today`)
-- **Low:** Basic explanations (`what is Python?`)
-- **Medium:** Moderate complexity (`explain OOP concepts`)
-- **High:** Complex analysis, triggered phrases (`think harder about quantum computing`)
+#### 1. **Model Fallback Pattern**
+Primary model (Gemini 3 Pro) with automatic failover to GPT-5.1:
+- **Rate limit handling:** Seamless switch on 429 errors
+- **Timeout recovery:** Fallback on slow responses
+- **Connection resilience:** Retry with alternate model
+- **Transparent switching:** User sees consistent experience
 
-#### 2. **Event Streaming (AG-UI Protocol)**
+#### 2. **Reasoning Router Pattern** (Phase 0 Stub)
+Infrastructure for dynamic routing (full implementation in Phase 1):
+- **Minimal/Low/Medium/High** effort levels defined
+- **Phase 0:** Fixed at MEDIUM (stub implementation)
+- **Phase 1:** Trigger phrase detection + complexity analysis
+
+#### 3. **Event Streaming (AG-UI Protocol)**
 Real-time streaming of agent events to frontend:
 - Lifecycle events (RunStarted, StepStarted, etc.)
 - Text message streaming (token-by-token)
 - Tool call transparency (args, results)
 - HITL approval workflows
 
-#### 3. **HITL Workflow**
+#### 4. **HITL Workflow**
 Human-in-the-loop approvals with three options:
 - **Accept:** Approve without changes
 - **Respond:** Reject with feedback
 - **Edit:** Approve with modifications
 
-#### 4. **Checkpointer Strategy**
+#### 5. **Checkpointer Strategy**
 State persistence across agent interactions:
 - Phase 0: SQLite for local development
 - Enables conversation continuity and HITL workflows
@@ -163,7 +183,8 @@ State persistence across agent interactions:
 
 **Backend:**
 - Framework: LangGraph DeepAgents
-- LLM: OpenAI GPT-5 with variable reasoning
+- LLM: Google Gemini 3 Pro (primary) + OpenAI GPT-5.1 (fallback)
+- Prompt Optimization: Opik (6 algorithms)
 - API: FastAPI (async Python 3.10+)
 - State Management: SQLite checkpointer
 - Monitoring: LangSmith
@@ -176,6 +197,9 @@ State persistence across agent interactions:
 - WebSocket: Real-time bidirectional communication
 
 **External Integrations:**
+- Google Gemini: Primary LLM (Gemini 3 Pro)
+- OpenAI: Fallback LLM (GPT-5.1)
+- Opik: Prompt optimization and A/B testing
 - Perplexity MCP: Web search
 - LangSmith: Agent tracing and observability
 
@@ -188,14 +212,14 @@ State persistence across agent interactions:
 - **Python 3.10+**
 - **Node.js 18+**
 - **Git**
-- **API Keys:** OpenAI, Perplexity, LangSmith (optional)
+- **API Keys:** Google (Gemini), OpenAI (fallback), Perplexity, LangSmith (optional)
 
 ### Local Setup
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/deep-agent-agi.git
-cd deep-agent-agi
+git clone https://github.com/yourusername/deep-agent-one.git
+cd deep-agent-one
 
 # 2. Install Poetry (Python dependency manager)
 curl -sSL https://install.python-poetry.org | python3 -
@@ -209,7 +233,8 @@ npm install
 # 5. Set up environment variables
 cp .env.example .env
 # Edit .env with your API keys:
-#   - OPENAI_API_KEY (required)
+#   - GOOGLE_API_KEY (required - Gemini 3 Pro, primary model)
+#   - OPENAI_API_KEY (required - GPT-5.1 fallback)
 #   - PERPLEXITY_API_KEY (required for web search)
 #   - LANGSMITH_API_KEY (optional, for tracing)
 
@@ -229,7 +254,8 @@ This prototype is optimized for deployment on Replit:
 **One-Click Deploy:**
 1. Fork this repository on Replit
 2. Configure Secrets in Replit dashboard:
-   - `OPENAI_API_KEY`
+   - `GOOGLE_API_KEY` (Gemini 3 Pro - primary)
+   - `OPENAI_API_KEY` (GPT-5.1 - fallback)
    - `PERPLEXITY_API_KEY`
    - `LANGSMITH_API_KEY` (optional)
 3. Click "Run" - Replit automatically:
@@ -250,14 +276,15 @@ curl https://your-repl-name.replit.app/health
 
 **Required:**
 ```bash
-OPENAI_API_KEY=sk-...                    # OpenAI API key for GPT-5
+GOOGLE_API_KEY=...                       # Google API key for Gemini 3 Pro (primary)
+OPENAI_API_KEY=sk-...                    # OpenAI API key for GPT-5.1 (fallback)
 PERPLEXITY_API_KEY=pplx-...             # Perplexity API key for web search
 ```
 
 **Optional:**
 ```bash
 LANGSMITH_API_KEY=ls__...               # LangSmith tracing (recommended)
-LANGSMITH_PROJECT=deep-agent-agi        # Project name in LangSmith
+LANGSMITH_PROJECT=deep-agent-one        # Project name in LangSmith
 
 # Reasoning configuration (defaults shown)
 GPT5_REASONING_MINIMAL=minimal          # Effort level for simple queries
@@ -283,33 +310,29 @@ See `.env.example` for complete configuration template.
 3. Press Enter or click Send
 4. Watch the agent respond in real-time (token-by-token streaming)
 
-**Understanding Reasoning Modes:**
+**Understanding the Model Stack:**
 
-The agent automatically selects the appropriate reasoning effort:
+Deep Agent One uses a dual-model architecture:
 
-- **Minimal** (⚡): Fast, simple queries
-  - Example: "What is 2+2?"
-  - Response time: <1 second
+- **Primary:** Google Gemini 3 Pro with configurable thinking depth
+- **Fallback:** OpenAI GPT-5.1 (automatic on errors/rate limits)
 
-- **Low** (💡): Basic explanations
-  - Example: "What is Python?"
-  - Response time: 1-2 seconds
+The model automatically switches if the primary model fails, ensuring reliable responses.
 
-- **Medium** (🧠): Moderate complexity
-  - Example: "Explain object-oriented programming"
-  - Response time: 2-5 seconds
+**Reasoning Effort (Phase 0):**
 
-- **High** (🚀): Complex analysis (use trigger phrases)
-  - Example: "Think harder about quantum computing applications"
-  - Response time: 5-15 seconds
+> Note: In Phase 0, reasoning effort is fixed at MEDIUM. Dynamic routing based on query complexity will be added in Phase 1.
 
-**Manual Reasoning Control:**
+Infrastructure exists for 4 effort levels:
+- **Minimal** (⚡): Fast, simple queries (Phase 1)
+- **Low** (💡): Basic explanations (Phase 1)
+- **Medium** (🧠): Current default for all queries
+- **High** (🚀): Complex analysis with trigger phrases (Phase 1)
 
-Add trigger phrases to force high reasoning:
-- "think harder about..."
-- "think deeply about..."
-- "analyze thoroughly..."
-- "think step by step about..."
+**Coming in Phase 1:**
+- Trigger phrase detection ("think harder about...")
+- Query complexity analysis
+- Dynamic effort routing
 
 ### HITL Approval Workflow
 
@@ -535,22 +558,28 @@ X-RateLimit-Reset: 1634567890
 - **No rate limiting per user:** Only per-IP limits
 - **SQLite checkpointer:** Not suitable for high concurrency
 - **No multi-user:** Designed for single-user testing
+- **Reasoning fixed at MEDIUM:** Dynamic effort routing coming in Phase 1
+- **Opik not integrated:** Prompt optimization tools available but not in agent runtime
 
 **Known Issues:**
 - WebSocket connections may timeout after 60 seconds of inactivity
 - Large file operations (>1MB) may be slow
 - Complex reasoning (high effort) can take 15+ seconds
 
-### Cost Estimates (GPT-5)
+### Cost Estimates
+
+**Model costs vary:**
+- **Gemini 3 Pro (Primary):** Generally lower cost per token
+- **GPT-5.1 (Fallback):** Used only on primary model failures
 
 **Cost factors:**
 - Query complexity
-- Reasoning effort level
 - Response length
 - Tool usage (web search adds $0.01-0.05)
+- Model used (Gemini vs GPT-5.1)
 
 **Cost Optimization:**
-- Prefer minimal/low reasoning when possible
+- Gemini 3 Pro is preferred for cost efficiency
 - Cache common queries (not implemented in Phase 0)
 - Use specific, targeted questions
 
@@ -720,7 +749,7 @@ See [CLAUDE.md](./CLAUDE.md) for complete development guide, including:
 **Quick Start for Contributors:**
 ```bash
 # Fork and clone
-git clone https://github.com/yourusername/deep-agent-agi.git
+git clone https://github.com/yourusername/deep-agent-one.git
 
 # Install development dependencies
 poetry install
@@ -751,7 +780,9 @@ git commit -m "feat(phase-0): add feature X"
 - [AG-UI Protocol](https://docs.ag-ui.com/sdk/python/core/overview)
 
 **LLM & APIs:**
+- [Gemini API Documentation](https://ai.google.dev/docs)
 - [GPT-5 Documentation](https://platform.openai.com/docs/guides/latest-model)
+- [Opik Prompt Optimization](https://www.comet.com/docs/opik/)
 - [Perplexity MCP](https://github.com/perplexityai/modelcontextprotocol)
 
 **Monitoring:**
@@ -767,16 +798,16 @@ MIT License - see [LICENSE](./LICENSE) for details
 
 ## 👥 About
 
-**Phase 0 Prototype** - Demonstrating core framework capabilities with intelligent reasoning optimization.
+**Phase 0 Prototype** - Demonstrating core framework capabilities with dual-model architecture and prompt optimization.
 
-Built with Claude Code using LangGraph DeepAgents and GPT-5.
+Built with Claude Code using LangGraph DeepAgents, Gemini 3 Pro, GPT-5.1, and Opik.
 
 **Roadmap:**
-- **Phase 1:** Production features (memory, auth, advanced reasoning)
+- **Phase 1:** Production features (memory, auth, dynamic reasoning, Opik integration)
 - **Phase 2:** Deep research capabilities and infrastructure hardening
 
 **Contact:** [your-email@example.com]
 
 ---
 
-**Phase 0 Prototype** | Test locally or deploy to Replit | [View on GitHub](https://github.com/yourusername/deep-agent-agi)
+**Phase 0 Prototype** | Gemini 3 Pro + GPT-5.1 + Opik | [View on GitHub](https://github.com/yourusername/deep-agent-one)

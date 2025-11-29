@@ -1,8 +1,8 @@
-# Deep Agent AGI - Core Module
+# Deep Agent One - Core Module
 
 ## Purpose
 
-Core implementation of Deep Agent AGI - a LangGraph-based agent framework with GPT-5 integration, providing intelligent agent orchestration, tool execution, streaming responses, and human-in-the-loop workflows.
+Core implementation of Deep Agent One - a LangGraph-based agent framework with GPT-5 integration, providing intelligent agent orchestration, tool execution, streaming responses, and human-in-the-loop workflows.
 
 This module implements the complete agent lifecycle from API requests through business logic to LLM interactions, with comprehensive observability and state management.
 
@@ -452,7 +452,7 @@ OPENAI_ORG_ID=org-...  # Optional
 # LangSmith (optional but recommended)
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_API_KEY=lsv2_...
-LANGCHAIN_PROJECT=deep-agent-agi
+LANGCHAIN_PROJECT=deep-agent-one
 
 # Server Configuration
 HOST=127.0.0.1
@@ -731,4 +731,4 @@ async def invoke_with_retry():
 ---
 
 **Last Updated**: 2025-11-12
-**Maintained By**: Deep Agent AGI Team
+**Maintained By**: Deep Agent One Team

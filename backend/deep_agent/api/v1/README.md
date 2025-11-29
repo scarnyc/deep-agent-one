@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Version 1 API endpoints for Deep Agent AGI. Implements RESTful and WebSocket routes for agent interactions, providing both synchronous request/response and real-time streaming communication.
+Version 1 API endpoints for Deep Agent One. Implements RESTful and WebSocket routes for agent interactions, providing both synchronous request/response and real-time streaming communication.
 
 ## Key Files
 

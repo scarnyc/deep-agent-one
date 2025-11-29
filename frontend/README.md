@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Next.js 14 application providing the Deep Agent AGI user interface with AG-UI Protocol integration for real-time agent interactions.
+Next.js 14 application providing the Deep Agent One user interface with AG-UI Protocol integration for real-time agent interactions.
 
-The frontend serves as the presentation layer for the Deep Agent AGI system, handling:
+The frontend serves as the presentation layer for the Deep Agent One system, handling:
 - Real-time agent communication via WebSocket
 - Streaming text responses from GPT-5
 - Tool execution visualization

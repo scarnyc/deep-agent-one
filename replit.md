@@ -1,7 +1,7 @@
-# Deep Agent AGI - Replit Project
+# Deep Agent One - Replit Project
 
 ## Overview
-Deep Agent AGI is a Phase 0 prototype deep agent framework built on LangGraph DeepAgents with GPT-5 reasoning optimization and Google Gemini 3 Pro. This project demonstrates core framework capabilities with basic features including cost reduction through intelligent reasoning routing, human-in-the-loop workflows, real-time transparency, web search, and file operations.
+Deep Agent One is a Phase 0 prototype deep agent framework built on LangGraph DeepAgents with GPT-5 reasoning optimization and Google Gemini 3 Pro. This project demonstrates core framework capabilities with basic features including cost reduction through intelligent reasoning routing, human-in-the-loop workflows, real-time transparency, web search, and file operations.
 
 ## Project Structure
 ```

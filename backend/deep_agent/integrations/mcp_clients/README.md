@@ -378,5 +378,5 @@ When adding new MCP clients:
 ---
 
 **Last Updated**: 2025-11-12
-**Maintainer**: Deep Agent AGI Team
+**Maintainer**: Deep Agent One Team
 **Status**: Phase 0 Complete
