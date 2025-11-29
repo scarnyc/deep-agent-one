@@ -18,18 +18,18 @@
 
 ## 📊 Summary Statistics
 
-**Total Issues:** 77 (added Issue 123: TheAuditor Python 3.14 compatibility)
+**Total Issues:** 79 (added Issues 124-125: Parallel tool calls, Token estimates)
 
 ### By Category:
 - **⏭️ DEFERRED:** 7 backend issues (9%) - Fix during service implementation
 - **🗑️ OBSOLETE:** 47 frontend issues (63%) - **REMOVED FROM FILE** (will be replaced by frontend-v2/)
-- **📋 TRACKED:** 10 low-priority issues (13%) - Fix when time permits
-- **TOTAL IN FILE:** 17 issues (DEFERRED + TRACKED only)
+- **📋 TRACKED:** 12 low-priority issues (15%) - Fix when time permits
+- **TOTAL IN FILE:** 19 issues (DEFERRED + TRACKED only)
 
 ### By Priority:
 - **CRITICAL/HIGH:** 0 issues (✅ PRODUCTION READY)
 - **MEDIUM:** 7 issues (deferred to migration)
-- **LOW:** 10 issues (tracked for later)
+- **LOW:** 12 issues (tracked for later)
 
 **Obsolete Issues Removed:** 47 frontend issues deleted from file (Issues 35, 38-43, 52-82, 91-98, 107-111). These will not exist in frontend-v2/ redesign.
 
@@ -1106,4 +1106,96 @@ TheAuditor cannot be installed in editable mode (`pip install -e`) with Python 3
 **Rationale:** Manual security reviews via code-review-expert provide comprehensive coverage. Automated tool is nice-to-have but not critical for Phase 0 completion.
 **When to Fix:** After TheAuditor releases Python 3.14 compatibility update, or when revisiting security tooling in Phase 1.
 **Workaround:** Continue using code-review-expert agent for pre-commit security reviews (no gaps in coverage).
+
+
+## Issue 124: Enable parallel tool calls when langchain_google_genai supports it
+
+**Labels:** `enhancement`, `performance`, `phase-1`, `low-priority`
+
+**Title:** Enable parallel tool call execution when langchain_google_genai wrapper adds support
+
+**Description:**
+Gemini natively supports parallel tool calls, but the `langchain_google_genai` Python wrapper does not reliably handle them. Currently using sequential execution guidance as a workaround. When the wrapper is fixed, update the system prompt to enable parallel execution for improved performance.
+
+**Upstream Issue:** https://github.com/langchain-ai/langchain-google/issues/816
+
+**Files:**
+- `backend/deep_agent/agents/prompts.py:22-27` (SEQUENTIAL_EXECUTION_GUIDANCE)
+- `backend/deep_agent/agents/prompts.py:138-143` (get_agent_instructions uses sequential mode)
+
+**Current Code (prompts.py:22-27):**
+```python
+# Sequential execution guidance (due to langchain_google_genai wrapper limitation)
+# Note: Gemini natively supports parallel tool calls, but the wrapper does not
+# See: https://github.com/langchain-ai/langchain-google/issues/816
+SEQUENTIAL_EXECUTION_GUIDANCE = (
+    "Execute tools ONE AT A TIME. Wait for each result before proceeding."
+)
+```
+
+**Future Implementation:**
+When langchain_google_genai fixes parallel tool call support:
+1. Add `PARALLEL_EXECUTION_GUIDANCE = "Batch 1-3 independent tool calls per step for efficiency."`
+2. Update `get_agent_instructions()` to accept `parallel_mode: bool` parameter
+3. OR detect model capability automatically via model name/settings
+
+**Impact:** LOW - Sequential mode works correctly. Parallel would improve latency by ~30-50% for research queries.
+
+**Found in:** System prompt architecture optimization (2025-11-29)
+
+---
+
+**📋 TRACKED (LOW PRIORITY)**
+
+**Priority:** NON-BLOCKING
+**Rationale:** Sequential mode is working correctly. Parallel is a performance optimization, not a bug fix.
+**When to Fix:** After langchain_google_genai releases fix for Issue #816.
+**Monitor:** https://github.com/langchain-ai/langchain-google/issues/816
+
+
+## Issue 125: Update prompts_variants.py token estimates to reflect v3.0.0 baseline
+
+**Labels:** `documentation`, `technical-debt`, `low-priority`, `phase-0`
+
+**Title:** Stale token estimates in A/B testing variants after prompt v3.0.0 optimization
+
+**Description:**
+The `prompts_variants.py` file contains token estimates from v2.0.0 prompt. After the v3.0.0 optimization (32% reduction), these estimates are stale:
+
+- control: Shows ~778 tokens (actual: ~280)
+- max_compression: Shows ~389 tokens (actual: ~200 estimated)
+- balanced: Shows ~505 tokens (actual: ~250 estimated)
+
+**File:** `backend/deep_agent/agents/prompts_variants.py`
+
+**Current Code (stale):**
+```python
+def get_variant_metadata() -> dict[str, dict]:
+    return {
+        "control": {
+            "description": "Original prompt with full XML structure",
+            "token_estimate": 778,  # Stale - actual is ~280
+            ...
+        },
+        ...
+    }
+```
+
+**Impact:** LOW - Only affects A/B testing metadata display. Does not affect actual prompt behavior.
+
+**Recommended Fix:**
+Update token estimates when actively using A/B testing system:
+- control: ~280 tokens (v3.0.0 Markdown format)
+- max_compression: ~200 tokens (estimate)
+- balanced: ~250 tokens (estimate)
+
+**Found in:** System prompt architecture optimization (2025-11-29)
+
+---
+
+**📋 TRACKED (LOW PRIORITY)**
+
+**Priority:** NON-BLOCKING
+**Rationale:** A/B testing metadata, not functional code. Can defer until A/B testing is actively used.
+**When to Fix:** When actively using prompt A/B testing system.
 
