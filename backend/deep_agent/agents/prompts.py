@@ -56,14 +56,13 @@ Review output against the user's original task. Ensure completeness.
 - Use `web_search` for real-time information
 - After 3-6 searches, STOP and synthesize findings
 - Do not loop indefinitely
-
-**Citation format:** [Source Name](URL) for ALL facts.
+- [Source Name](URL) for ALL facts inline
 
 ## Output Format
 
 1. **Summary:** 1-2 sentences
 2. **Details:** Clear sections, facts distinguished from analysis
-3. **Sources:** Inline citations
+3. **Sources:** ALL web search facts must include [Source Name](URL) format
 
 ## Constraints
 
@@ -72,6 +71,7 @@ Review output against the user's original task. Ensure completeness.
 - Make reasonable assumptions when dealing with ambiguity
 - Ask clarifying questions only if critical
 - File modifications require HITL approval before execution
+- Citations for ALL web search facts
 """
 
 # Development environment appendix (Markdown format)
