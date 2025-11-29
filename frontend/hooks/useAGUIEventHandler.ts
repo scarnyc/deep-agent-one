@@ -161,60 +161,112 @@ export function useAGUIEventHandler(threadId: string) {
   };
 
   /**
+   * Extract text token from streaming chunk.
+   * Supports OpenAI and Gemini formats.
+   * Returns null for non-text chunks (tool calls, signatures, etc.)
+   */
+  const extractTokenFromChunk = (chunk: unknown): string | null => {
+    if (!chunk) return null;
+
+    // 1. Direct string chunk
+    if (typeof chunk === 'string') {
+      return chunk || null;
+    }
+
+    // Type guard for object chunks
+    if (typeof chunk !== 'object') return null;
+    const chunkObj = chunk as Record<string, unknown>;
+
+    // 2. Check for tool call chunks FIRST - skip silently
+    const functionCall = (chunkObj.additional_kwargs as Record<string, unknown>)?.function_call;
+    const toolCalls = chunkObj.tool_calls as unknown[];
+    if (functionCall || (Array.isArray(toolCalls) && toolCalls.length > 0)) {
+      // Tool call being streamed - not text content
+      return null;
+    }
+
+    // 3. Handle content field
+    const content = chunkObj.content;
+
+    // 3a. Empty array - Gemini non-text event (skip)
+    if (Array.isArray(content) && content.length === 0) {
+      return null;
+    }
+
+    // 3b. Non-empty array - Gemini format: [{type: "text", text: "...", index: 0}]
+    if (Array.isArray(content) && content.length > 0) {
+      const textParts = content
+        .filter((block: unknown): block is { type: string; text: string } => {
+          if (typeof block === 'string') return true;
+          if (typeof block === 'object' && block !== null) {
+            const b = block as Record<string, unknown>;
+            return b.type === 'text' && typeof b.text === 'string';
+          }
+          return false;
+        })
+        .map((block) => {
+          if (typeof block === 'string') return block;
+          return (block as { text: string }).text;
+        })
+        .filter((text) => text.length > 0); // Filter out empty (signature chunks)
+
+      return textParts.length > 0 ? textParts.join('') : null;
+    }
+
+    // 3c. String content - OpenAI format: {content: "text"}
+    if (typeof content === 'string' && content.length > 0) {
+      return content;
+    }
+
+    // 4. Nested content.content (some providers)
+    const nestedContent = (content as Record<string, unknown>)?.content;
+    if (typeof nestedContent === 'string' && nestedContent.length > 0) {
+      return nestedContent;
+    }
+
+    // 5. Text field: {text: "content"}
+    if (typeof chunkObj.text === 'string' && (chunkObj.text as string).length > 0) {
+      return chunkObj.text as string;
+    }
+
+    // 6. Delta format: {delta: {content: "text"}}
+    const delta = chunkObj.delta as Record<string, unknown> | undefined;
+    if (typeof delta?.content === 'string' && (delta.content as string).length > 0) {
+      return delta.content as string;
+    }
+
+    // 7. Check for finish_reason - end of stream, not an error
+    const finishReason =
+      (chunkObj.response_metadata as Record<string, unknown>)?.finish_reason ||
+      chunkObj.finish_reason ||
+      (chunkObj.response_metadata as Record<string, unknown>)?.stop_reason;
+    if (finishReason) {
+      return null; // End of stream marker
+    }
+
+    // 8. Unknown format - log in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[AG-UI] Unhandled chunk format:', JSON.stringify(chunk).substring(0, 300));
+    }
+
+    return null;
+  };
+
+  /**
    * Handle streaming token events
    *
    * Supports multiple LLM providers:
    * - OpenAI: Streams tokens as {type: "ai_chunk", content: "text"}
-   * - Gemini: May send tool call events with content: [] (empty array) - skip these
+   * - Gemini: Streams tokens as {type: "ai_chunk", content: [{type: "text", text: "..."}]}
    */
   const handleChatModelStream = (event: TextMessageContentEvent) => {
-    // Extract token from serialized chunk - backend serializes AIMessageChunk to {type, content}
-    // Supports multiple formats from different LLM providers (OpenAI, Gemini, etc.)
     const chunk = event.data?.chunk;
-    let token = '';
 
-    // Skip empty array content (Gemini tool call events)
-    // These events have content: [] and additional_kwargs.function_call for tool invocations
-    // They are NOT text content events - skip silently
-    if (chunk && Array.isArray(chunk.content) && chunk.content.length === 0) {
-      return;
-    }
+    // Extract token using universal extractor (supports OpenAI, Gemini, etc.)
+    const token = extractTokenFromChunk(chunk);
 
-    // Debug: Log raw chunk format to diagnose provider-specific issues
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[AG-UI] Raw chunk received:', JSON.stringify(chunk)?.substring(0, 200));
-    }
-
-    if (typeof chunk === 'string') {
-      // Direct string content (some providers may send raw strings)
-      token = chunk;
-    } else if (chunk && typeof chunk.content === 'string') {
-      // Standard format from backend serialization: {type: "ai_chunk", content: "text"}
-      // This is what serialize_event() produces for AIMessageChunk
-      token = chunk.content;
-    } else if (chunk && typeof chunk === 'object') {
-      // Handle nested object cases from different LLM providers:
-      // - Gemini may send: {content: {type: "ai_chunk", content: "text"}}
-      // - Some providers may send: {text: "content"}
-      // - Others may send: {delta: {content: "text"}}
-      const nestedContent = (chunk.content as { content?: string })?.content;
-      const textContent = (chunk as { text?: string })?.text;
-      const deltaContent = (chunk as { delta?: { content?: string } })?.delta?.content;
-
-      if (typeof nestedContent === 'string') {
-        token = nestedContent;
-      } else if (typeof textContent === 'string') {
-        token = textContent;
-      } else if (typeof deltaContent === 'string') {
-        token = deltaContent;
-      }
-    }
-
-    // If no token extracted, log the chunk format for debugging
+    // No token? Skip (tool calls, empty chunks, finish markers)
     if (!token) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[AG-UI] Failed to extract token from chunk:', JSON.stringify(chunk)?.substring(0, 500));
-      }
       return;
     }
 
@@ -254,14 +306,10 @@ export function useAGUIEventHandler(threadId: string) {
       if (needsShardSeparatorRef.current) {
         streamingContentRef.current += '\n\n';  // Add separator BEFORE token
         needsShardSeparatorRef.current = false;
-        console.log('[DEBUG] Added \\n\\n separator before new shard token:', JSON.stringify(token));
       }
 
       // Now append the token
       streamingContentRef.current += token;
-
-      console.log('[DEBUG] After appending token, content length:', streamingContentRef.current.length);
-      console.log('[DEBUG] Last 100 chars:', streamingContentRef.current.slice(-100));
 
       // Now this ID matches the one in the store
       updateMessage(threadId, streamingMessageIdRef.current, {
@@ -323,10 +371,6 @@ export function useAGUIEventHandler(threadId: string) {
     }
 
     if (streamingMessageIdRef.current) {
-      // DON'T add separator at end - we'll add it at the BEGINNING of the next shard
-      console.log('[DEBUG] Shard ended, content length:', streamingContentRef.current.length);
-      console.log('[DEBUG] Last 100 chars:', streamingContentRef.current.slice(-100));
-
       // Update message content (may have been extracted from output)
       updateMessage(threadId, streamingMessageIdRef.current, {
         content: streamingContentRef.current,
@@ -338,7 +382,6 @@ export function useAGUIEventHandler(threadId: string) {
 
       // Mark that next shard needs separator BEFORE its first token
       needsShardSeparatorRef.current = true;
-      console.log('[DEBUG] Set needsShardSeparatorRef = true (next shard will start with \\n\\n)');
 
       // FALLBACK: Set timeout to finalize message if no run finish event arrives
       // This handles cases where on_chain_end/on_llm_end events are missing
@@ -453,6 +496,23 @@ export function useAGUIEventHandler(threadId: string) {
     // Normalize error data from any format
     const normalizedError = normalizeErrorEvent(event);
 
+    // IMPORTANT: Finalize any orphaned streaming message before clearing refs
+    if (streamingMessageIdRef.current) {
+      console.warn('[AG-UI] Finalizing orphaned streaming message due to error');
+      updateMessage(threadId, streamingMessageIdRef.current, {
+        content: streamingContentRef.current || '[Response interrupted by error]',
+        metadata: {
+          streaming: false,
+          completed: true,
+          completion_reason: 'error',
+          error: normalizedError.message,
+        },
+      });
+
+      // Clear timers
+      clearCompletionTimers();
+    }
+
     // Update agent status
     setAgentStatus(threadId, 'error');
 
@@ -484,6 +544,7 @@ export function useAGUIEventHandler(threadId: string) {
     // Clear streaming refs
     streamingMessageIdRef.current = null;
     streamingContentRef.current = '';
+    needsShardSeparatorRef.current = false;
   };
 
   /**
