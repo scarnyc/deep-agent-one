@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=iORkymLCifw">
-    <img src="thumb.png" alt="Deep Agent One Demo" width="600">
+    <img src="Thumb.png" alt="Deep Agent One Demo" width="600">
   </a>
   <br>
   <em>▶️ Click Image to Watch: Deep Agent One Demo — AI PM BY DESIGN</em>
