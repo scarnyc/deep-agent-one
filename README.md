@@ -6,7 +6,6 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-green)]()
 [![Node](https://img.shields.io/badge/Node.js-18+-green)]()
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)]()
-[![Blog Post](https://open.substack.com/pub/aipmbydesign/p/i-just-cut-my-ai-costs-by-30?r=644smc&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true-red)]()
 
 ## 🎥 Demo
 
