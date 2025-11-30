@@ -7,6 +7,16 @@
 [![Node](https://img.shields.io/badge/Node.js-18+-green)]()
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)]()
 
+## 🎥 Demo
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=iORkymLCifw">
+    <img src="thumb.png" alt="Deep Agent One Demo" width="600">
+  </a>
+  <br>
+  <em>▶️ Click Image to Watch: Deep Agent One Demo — AI PM BY DESIGN</em>
+</p>
+
 ---
 
 ## 🎯 Overview
