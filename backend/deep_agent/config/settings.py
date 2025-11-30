@@ -202,7 +202,7 @@ class Settings(BaseSettings):
     )
 
     # Environment Configuration
-    ENV: Literal["local", "dev", "staging", "prod", "test"] = "local"
+    ENV: Literal["local", "dev", "staging", "prod", "test"] = "prod"
     DEBUG: bool = False
 
     # Primary Model: Gemini 3 Pro (Google)
