@@ -18,16 +18,17 @@
 
 ## 📊 Summary Statistics
 
-**Total Issues:** 79 (added Issues 124-125: Parallel tool calls, Token estimates)
+**Total Issues:** 80 (added Issue 126: ENV=prod prompt bug)
 
 ### By Category:
 - **⏭️ DEFERRED:** 7 backend issues (9%) - Fix during service implementation
 - **🗑️ OBSOLETE:** 47 frontend issues (63%) - **REMOVED FROM FILE** (will be replaced by frontend-v2/)
 - **📋 TRACKED:** 12 low-priority issues (15%) - Fix when time permits
-- **TOTAL IN FILE:** 19 issues (DEFERRED + TRACKED only)
+- **🔴 FIX NOW:** 1 high-priority bug - ENV=prod prompt issue
+- **TOTAL IN FILE:** 20 issues (DEFERRED + TRACKED + FIX NOW)
 
 ### By Priority:
-- **CRITICAL/HIGH:** 0 issues (✅ PRODUCTION READY)
+- **CRITICAL/HIGH:** 1 issue (Issue 126: prompt mode bug)
 - **MEDIUM:** 7 issues (deferred to migration)
 - **LOW:** 12 issues (tracked for later)
 
@@ -1198,4 +1199,79 @@ Update token estimates when actively using A/B testing system:
 **Priority:** NON-BLOCKING
 **Rationale:** A/B testing metadata, not functional code. Can defer until A/B testing is actively used.
 **When to Fix:** When actively using prompt A/B testing system.
+
+
+## Issue 126: Agent prompt stuck in Development mode despite ENV=prod
+
+**Labels:** `bug`, `configuration`, `high-priority`, `phase-0`
+
+**Title:** System prompt always shows "Mode: Development" even when ENV=prod
+
+**Description:**
+The agent system prompt displays "Mode: Development" with debug settings even when the `.env` file has `ENV=prod`. After server restart, the issue persists. The `get_agent_instructions()` function should return production appendix but returns development appendix instead.
+
+**Trace ID:** ec52f801-a7fb-44e7-9a53-b316fdb58ffd
+
+**Expected Behavior:**
+When `ENV=prod` in `.env`, agent should use:
+```markdown
+---
+**Mode:** Production
+
+**Efficiency Settings:**
+- Minimize token usage while maintaining quality
+- Deliver results confidently
+- Use compact inline citation format
+```
+
+**Actual Behavior:**
+Agent uses development prompt:
+```markdown
+---
+**Mode:** Development
+
+**Debug Settings:**
+- Explain reasoning at each step
+- Log all tool calls with arguments and results
+- Show intermediate progress
+- Include detailed error messages
+- Prioritize transparency over brevity
+```
+
+**Files:**
+- Configuration: `.env:13` (`ENV=prod`)
+- Prompt Logic: `backend/deep_agent/agents/prompts.py:152-156`
+- Settings Cache: `backend/deep_agent/config/settings.py:51` (`@lru_cache`)
+- Agent Creation: `backend/deep_agent/agents/deep_agent.py:248`
+
+**Prompt Routing Logic (prompts.py:152-156):**
+```python
+if env in ("prod", "production", "staging"):
+    return base_prompt + DEEP_AGENT_PROD_APPENDIX
+else:
+    # Default to dev instructions (local, dev, or unknown)
+    return base_prompt + DEEP_AGENT_DEV_APPENDIX
+```
+
+**Possible Root Causes:**
+1. `get_settings()` cached value from before `ENV=prod` was set (requires cache invalidation)
+2. Settings object passed to `get_agent_instructions()` has wrong ENV value
+3. Environment variable not being read correctly from `.env`
+4. `lru_cache` on `get_settings()` preventing hot reload
+
+**Impact:** HIGH - Production environment runs with verbose debug output:
+- Increased token usage (~20-30% more tokens)
+- Verbose responses not suitable for production
+- Debug information exposed to users
+
+**Recommended Fix:**
+1. Clear `@lru_cache` on settings reload
+2. Add logging to `get_agent_instructions()` to show which env is being used
+3. Add startup validation to confirm ENV matches expected mode
+
+**Found in:** Production deployment verification (2025-11-30)
+
+---
+
+**🔄 MIGRATION STRATEGY: FIX NOW** - High priority bug affecting production behavior.
 
