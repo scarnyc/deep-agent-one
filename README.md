@@ -17,6 +17,10 @@
   <em>▶️ Click Image to Watch: Deep Agent One Demo — AI PM BY DESIGN</em>
 </p>
 
+## Blog Post
+
+ <a href="https://open.substack.com/pub/aipmbydesign/p/i-just-cut-my-ai-costs-by-30?r=644smc&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true">
+ 
 ---
 
 ## 🎯 Overview
