@@ -1,0 +1,29 @@
+# Deep Agent One - Code Owners
+# These owners will be requested for review when someone opens a pull request.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+*                           @scarnyc
+
+# Backend code
+/backend/                   @scarnyc
+/tests/                     @scarnyc
+
+# Frontend code
+/frontend/                  @scarnyc
+
+# Infrastructure and scripts
+/scripts/                   @scarnyc
+/.github/                   @scarnyc
+
+# Configuration files
+*.toml                      @scarnyc
+*.yaml                      @scarnyc
+*.yml                       @scarnyc
+*.json                      @scarnyc
+
+# Documentation
+/docs/                      @scarnyc
+CLAUDE.md                   @scarnyc
+README.md                   @scarnyc
+GITHUB_ISSUES.md            @scarnyc

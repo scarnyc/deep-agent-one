@@ -1,6 +1,6 @@
 # GitHub Issues - Migration Strategy
 
-**Last Updated:** 2025-11-20
+**Last Updated:** 2025-12-10
 
 ## 🎯 Migration Strategy Overview
 
@@ -18,19 +18,19 @@
 
 ## 📊 Summary Statistics
 
-**Total Issues:** 80 (added Issue 126: ENV=prod prompt bug)
+**Total Issues:** 83 (added Issues 127-129: DA1-15 git workflow review findings)
 
 ### By Category:
-- **⏭️ DEFERRED:** 7 backend issues (9%) - Fix during service implementation
-- **🗑️ OBSOLETE:** 47 frontend issues (63%) - **REMOVED FROM FILE** (will be replaced by frontend-v2/)
-- **📋 TRACKED:** 12 low-priority issues (15%) - Fix when time permits
+- **⏭️ DEFERRED:** 7 backend issues (8%) - Fix during service implementation
+- **🗑️ OBSOLETE:** 47 frontend issues (57%) - **REMOVED FROM FILE** (will be replaced by frontend-v2/)
+- **📋 TRACKED:** 15 low-priority issues (18%) - Fix when time permits
 - **🔴 FIX NOW:** 1 high-priority bug - ENV=prod prompt issue
-- **TOTAL IN FILE:** 20 issues (DEFERRED + TRACKED + FIX NOW)
+- **TOTAL IN FILE:** 23 issues (DEFERRED + TRACKED + FIX NOW)
 
 ### By Priority:
 - **CRITICAL/HIGH:** 1 issue (Issue 126: prompt mode bug)
 - **MEDIUM:** 7 issues (deferred to migration)
-- **LOW:** 12 issues (tracked for later)
+- **LOW:** 15 issues (tracked for later)
 
 **Obsolete Issues Removed:** 47 frontend issues deleted from file (Issues 35, 38-43, 52-82, 91-98, 107-111). These will not exist in frontend-v2/ redesign.
 
@@ -1274,4 +1274,105 @@ else:
 ---
 
 **🔄 MIGRATION STRATEGY: FIX NOW** - High priority bug affecting production behavior.
+
+
+## Issue 127: Hardcoded REPO variable in feature-finish.sh
+
+**Labels:** `enhancement`, `scripts`, `low-priority`
+
+**Title:** Derive REPO variable dynamically from git remote
+
+**Description:**
+The `feature-finish.sh` script hardcodes the GitHub repository URL at line 48:
+```bash
+REPO="scarnyc/deep-agent-agi"
+```
+
+This should be derived dynamically from the git remote to make the script portable.
+
+**File:** `scripts/feature-finish.sh:48`
+
+**Recommended Fix:**
+```bash
+REPO=$(git remote get-url origin | sed -E 's|.*[:/]([^/]+/[^/]+)(\.git)?$|\1|')
+```
+
+**Impact:** LOW - Script works but is not portable to forks.
+
+**Found in:** code-review-expert Pre-Commit Review (2025-12-10, DA1-15)
+
+---
+
+**📋 TRACKED (LOW PRIORITY)**
+
+**Priority:** NON-BLOCKING
+**Rationale:** Portability improvement. Script works for current use case.
+**When to Fix:** When spare time available.
+
+
+## Issue 128: git unwip alias is destructive without warning
+
+**Labels:** `documentation`, `scripts`, `low-priority`
+
+**Title:** Document destructive nature of git unwip alias
+
+**Description:**
+The `git unwip` alias (`git reset HEAD~1`) resets the last commit, which can cause data loss if used incorrectly. The setup script should warn users about this.
+
+**File:** `scripts/setup-git-aliases.sh:61`
+
+**Current Code:**
+```bash
+git config --local alias.unwip "reset HEAD~1"
+```
+
+**Recommended Fix:**
+1. Add documentation warning in setup script output
+2. Consider using `git reset --soft HEAD~1` to preserve changes in staging area
+3. Update scripts/README.md with warning about data loss
+
+**Impact:** LOW - Potential data loss if misused, but experienced developers understand git reset.
+
+**Found in:** code-review-expert Pre-Commit Review (2025-12-10, DA1-15)
+
+---
+
+**📋 TRACKED (LOW PRIORITY)**
+
+**Priority:** NON-BLOCKING
+**Rationale:** Documentation improvement. Experienced developers understand git reset behavior.
+**When to Fix:** When spare time available.
+
+
+## Issue 129: Missing git remote existence validation in feature-start.sh
+
+**Labels:** `enhancement`, `scripts`, `low-priority`
+
+**Title:** Add git remote existence check before fetch
+
+**Description:**
+The `feature-start.sh` script assumes the `origin` remote exists. If it doesn't, the script fails with a cryptic git error instead of a helpful message.
+
+**File:** `scripts/feature-start.sh:131`
+
+**Recommended Fix:**
+Add validation before `git fetch origin`:
+```bash
+if ! git remote get-url origin &>/dev/null; then
+    echo -e "${RED}Error: 'origin' remote not configured${NC}"
+    exit 1
+fi
+```
+
+**Impact:** LOW - Edge case, most repos have origin configured.
+
+**Found in:** code-review-expert Pre-Commit Review (2025-12-10, DA1-15)
+
+---
+
+**📋 TRACKED (LOW PRIORITY)**
+
+**Priority:** NON-BLOCKING
+**Rationale:** Edge case improvement. Most repos have origin remote.
+**When to Fix:** When spare time available.
 
