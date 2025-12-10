@@ -13,6 +13,15 @@
         "PERPLEXITY_TIMEOUT_MS": "600000",
         "PERPLEXITY_MODEL": "sonar-deep-research"
       }
+    },
+    "atlassian": {
+      "command": "mcp-atlassian",
+      "args": ["--transport", "stdio"],
+      "env": {
+        "JIRA_URL": "${JIRA_URL}",
+        "JIRA_USERNAME": "${JIRA_USERNAME}",
+        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+      }
     }
   }
 }
