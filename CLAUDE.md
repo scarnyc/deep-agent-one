@@ -254,13 +254,71 @@ context7 is a built-in MCP server in Claude Code that provides up-to-date librar
 
 **No installation required** - context7 is pre-configured in Claude Code and ready to use immediately.
 
+#### JIRA MCP (Ticket Management)
+
+JIRA integration for seamless ticket management during development.
+
+**Prerequisites:**
+- Python 3.10+ with pip
+- Atlassian Cloud account with JIRA access
+
+**Setup:**
+
+1. Install the mcp-atlassian package:
+```bash
+pip install mcp-atlassian
+```
+
+2. Generate an API token at https://id.atlassian.com/manage-profile/security/api-tokens
+
+3. Set environment variables (add to `.env` or `~/.bashrc`):
+```bash
+export JIRA_URL="https://YOUR-SITE.atlassian.net"
+export JIRA_USERNAME="your-email@example.com"
+export JIRA_API_TOKEN="your-api-token-here"
+```
+
+4. The MCP server is configured in `.mcp.json` and will auto-start with Claude Code.
+
+5. Restart Claude Code to pick up the new MCP server, then verify with `/mcp`.
+
+**Available Operations:**
+
+| Operation | Example |
+|-----------|---------|
+| Read ticket | "What's the status of DEEP-123?" |
+| Create issue | "Create a bug: Login timeout on slow connections" |
+| Update status | "Move DEEP-123 to In Progress" |
+| Add comment | "Add comment to DEEP-123: Started implementation" |
+| Search issues | "Show all unresolved bugs in DEEP project" |
+| List sprint | "What's in the current sprint?" |
+| List todo | "What's in todo on my jira board?" |
+
+**Development Workflow:**
+```bash
+# Start working on a ticket
+> Read DEEP-45 and summarize what needs to be done
+
+# Update after implementation
+> Add comment to DEEP-45: Implemented caching, PR ready for review
+
+# Reference tickets in commits
+git commit -m "feat(phase-1): implement Redis caching [DEEP-45]"
+```
+
+**Troubleshooting:**
+- "mcp-atlassian not found": Run `pip install mcp-atlassian`
+- "Auth failed": Verify API token at https://id.atlassian.com/manage-profile/security/api-tokens
+- "MCP not showing": Restart Claude Code and run `/mcp` to check status
+
 **MCP Configuration File:**
-Create `.mcp.json` at project root with server configurations:
+The `.mcp.json` at project root configures MCP servers:
 ```json
 {
   "mcpServers": {
     "playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] },
-    "perplexity": { "command": "npx", "args": ["-y", "perplexity-mcp"], "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" } }
+    "perplexity": { "command": "npx", "args": ["-y", "perplexity-mcp"], "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" } },
+    "atlassian": { "command": "mcp-atlassian", "args": ["--transport", "stdio"], "env": { "JIRA_URL": "${JIRA_URL}", "JIRA_USERNAME": "${JIRA_USERNAME}", "JIRA_API_TOKEN": "${JIRA_API_TOKEN}" } }
   }
 }
 ```
