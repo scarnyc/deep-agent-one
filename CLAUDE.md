@@ -682,6 +682,91 @@ Use semantic commit messages:
 
 **Example:** `feat(phase-0): implement DeepAgents file system tools with HITL`
 
+### Branching Strategy
+
+**Branch Structure:**
+```
+main (integration branch - remote HEAD)
+│
+├── feature/DA1-{ticket}-{short-description}
+├── bugfix/DA1-{ticket}-{short-description}
+├── hotfix/{description}
+└── release/v{version}
+```
+
+**Branch Naming Convention:**
+- `feature/DA1-123-add-user-auth` - New features linked to JIRA tickets
+- `bugfix/DA1-456-fix-websocket-timeout` - Bug fixes linked to JIRA tickets
+- `hotfix/critical-security-patch` - Urgent production fixes (no ticket required)
+- `release/v0.2.0` - Release preparation branches
+
+**Branch Lifecycle:**
+1. Create from `main`: `./scripts/feature-start.sh DA1-123 "description"`
+2. Work on feature with regular commits
+3. Sync regularly: `./scripts/sync-develop.sh` (or `git sync`)
+4. Prepare for PR: `./scripts/feature-finish.sh` (or `git finish`)
+5. Create PR targeting `main`
+6. After merge, delete feature branch: `git cleanup`
+
+**Parallel Development Rules:**
+- Maximum 3 active feature branches per developer
+- Sync with main branch at least daily
+- Resolve conflicts locally before pushing
+- Use descriptive branch names for easy identification
+
+**Quick Commands (after running `./scripts/setup-git-aliases.sh`):**
+```bash
+git feature DA1-123 "add user auth"   # Create feature branch
+git bugfix DA1-456 "fix timeout"      # Create bugfix branch
+git hotfix "security patch"           # Create hotfix branch
+git sync                              # Sync with main
+git finish                            # Prepare for PR
+git branches                          # List feature branches
+git cleanup                           # Delete merged branches
+```
+
+### Context Switching Between Features
+
+**Quick Switch Workflow (< 30 seconds):**
+```bash
+# 1. Save current work (if uncommitted changes)
+git stash push -m "WIP: DA1-123 progress"
+
+# 2. Switch to other feature
+git checkout feature/DA1-456-other-feature
+
+# 3. Verify you're on correct branch
+git st  # alias for status --short --branch
+
+# 4. When returning, restore work
+git checkout feature/DA1-123-original-feature
+git stash pop
+```
+
+**Using Git Worktrees (for long-running parallel work):**
+```bash
+# Create worktree for parallel feature
+git worktree add ../deep-agent-feature-b feature/DA1-456-feature-b
+
+# Work in separate directory
+cd ../deep-agent-feature-b
+
+# Remove when done
+git worktree remove ../deep-agent-feature-b
+```
+
+**Best Practices:**
+1. **Commit frequently** - Small commits make switching easier
+2. **Use descriptive stash messages** - `git stash push -m "DA1-123: halfway through auth"`
+3. **Sync before switching** - `git sync` prevents conflict buildup
+4. **Keep branches focused** - One feature = one branch
+5. **Clean up merged branches** - `git cleanup` removes clutter
+
+**When to Use Each Approach:**
+- **Stash:** Quick context switch, returning soon (< 1 hour)
+- **WIP commit:** Longer switch, want to track progress (`git wip` / `git unwip`)
+- **Worktree:** Parallel development for days, need both contexts simultaneously
+
 ### Pre-Commit Review Workflow (MANDATORY)
 
 **IMPORTANT:** Before EVERY commit, run both code-review-expert and testing-expert agents to verify code quality. Do NOT commit code until agents approve.

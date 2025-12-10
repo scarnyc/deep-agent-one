@@ -17,6 +17,12 @@ All scripts in this directory support the Phase 0 MVP development workflow with 
 - `start-backend.sh` - Start backend server only
 - `start-frontend.sh` - Start frontend server only
 
+### Git Workflow Scripts
+- `feature-start.sh` - Create feature/bugfix/hotfix branches with JIRA integration
+- `feature-finish.sh` - Prepare branch for PR (rebase, pre-commit, push)
+- `sync-develop.sh` - Sync current branch with main (rebase or merge)
+- `setup-git-aliases.sh` - Configure project-local git aliases
+
 ### Testing Scripts
 - `test.sh` - Run complete test suite with coverage reporting
 - `run_all_tests.sh` - Legacy test runner (unit + integration only)
@@ -211,6 +217,123 @@ tail -f logs/backend/2025-11-12-*.log
 # Watch logs
 tail -f logs/frontend/2025-11-12-*.log
 ```
+
+---
+
+### Git Workflow Scripts
+
+#### `feature-start.sh`
+**Purpose:** Create feature, bugfix, or hotfix branches with JIRA ticket integration
+
+**Usage:**
+```bash
+./scripts/feature-start.sh DA1-123 "add user authentication"
+./scripts/feature-start.sh DA1-456 "fix timeout" --bugfix
+./scripts/feature-start.sh "security patch" --hotfix
+```
+
+**What It Does:**
+- Validates JIRA ticket format (DA1-NNN)
+- Converts description to kebab-case
+- Fetches latest from origin
+- Creates branch from main
+- Sets upstream tracking
+
+**Requirements:**
+- Clean working directory (no uncommitted changes)
+- Git repository with origin remote
+
+**Branch Naming:**
+- `feature/DA1-123-add-user-auth` - Features
+- `bugfix/DA1-456-fix-timeout` - Bug fixes
+- `hotfix/security-patch` - Urgent fixes (no ticket required)
+
+**Exit Codes:**
+- `0` - Branch created successfully
+- `1` - Invalid arguments or dirty working directory
+
+---
+
+#### `feature-finish.sh`
+**Purpose:** Prepare feature branch for PR creation
+
+**Usage:**
+```bash
+./scripts/feature-finish.sh           # Full workflow
+./scripts/feature-finish.sh --force   # Skip confirmations
+./scripts/feature-finish.sh --no-push # Local only
+```
+
+**What It Does:**
+1. Validates current branch is feature/bugfix/hotfix
+2. Checks for uncommitted changes
+3. Fetches latest from origin
+4. Rebases on main
+5. Runs pre-commit hooks
+6. Pushes to remote with --force-with-lease
+7. Displays PR creation instructions
+
+**Requirements:**
+- On a feature/bugfix/hotfix branch
+- Clean working directory
+- pre-commit installed (optional but recommended)
+
+**Exit Codes:**
+- `0` - Ready for PR
+- `1` - Pre-commit failed or rebase conflicts
+
+---
+
+#### `sync-develop.sh`
+**Purpose:** Sync current branch with the main integration branch
+
+**Usage:**
+```bash
+./scripts/sync-develop.sh           # Rebase on main
+./scripts/sync-develop.sh --merge   # Merge instead of rebase
+./scripts/sync-develop.sh --stash   # Auto-stash uncommitted changes
+```
+
+**What It Does:**
+1. Fetches latest from origin
+2. Shows commits ahead/behind main
+3. Rebases (or merges) with main
+4. Reports sync status
+
+**Options:**
+- `--merge, -m` - Use merge instead of rebase (preserves history)
+- `--stash, -s` - Auto-stash and restore uncommitted changes
+
+**Exit Codes:**
+- `0` - Sync successful
+- `1` - Conflicts detected (manual resolution required)
+
+---
+
+#### `setup-git-aliases.sh`
+**Purpose:** Configure project-local git aliases for feature workflows
+
+**Usage:**
+```bash
+./scripts/setup-git-aliases.sh
+```
+
+**Aliases Created:**
+| Alias | Command | Description |
+|-------|---------|-------------|
+| `git feature DA1-123 "desc"` | `feature-start.sh` | Start feature branch |
+| `git bugfix DA1-123 "desc"` | `feature-start.sh --bugfix` | Start bugfix branch |
+| `git hotfix "desc"` | `feature-start.sh --hotfix` | Start hotfix branch |
+| `git sync` | `sync-develop.sh` | Sync with main |
+| `git finish` | `feature-finish.sh` | Prepare for PR |
+| `git branches` | `branch -a --list` | List feature branches |
+| `git cleanup` | `branch --merged \| xargs -r git branch -d` | Delete merged branches |
+| `git wip` | `commit -am 'WIP...'` | Quick WIP commit |
+| `git unwip` | `reset HEAD~1` | Undo WIP commit |
+| `git st` | `status --short --branch` | Short status |
+| `git lg` | `log --oneline --graph` | Graph log |
+
+**Note:** Aliases are stored in `.git/config` (project-local), not `~/.gitconfig`.
 
 ---
 
@@ -705,4 +828,4 @@ lsof -ti:3000 | xargs kill -9  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-12
+**Last Updated:** 2025-12-10

@@ -82,6 +82,10 @@ fi
 echo "🪝 Installing pre-commit hooks..."
 pre-commit install
 
+# Set up git aliases for feature workflow
+echo "🔧 Setting up git aliases..."
+./scripts/setup-git-aliases.sh
+
 echo "✅ Development environment ready!"
 echo ""
 echo "Next steps:"
