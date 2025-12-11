@@ -17,7 +17,11 @@ channel = "stable-24_05"
 [deployment]
 run = ["bash", "-c", "./scripts/start-replit-prod.sh"]
 deploymentTarget = "autoscale"
-build = ["bash", "-c", "poetry install --only main && cd frontend && pnpm install && pnpm run build"]
+build = [
+  "bash",
+  "-c",
+  "poetry install --only main && cd frontend && pnpm install && pnpm run build",
+]
 
 [[ports]]
 localPort = 3000

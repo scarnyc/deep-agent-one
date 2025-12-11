@@ -6,7 +6,11 @@ modules = ["python-3.10", "nodejs-18"]
 channel = "stable-24_05"
 
 [deployment]
-run = ["sh", "-c", "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000"]
+run = [
+  "sh",
+  "-c",
+  "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000",
+]
 deploymentTarget = "cloudrun"
 
 [[ports]]
