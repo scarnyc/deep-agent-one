@@ -130,14 +130,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         None during application runtime
     """
-    # Startup - Phase 0: Clear all caches to ensure fresh settings on restart
-    # This fixes the prompt mode toggle issue (DA1-1, Issue 126) where
-    # @lru_cache on get_settings() and singleton AgentService prevented
-    # ENV changes from taking effect after server restart.
-    clear_settings_cache()
-    reset_agent_service()
+    # Note: Cache clearing now happens in create_app() which runs at module import time.
+    # This ensures fresh settings BEFORE the app is configured.
+    # See create_app() for the DA1-1/Issue 126 fix.
 
-    # Startup - Phase 1: Load settings with bootstrap error handling
+    # Startup: Load settings with bootstrap error handling
     import logging as stdlib_logging
 
     try:
@@ -204,6 +201,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     Returns:
         Configured FastAPI application instance
     """
+    # CRITICAL: Clear caches BEFORE loading settings to ensure fresh config on restart
+    # This fixes the prompt mode toggle issue (DA1-1, Issue 126)
+    # Must happen here, not in lifespan, because create_app() runs at module import time
+    # (line 773: app = create_app()) which is BEFORE lifespan() ever runs.
+    clear_settings_cache()
+    reset_agent_service()
+
     if settings is None:
         settings = get_settings()
 
