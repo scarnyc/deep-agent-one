@@ -22,9 +22,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from starlette.responses import Response
 
-from deep_agent.api.dependencies import AgentServiceDep
+from deep_agent.api.dependencies import AgentServiceDep, reset_agent_service
 from deep_agent.api.middleware import TimeoutMiddleware
-from deep_agent.config.settings import Settings, get_settings
+from deep_agent.config.settings import Settings, clear_settings_cache, get_settings
 from deep_agent.core.errors import ConfigurationError, DeepAgentError
 from deep_agent.core.logging import LogLevel, generate_langsmith_url, get_logger, setup_logging
 from deep_agent.core.serialization import serialize_event
@@ -130,7 +130,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         None during application runtime
     """
-    # Startup - Phase 1: Load settings with bootstrap error handling
+    # Note: Cache clearing now happens in create_app() which runs at module import time.
+    # This ensures fresh settings BEFORE the app is configured.
+    # See create_app() for the DA1-1/Issue 126 fix.
+
+    # Startup: Load settings with bootstrap error handling
     import logging as stdlib_logging
 
     try:
@@ -197,6 +201,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     Returns:
         Configured FastAPI application instance
     """
+    # CRITICAL: Clear caches BEFORE loading settings to ensure fresh config on restart
+    # This fixes the prompt mode toggle issue (DA1-1, Issue 126)
+    # Must happen here, not in lifespan, because create_app() runs at module import time
+    # (line 773: app = create_app()) which is BEFORE lifespan() ever runs.
+    clear_settings_cache()
+    reset_agent_service()
+
     if settings is None:
         settings = get_settings()
 

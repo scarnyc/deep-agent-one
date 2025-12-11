@@ -50,21 +50,24 @@ class TestPromptConstants:
 class TestPromptContent:
     """Test prompt content and key elements."""
 
-    def test_system_prompt_mentions_deepagents(self) -> None:
-        """Test that system prompt mentions DeepAgents framework."""
+    def test_system_prompt_mentions_deep_agent(self) -> None:
+        """Test that system prompt mentions Deep Agent identity."""
         from backend.deep_agent.agents.prompts import DEEP_AGENT_SYSTEM_PROMPT
 
-        assert "deepagents" in DEEP_AGENT_SYSTEM_PROMPT.lower()
+        # v3.0.0: Changed from "DeepAgents" to "Deep Agent"
+        assert "deep agent" in DEEP_AGENT_SYSTEM_PROMPT.lower()
 
-    def test_system_prompt_mentions_file_tools(self) -> None:
-        """Test that system prompt describes file system tools."""
+    def test_system_prompt_mentions_key_tools(self) -> None:
+        """Test that system prompt mentions key tools.
+
+        Note: v3.0.0 removed individual file tool docs (middleware handles them).
+        Only web_search and write_todos are documented in the prompt.
+        """
         from backend.deep_agent.agents.prompts import DEEP_AGENT_SYSTEM_PROMPT
 
-        # Should mention key file tools
-        assert "ls" in DEEP_AGENT_SYSTEM_PROMPT.lower()
-        assert "read_file" in DEEP_AGENT_SYSTEM_PROMPT.lower()
-        assert "write_file" in DEEP_AGENT_SYSTEM_PROMPT.lower()
-        assert "edit_file" in DEEP_AGENT_SYSTEM_PROMPT.lower()
+        # Should mention key tools documented in v3.0.0
+        assert "web_search" in DEEP_AGENT_SYSTEM_PROMPT.lower()
+        assert "write_todos" in DEEP_AGENT_SYSTEM_PROMPT.lower()
 
     def test_system_prompt_mentions_hitl(self) -> None:
         """Test that system prompt mentions HITL approval."""
@@ -205,7 +208,12 @@ class TestPromptOpikCompatibility:
     """Test prompts are compatible with Opik auto-optimization."""
 
     def test_prompts_are_strings_not_templates(self) -> None:
-        """Test prompts are plain strings (Opik-compatible)."""
+        """Test final instruction prompts are plain strings (Opik-compatible).
+
+        Note: DEEP_AGENT_SYSTEM_PROMPT is intentionally a template with
+        {parallel_execution_guidance} placeholder. Only the final
+        INSTRUCTIONS constants should be template-free.
+        """
         from backend.deep_agent.agents.prompts import (
             DEEP_AGENT_SYSTEM_PROMPT,
             DEEP_AGENT_INSTRUCTIONS_DEV,
@@ -217,9 +225,9 @@ class TestPromptOpikCompatibility:
         assert isinstance(DEEP_AGENT_INSTRUCTIONS_DEV, str)
         assert isinstance(DEEP_AGENT_INSTRUCTIONS_PROD, str)
 
-        # Should not contain template variables (Opik will manage those)
+        # Final instruction prompts should not contain template variables
+        # (DEEP_AGENT_SYSTEM_PROMPT IS a template, so we exclude it)
         for prompt in [
-            DEEP_AGENT_SYSTEM_PROMPT,
             DEEP_AGENT_INSTRUCTIONS_DEV,
             DEEP_AGENT_INSTRUCTIONS_PROD,
         ]:

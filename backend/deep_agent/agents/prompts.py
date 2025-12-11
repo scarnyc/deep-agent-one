@@ -154,3 +154,21 @@ def get_agent_instructions(
     else:
         # Default to dev instructions (local, dev, or unknown)
         return base_prompt + DEEP_AGENT_DEV_APPENDIX
+
+
+# Backwards-compatible constants for tests and prompts_variants.py
+# These combine base prompt (with sequential guidance) + environment appendix
+# Note: These are computed at import time with SEQUENTIAL_EXECUTION_GUIDANCE
+DEEP_AGENT_INSTRUCTIONS_DEV = (
+    DEEP_AGENT_SYSTEM_PROMPT.format(
+        parallel_execution_guidance=SEQUENTIAL_EXECUTION_GUIDANCE
+    )
+    + DEEP_AGENT_DEV_APPENDIX
+)
+
+DEEP_AGENT_INSTRUCTIONS_PROD = (
+    DEEP_AGENT_SYSTEM_PROMPT.format(
+        parallel_execution_guidance=SEQUENTIAL_EXECUTION_GUIDANCE
+    )
+    + DEEP_AGENT_PROD_APPENDIX
+)
