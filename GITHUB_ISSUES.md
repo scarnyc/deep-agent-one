@@ -24,11 +24,11 @@
 - **⏭️ DEFERRED:** 7 backend issues (8%) - Fix during service implementation
 - **🗑️ OBSOLETE:** 47 frontend issues (57%) - **REMOVED FROM FILE** (will be replaced by frontend-v2/)
 - **📋 TRACKED:** 15 low-priority issues (18%) - Fix when time permits
-- **🔴 FIX NOW:** 1 high-priority bug - ENV=prod prompt issue
-- **TOTAL IN FILE:** 23 issues (DEFERRED + TRACKED + FIX NOW)
+- **✅ RESOLVED:** 1 issue (Issue 126: prompt mode bug - fixed in DA1-1)
+- **TOTAL IN FILE:** 23 issues (DEFERRED + TRACKED + RESOLVED)
 
 ### By Priority:
-- **CRITICAL/HIGH:** 1 issue (Issue 126: prompt mode bug)
+- **CRITICAL/HIGH:** 0 issues (Issue 126 resolved in DA1-1)
 - **MEDIUM:** 7 issues (deferred to migration)
 - **LOW:** 15 issues (tracked for later)
 
@@ -1201,9 +1201,11 @@ Update token estimates when actively using A/B testing system:
 **When to Fix:** When actively using prompt A/B testing system.
 
 
-## Issue 126: Agent prompt stuck in Development mode despite ENV=prod
+## Issue 126: Agent prompt stuck in Development mode despite ENV=prod ✅ RESOLVED
 
 **Labels:** `bug`, `configuration`, `high-priority`, `phase-0`
+**Status:** ✅ **RESOLVED** in DA1-1 (2025-12-11)
+**Branch:** `feature/DA1-1-fix-prompt-mode-toggle`
 
 **Title:** System prompt always shows "Mode: Development" even when ENV=prod
 
@@ -1273,7 +1275,31 @@ else:
 
 ---
 
-**🔄 MIGRATION STRATEGY: FIX NOW** - High priority bug affecting production behavior.
+**✅ RESOLUTION (DA1-1, 2025-12-11):**
+
+Root cause identified: THREE caching layers prevented ENV changes from taking effect:
+1. `@lru_cache` on `get_settings()` (settings.py:491)
+2. `_agent_service_instance` singleton (dependencies.py:17)
+3. `self.agent` cached in AgentService (agent_service.py:84,147)
+
+**Fix implemented:**
+1. Added `clear_settings_cache()` function to `settings.py`
+2. Added `reset_agent_service()` function to `dependencies.py`
+3. Both caches cleared on startup in `main.py` lifespan function
+4. Added backwards-compatible constants `DEEP_AGENT_INSTRUCTIONS_DEV/PROD` to fix test imports
+
+**Files modified:**
+- `backend/deep_agent/config/settings.py` - Added `clear_settings_cache()`
+- `backend/deep_agent/api/dependencies.py` - Added `reset_agent_service()`
+- `backend/deep_agent/main.py` - Clear caches on startup
+- `backend/deep_agent/agents/prompts.py` - Added backwards-compat constants
+- `tests/unit/test_agents/test_prompts.py` - Updated tests for v3.0.0 prompt format
+
+**Verification:** All 19 prompt tests pass. Server restart now correctly loads fresh ENV value.
+
+---
+
+~~**🔄 MIGRATION STRATEGY: FIX NOW** - High priority bug affecting production behavior.~~
 
 
 ## Issue 127: Hardcoded REPO variable in feature-finish.sh

@@ -513,3 +513,26 @@ def get_settings() -> Settings:
         instead of using this cached function.
     """
     return Settings()
+
+
+def clear_settings_cache() -> None:
+    """Clear the settings cache to reload from environment.
+
+    Call this function to invalidate the cached Settings instance,
+    forcing the next call to get_settings() to reload from environment
+    variables and .env file.
+
+    This is primarily useful for:
+    - Testing with different configurations
+    - Server restart scenarios where ENV may have changed
+    - Programmatic configuration reloads
+
+    Example:
+        >>> from deep_agent.config.settings import get_settings, clear_settings_cache
+        >>> settings1 = get_settings()
+        >>> clear_settings_cache()
+        >>> settings2 = get_settings()  # Fresh instance
+        >>> settings1 is settings2
+        False
+    """
+    get_settings.cache_clear()

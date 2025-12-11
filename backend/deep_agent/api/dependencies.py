@@ -53,5 +53,28 @@ def get_agent_service() -> AgentService:
     return _agent_service_instance
 
 
+def reset_agent_service() -> None:
+    """Reset the singleton AgentService instance.
+
+    Call this function to invalidate the cached AgentService instance,
+    forcing the next call to get_agent_service() to create a new instance.
+    This is useful when settings have changed and the agent needs to be
+    recreated with new configuration (e.g., different ENV/prompt mode).
+
+    Should be called in conjunction with clear_settings_cache() to ensure
+    both settings and agent service are refreshed.
+
+    Example:
+        >>> from deep_agent.api.dependencies import reset_agent_service
+        >>> from deep_agent.config.settings import clear_settings_cache
+        >>> # After changing ENV in .env file:
+        >>> clear_settings_cache()
+        >>> reset_agent_service()
+        >>> # Next request will use new settings
+    """
+    global _agent_service_instance
+    _agent_service_instance = None
+
+
 # Type alias for injected AgentService
 AgentServiceDep = Annotated[AgentService, Depends(get_agent_service)]
