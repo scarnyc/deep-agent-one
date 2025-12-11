@@ -15,7 +15,7 @@
       }
     },
     "atlassian": {
-      "command": "mcp-atlassian",
+      "command": "/home/runner/workspace/.pythonlibs/bin/mcp-atlassian",
       "args": ["--transport", "stdio"],
       "env": {
         "JIRA_URL": "${JIRA_URL}",
