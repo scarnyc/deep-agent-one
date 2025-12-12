@@ -26,6 +26,7 @@ from deep_agent.api.dependencies import AgentServiceDep, reset_agent_service
 from deep_agent.api.middleware import TimeoutMiddleware
 from deep_agent.config.settings import Settings, clear_settings_cache, get_settings
 from deep_agent.core.errors import ConfigurationError, DeepAgentError
+from deep_agent.version import __version__
 from deep_agent.core.logging import LogLevel, generate_langsmith_url, get_logger, setup_logging
 from deep_agent.core.security import sanitize_error_with_metadata
 from deep_agent.core.serialization import serialize_event
@@ -216,7 +217,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Deep Agent AGI",
         description="General-purpose deep agent framework with cost optimization",
-        version="0.1.0",
+        version=__version__,  # Dynamic version from pyproject.toml
         lifespan=lifespan,
         docs_url="/docs" if settings.DEBUG else None,  # Disable docs in prod
         redoc_url="/redoc" if settings.DEBUG else None,
