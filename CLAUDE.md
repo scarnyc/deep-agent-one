@@ -527,6 +527,18 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 
 ## Development Workflow
 
+### Starting a Development Session
+
+**ALWAYS begin by pulling the backlog from JIRA:**
+```bash
+# Check current sprint or backlog
+> "What's in the current sprint?"
+> "Show me the backlog for DA1 project"
+> "What tickets are assigned to me?"
+```
+
+Pick a ticket, create a feature branch, and begin work.
+
 ### Phase 0 Workflow
 1. Set up environment → **Commit**
 2. Install Node.js + Playwright MCP → **Commit**
