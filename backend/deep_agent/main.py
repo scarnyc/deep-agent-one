@@ -27,11 +27,11 @@ from deep_agent.api.dependencies import AgentServiceDep, reset_agent_service
 from deep_agent.api.middleware import TimeoutMiddleware
 from deep_agent.config.settings import Settings, clear_settings_cache, get_settings
 from deep_agent.core.errors import ConfigurationError, DeepAgentError
-from deep_agent.version import __version__
 from deep_agent.core.logging import LogLevel, generate_langsmith_url, get_logger, setup_logging
 from deep_agent.core.security import sanitize_error_with_metadata
 from deep_agent.core.serialization import serialize_event
 from deep_agent.services.event_transformer import EventTransformer
+from deep_agent.version import __version__
 
 # Initialize logging at module level (BEFORE any logger usage)
 # This ensures logging is configured during imports, not after lifespan starts
