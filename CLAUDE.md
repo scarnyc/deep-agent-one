@@ -562,6 +562,24 @@ Use semantic commit messages:
 
 **Example:** `feat(phase-0): implement DeepAgents file system tools with HITL`
 
+**JIRA-Commit Linking (MANDATORY for ticket-linked work):**
+- Include `Resolves: DA1-XXX` in commit body for automatic JIRA linking
+- After commit, add comment to JIRA ticket with commit hash
+- This enables bidirectional traceability between commits and tickets
+
+**Commit Template for JIRA-linked work:**
+```
+fix(scope): brief description
+
+Detailed explanation of the change.
+
+Resolves: DA1-XXX
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+```
+
 ### Branching Strategy
 
 **Branch Structure:**
