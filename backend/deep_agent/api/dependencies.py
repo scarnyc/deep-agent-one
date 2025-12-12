@@ -8,7 +8,10 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from deep_agent.core.logging import get_logger
 from deep_agent.services.agent_service import AgentService
+
+logger = get_logger(__name__)
 
 # Module-level singleton for AgentService
 # Phase 0: Cache service instance to prevent creating expensive service per connection
@@ -49,7 +52,17 @@ def get_agent_service() -> AgentService:
     """
     global _agent_service_instance
     if _agent_service_instance is None:
-        _agent_service_instance = AgentService()
+        try:
+            _agent_service_instance = AgentService()
+        except Exception as e:
+            logger.error(
+                "Failed to initialize AgentService",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            raise RuntimeError(
+                "Agent service initialization failed. Check configuration."
+            ) from e
     return _agent_service_instance
 
 
@@ -78,3 +91,6 @@ def reset_agent_service() -> None:
 
 # Type alias for injected AgentService
 AgentServiceDep = Annotated[AgentService, Depends(get_agent_service)]
+
+# Explicit public API for IDE autocomplete and import hygiene
+__all__ = ["get_agent_service", "AgentServiceDep", "reset_agent_service"]

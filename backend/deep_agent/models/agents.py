@@ -45,6 +45,32 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 
 
+def _strip_and_validate_string(v: Any) -> str:
+    """
+    Shared validator for string fields - strips whitespace and validates non-empty.
+
+    Used by AgentRunInfo, HITLApprovalRequest, and HITLApprovalResponse models
+    to ensure consistent validation of run_id, thread_id, and message fields.
+
+    Args:
+        v: Input value to validate (must be a string)
+
+    Returns:
+        str: Stripped string value
+
+    Raises:
+        ValueError: If input is not a string or is empty/whitespace-only
+    """
+    if not isinstance(v, str):
+        raise ValueError("Value must be a string")
+
+    stripped = v.strip()
+    if not stripped:
+        raise ValueError("Value cannot be empty or whitespace-only")
+
+    return stripped
+
+
 class ErrorResponse(BaseModel):
     """
     Generic error response model for API endpoints.
@@ -192,16 +218,9 @@ class AgentRunInfo(BaseModel):
 
     @field_validator("run_id", "thread_id", mode="before")
     @classmethod
-    def strip_and_validate_string(cls, v: Any) -> str:
+    def validate_string_fields(cls, v: Any) -> str:
         """Strip whitespace and validate string is not empty."""
-        if not isinstance(v, str):
-            raise ValueError("Value must be a string")
-
-        stripped = v.strip()
-        if not stripped:
-            raise ValueError("Value cannot be empty or whitespace-only")
-
-        return stripped
+        return _strip_and_validate_string(v)
 
     model_config = {
         "json_schema_extra": {
@@ -260,16 +279,9 @@ class HITLApprovalRequest(BaseModel):
 
     @field_validator("run_id", "thread_id", mode="before")
     @classmethod
-    def strip_and_validate_string(cls, v: Any) -> str:
+    def validate_string_fields(cls, v: Any) -> str:
         """Strip whitespace and validate string is not empty."""
-        if not isinstance(v, str):
-            raise ValueError("Value must be a string")
-
-        stripped = v.strip()
-        if not stripped:
-            raise ValueError("Value cannot be empty or whitespace-only")
-
-        return stripped
+        return _strip_and_validate_string(v)
 
     model_config = {
         "json_schema_extra": {
@@ -328,16 +340,9 @@ class HITLApprovalResponse(BaseModel):
 
     @field_validator("message", "run_id", "thread_id", mode="before")
     @classmethod
-    def strip_and_validate_string(cls, v: Any) -> str:
+    def validate_string_fields(cls, v: Any) -> str:
         """Strip whitespace and validate string is not empty."""
-        if not isinstance(v, str):
-            raise ValueError("Value must be a string")
-
-        stripped = v.strip()
-        if not stripped:
-            raise ValueError("Value cannot be empty or whitespace-only")
-
-        return stripped
+        return _strip_and_validate_string(v)
 
     model_config = {
         "json_schema_extra": {

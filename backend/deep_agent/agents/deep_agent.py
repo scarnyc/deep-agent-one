@@ -91,6 +91,13 @@ async def create_agent(
         >>> # Test with max_compression variant
         >>> agent = await create_agent(prompt_variant="max_compression")
 
+    Tool Call Limit Example:
+        >>> # Custom tool call limit (default is 12)
+        >>> from deep_agent.config.settings import Settings
+        >>> settings = Settings(MAX_TOOL_CALLS_PER_INVOCATION=5)
+        >>> agent = await create_agent(settings=settings)
+        >>> # Agent will terminate gracefully after 5th tool call
+
     File System Tools:
         DeepAgents includes these file system tools by default:
         - ls: List files in directory
