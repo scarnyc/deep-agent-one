@@ -66,8 +66,8 @@ def serialize_event(event: dict[str, Any]) -> dict[str, Any]:
         # Return minimal safe event for debugging
         return {
             "event": event.get("event", "unknown") if isinstance(event, dict) else "unknown",
-            "error": f"Serialization failed: {str(e)}",
-            "error_type": type(e).__name__,
+            "status": "error",
+            "message": "Event serialization failed.",
         }
 
 
