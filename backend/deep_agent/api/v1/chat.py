@@ -12,7 +12,9 @@ from fastapi.responses import StreamingResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from deep_agent.core.errors import safe_validation_error
 from deep_agent.core.logging import get_logger
+from deep_agent.core.security import sanitize_error_with_metadata
 from deep_agent.core.serialization import serialize_event
 from deep_agent.models.chat import ChatRequest, ChatResponse, Message, MessageRole, ResponseStatus
 from deep_agent.services.agent_service import AgentService
@@ -161,31 +163,37 @@ async def chat(
 
     except ValueError as e:
         # Validation errors from AgentService
+        # Sanitize error message with metadata for enhanced logging
+        sanitization = sanitize_error_with_metadata(str(e), e)
+
         logger.warning(
             "Chat request validation error",
             request_id=request_id,
             thread_id=request_body.thread_id,
-            error=str(e),
+            error=sanitization.message,
+            sanitized=sanitization.was_sanitized,
+            original_error_type=sanitization.original_error_type,
         )
 
+        # Return safe error to client (CWE-209: prevent info exposure)
+        # Uses whitelist to provide actionable errors when safe
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
+            detail=safe_validation_error(str(e)),
         ) from e
 
     except Exception as e:
         # Agent execution errors
-        # Sanitize error message before logging (security)
-        from deep_agent.core.security import sanitize_error_message
-
-        error_msg = sanitize_error_message(str(e))
+        # Sanitize error message with metadata for enhanced logging
+        sanitization = sanitize_error_with_metadata(str(e), e)
 
         logger.error(
             "Chat request failed",
             request_id=request_id,
             thread_id=request_body.thread_id,
-            error=error_msg,  # Sanitized error message
-            error_type=type(e).__name__,
+            error=sanitization.message,
+            sanitized=sanitization.was_sanitized,
+            original_error_type=sanitization.original_error_type,
         )
 
         raise HTTPException(
@@ -298,33 +306,41 @@ async def chat_stream(
 
         except ValueError as e:
             # Validation errors from AgentService
+            # Sanitize error message with metadata for enhanced logging
+            sanitization = sanitize_error_with_metadata(str(e), e)
+
             logger.warning(
                 "Chat stream validation error",
                 request_id=request_id,
                 thread_id=request_body.thread_id,
-                error=str(e),
+                error=sanitization.message,
+                sanitized=sanitization.was_sanitized,
+                original_error_type=sanitization.original_error_type,
             )
 
-            # Send error as SSE event
+            # Send error as SSE event (CWE-209: prevent info exposure)
+            # Uses whitelist to provide actionable errors when safe
             error_event = {
                 "event_type": "error",
-                "data": {"error": str(e), "status": "validation_error"},
+                "data": {
+                    "error": safe_validation_error(str(e)),
+                    "status": "validation_error",
+                },
             }
             yield f"data: {json.dumps(error_event)}\n\n"
 
         except Exception as e:
             # Agent execution errors
-            # Sanitize error message before logging (security)
-            from deep_agent.core.security import sanitize_error_message
-
-            error_msg = sanitize_error_message(str(e))
+            # Sanitize error message with metadata for enhanced logging
+            sanitization = sanitize_error_with_metadata(str(e), e)
 
             logger.error(
                 "Chat stream failed",
                 request_id=request_id,
                 thread_id=request_body.thread_id,
-                error=error_msg,  # Sanitized error message
-                error_type=type(e).__name__,
+                error=sanitization.message,
+                sanitized=sanitization.was_sanitized,
+                original_error_type=sanitization.original_error_type,
             )
 
             # Send error as SSE event

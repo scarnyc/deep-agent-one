@@ -1,7 +1,13 @@
-"""Security utilities for Deep Agent AGI."""
+"""Security utilities for Deep Agent AGI.
+
+Provides error message sanitization to prevent secret leakage in logs
+and API responses.
+"""
+
+from typing import NamedTuple
 
 # Secret patterns to detect in error messages and logs
-SECRET_PATTERNS = [
+SECRET_PATTERNS: list[str] = [
     "sk-",  # OpenAI API keys
     "lsv2_",  # LangSmith tokens
     "ls__",  # LangSmith legacy tokens
@@ -11,6 +17,14 @@ SECRET_PATTERNS = [
     "api_key=",  # API key parameters
     "secret=",  # Secret parameters
 ]
+
+
+class SanitizationResult(NamedTuple):
+    """Result of error message sanitization with metadata for enhanced logging."""
+
+    message: str
+    was_sanitized: bool
+    original_error_type: str | None
 
 
 def sanitize_error_message(error_msg: str) -> str:
@@ -80,3 +94,52 @@ def mask_api_key(api_key: str, prefix_len: int = 8, suffix_len: int = 4) -> str:
     # For very short keys, mask completely
     else:
         return "***"
+
+
+def sanitize_error_with_metadata(
+    error_msg: str,
+    error: Exception | None = None,
+) -> SanitizationResult:
+    """
+    Sanitize error message and return metadata about the sanitization.
+
+    Provides enhanced logging capabilities by tracking whether sanitization
+    was applied and preserving the original error type for debugging.
+
+    Args:
+        error_msg: The error message to sanitize
+        error: Optional exception object to extract type from
+
+    Returns:
+        SanitizationResult with:
+        - message: Sanitized error message
+        - was_sanitized: True if message contained secret patterns
+        - original_error_type: Type name of the exception (e.g., "ValueError")
+
+    Examples:
+        >>> result = sanitize_error_with_metadata("Connection failed")
+        >>> result.was_sanitized
+        False
+        >>> result.message
+        'Connection failed'
+
+        >>> result = sanitize_error_with_metadata("API key: sk-1234", ValueError("test"))
+        >>> result.was_sanitized
+        True
+        >>> result.original_error_type
+        'ValueError'
+    """
+    was_sanitized = any(pattern in error_msg for pattern in SECRET_PATTERNS)
+    sanitized_msg = (
+        "[REDACTED: Potential secret in error message]"
+        if was_sanitized
+        else error_msg
+    )
+
+    error_type = type(error).__name__ if error else None
+
+    return SanitizationResult(
+        message=sanitized_msg,
+        was_sanitized=was_sanitized,
+        original_error_type=error_type,
+    )
