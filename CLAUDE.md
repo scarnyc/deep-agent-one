@@ -722,9 +722,9 @@ git worktree remove ../deep-agent-feature-b
    ```
 4. **Review agent findings and track ALL issues:**
    - **CRITICAL/HIGH issues:** MUST fix before commit (blocking)
-   - **MEDIUM issues:** Fix before commit OR document in GITHUB_ISSUES.md if deferring
-   - **LOW/non-critical issues:** Log ALL to GITHUB_ISSUES.md for future work
-   - **Agent MUST log non-critical issues** to GITHUB_ISSUES.md per line 930
+   - **MEDIUM issues:** Fix before commit OR open up a JIRA ticket if deferring
+   - **LOW/non-critical issues:** Log ALL in JIRA ticket for future work
+   - **Agent MUST log non-critical issues** in JIRA ticket per line 930
 
 5. **Fix issues or document deferral:**
    - **If APPROVED:** Proceed to step 6 (commit)
@@ -743,7 +743,7 @@ git worktree remove ../deep-agent-feature-b
 # [Use Task tool with testing-expert subagent]
 # Result: CHANGES REQUESTED - Missing edge case tests for empty query
 # Action: Add missing tests, re-run testing-expert
-# Result: APPROVED (9/10) - Optional: Add performance test (logged to GITHUB_ISSUES.md)
+# Result: APPROVED (9/10) - Optional: Add performance test (logged to JIRA)
 
 # 3. Write implementation (Web Search Tool)
 # [Implement backend/deep_agent/tools/web_search.py]
@@ -760,10 +760,10 @@ git worktree remove ../deep-agent-feature-b
 # Manual Security Review:
 # - HIGH: None
 # - MEDIUM: None
-# - LOW: Could add more detailed docstring examples (logged to GITHUB_ISSUES.md)
+# - LOW: Could add more detailed docstring examples (logged to JIRA)
 
-# 5. Track all non-critical issues
-git add GITHUB_ISSUES.md
+# 5. Track all non-critical issues in JIRA
+# PLACEHOLDER for JIRA MCP command
 # (Document LOW priority items from both reviews)
 
 # 6. NOW commit (only after approval)
@@ -1132,7 +1132,7 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 
 - **Periodic maintenance:** Review CLAUDE.md regularly to remove stale context (keep < 40k chars)
 - **Pre-commit workflow:** Run code-review-expert and testing-expert agents before EVERY commit
-- **Issue tracking:** Both agents must log non-critical issues to GITHUB_ISSUES.md for future work
+- **Issue tracking:** Both agents must log non-critical issues in JIRA for future work
 - **Code Doc Context:** Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
 - **Debugging workflow:** Run debugging-expert agent when a bug or issue is identified
 - **Fix validation:** After making code changes, ALWAYS validate the fix comprehensively before asking the user to manually test in browser. Validation steps:
