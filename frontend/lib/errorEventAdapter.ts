@@ -183,9 +183,13 @@ export function normalizeErrorEvent(
  * Sanitizes error messages to prevent potential XSS or information leakage.
  *
  * Removes:
- * - HTML tags
- * - Script content
+ * - HTML tags (with loop to prevent bypass via nested tags)
+ * - All angle brackets (escaped to prevent injection)
  * - Potential API keys/secrets
+ *
+ * Security: Applies regex replacement repeatedly until no more changes occur,
+ * preventing bypass attacks like `<scr<script>ipt>alert(1)</script>` which
+ * would otherwise result in `<script>alert(1)</script>` after one pass.
  *
  * @param message - Raw error message
  * @returns Sanitized error message
@@ -195,11 +199,24 @@ function sanitizeErrorMessage(message: string): string {
     return 'An unknown error occurred';
   }
 
-  // Remove HTML tags
-  let sanitized = message.replace(/<[^>]*>/g, '');
+  let sanitized = message;
 
-  // Remove script content
-  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  // Remove HTML tags repeatedly until no more changes occur
+  // This prevents bypass via nested tags like `<scr<script>ipt>`
+  const htmlTagPattern = /<[^>]*>/g;
+  let previous: string;
+  let iterations = 0;
+  const MAX_ITERATIONS = 10; // Prevent infinite loops on malformed input
+
+  do {
+    previous = sanitized;
+    sanitized = sanitized.replace(htmlTagPattern, '');
+    iterations++;
+  } while (sanitized !== previous && iterations < MAX_ITERATIONS);
+
+  // Escape any remaining angle brackets as a final safety measure
+  // This ensures no HTML elements can be injected even if regex missed something
+  sanitized = sanitized.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // Redact potential secrets (API keys, tokens)
   if (/sk-|lsv2_|key=|token=|password=/i.test(sanitized)) {
