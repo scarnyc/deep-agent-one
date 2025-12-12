@@ -26,7 +26,9 @@ Note:
 import importlib.metadata
 from functools import lru_cache
 
-# Package name as defined in pyproject.toml [tool.poetry] name
+# Distribution name for importlib.metadata lookup
+# Must match the 'name' field in pyproject.toml (under [tool.poetry] or [project])
+# This is the name used when the package is installed via pip/poetry
 PACKAGE_NAME = "deep-agent-agi"
 
 # Development fallback version
