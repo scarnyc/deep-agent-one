@@ -57,5 +57,24 @@ def get_version() -> str:
         return DEV_VERSION
 
 
-# Module-level version constant for convenient imports
-__version__ = get_version()
+# Module-level dynamic __version__ attribute
+# Uses __getattr__ to ensure __version__ always reflects get_version()
+# even after cache_clear() is called (e.g., in tests)
+def __getattr__(name: str) -> str:
+    """Provide dynamic module attributes.
+
+    This ensures __version__ always returns the current get_version() result,
+    maintaining consistency even if the cache is cleared.
+
+    Args:
+        name: Attribute name being accessed.
+
+    Returns:
+        The version string if name is "__version__".
+
+    Raises:
+        AttributeError: If name is not a recognized attribute.
+    """
+    if name == "__version__":
+        return get_version()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

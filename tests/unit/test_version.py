@@ -35,20 +35,50 @@ class TestVersion:
 
     def test_version_module_constant(self) -> None:
         """
-        Test that __version__ module constant is available.
+        Test that __version__ module attribute is available and matches get_version().
 
         Scenario:
             Import __version__ from version module
 
         Expected:
-            __version__ is a non-empty string matching get_version()
+            __version__ is a non-empty string equal to get_version()
         """
         from backend.deep_agent.version import __version__, get_version
 
-        get_version.cache_clear()
-
+        # Don't clear cache - verify __version__ equals get_version()
+        # Both should return the same cached value
         assert isinstance(__version__, str)
         assert len(__version__) > 0
+        assert __version__ == get_version()
+
+    def test_version_dynamic_after_cache_clear(self) -> None:
+        """
+        Test that __version__ remains consistent with get_version() after cache clear.
+
+        Scenario:
+            Clear cache and verify __version__ still equals get_version()
+
+        Expected:
+            __version__ always equals get_version(), even after cache_clear()
+        """
+        import importlib.metadata
+
+        from backend.deep_agent.version import get_version
+
+        # Clear cache and verify consistency
+        get_version.cache_clear()
+
+        # Import __version__ fresh after cache clear
+        from backend.deep_agent import version
+
+        assert version.__version__ == get_version()
+
+        # Mock a different version and verify consistency
+        with patch.object(importlib.metadata, "version", return_value="9.9.9"):
+            get_version.cache_clear()
+            # Both should now return the mocked version
+            assert version.__version__ == get_version()
+            assert version.__version__ == "9.9.9"
 
     def test_version_follows_semver_pattern(self) -> None:
         """
