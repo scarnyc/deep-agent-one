@@ -325,9 +325,7 @@ The `.mcp.json` at project root configures MCP servers:
 
 ### 6. Test-Driven Development (TDD)
 
-- Write tests FIRST for every function, tool, and agent
-- Minimum 80% test coverage requirement
-- Use pytest for unit, integration, and E2E tests
+- Use pytest for regression, integration, and E2E tests
 - Mock external API calls during testing
 - Use Playwright MCP server for UI testing
 
@@ -355,7 +353,7 @@ All 33 architectural decisions have been documented. Key decisions include:
 - Agent Framework: LangGraph DeepAgents
 
 **Development Standards:**
-- Testing: pytest with 80%+ coverage requirement
+- Testing: pytest
 - Code Quality: Ruff (linting/formatting) + mypy (type checking)
 - CI/CD: GitHub Actions with parallel jobs
 - Security: TheAuditor + pre-commit hooks
@@ -519,7 +517,7 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 
 **CI/CD Integration:**
 - Run on every commit
-- Block merge if <80% coverage
+- Block merge if (TEST ACCEPTANCE CRITERIA)
 - Block merge if security FAIL
 - Generate and archive reports
 
