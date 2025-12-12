@@ -23,7 +23,7 @@ class TestVersion:
         Expected:
             Returns a non-empty string
         """
-        from backend.deep_agent.version import get_version
+        from deep_agent.version import get_version
 
         # Clear cache to ensure fresh call
         get_version.cache_clear()
@@ -43,7 +43,7 @@ class TestVersion:
         Expected:
             __version__ is a non-empty string equal to get_version()
         """
-        from backend.deep_agent.version import __version__, get_version
+        from deep_agent.version import __version__, get_version
 
         # Don't clear cache - verify __version__ equals get_version()
         # Both should return the same cached value
@@ -63,13 +63,13 @@ class TestVersion:
         """
         import importlib.metadata
 
-        from backend.deep_agent.version import get_version
+        from deep_agent.version import get_version
 
         # Clear cache and verify consistency
         get_version.cache_clear()
 
         # Import __version__ fresh after cache clear
-        from backend.deep_agent import version
+        from deep_agent import version
 
         assert version.__version__ == get_version()
 
@@ -92,7 +92,7 @@ class TestVersion:
         """
         import re
 
-        from backend.deep_agent.version import get_version
+        from deep_agent.version import get_version
 
         get_version.cache_clear()
         version = get_version()
@@ -117,7 +117,7 @@ class TestVersion:
         """
         import importlib.metadata
 
-        from backend.deep_agent.version import DEV_VERSION, PACKAGE_NAME, get_version
+        from deep_agent.version import DEV_VERSION, PACKAGE_NAME, get_version
 
         get_version.cache_clear()
 
@@ -145,7 +145,7 @@ class TestVersion:
         """
         import importlib.metadata
 
-        from backend.deep_agent.version import get_version
+        from deep_agent.version import get_version
 
         get_version.cache_clear()
 
@@ -167,7 +167,7 @@ class TestVersion:
         """
         import importlib.metadata
 
-        from backend.deep_agent.version import get_version
+        from deep_agent.version import get_version
 
         get_version.cache_clear()
 
@@ -194,7 +194,7 @@ class TestVersion:
         Expected:
             PACKAGE_NAME equals "deep-agent-agi"
         """
-        from backend.deep_agent.version import PACKAGE_NAME
+        from deep_agent.version import PACKAGE_NAME
 
         assert PACKAGE_NAME == "deep-agent-agi"
 
@@ -208,7 +208,7 @@ class TestVersion:
         Expected:
             DEV_VERSION equals "0.0.0-dev"
         """
-        from backend.deep_agent.version import DEV_VERSION
+        from deep_agent.version import DEV_VERSION
 
         assert DEV_VERSION == "0.0.0-dev"
 
@@ -233,12 +233,12 @@ class TestVersionIntegration:
         monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
 
         # Clear caches to force reload with new env vars
-        from backend.deep_agent.config.settings import clear_settings_cache
+        from deep_agent.config.settings import clear_settings_cache
 
         clear_settings_cache()
 
-        from backend.deep_agent.main import create_app
-        from backend.deep_agent.version import __version__
+        from deep_agent.main import create_app
+        from deep_agent.version import __version__
 
         app = create_app()
 
@@ -261,12 +261,12 @@ class TestVersionIntegration:
         monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
 
         # Clear caches to force reload with new env vars
-        from backend.deep_agent.config.settings import clear_settings_cache
+        from deep_agent.config.settings import clear_settings_cache
 
         clear_settings_cache()
 
-        from backend.deep_agent.main import create_app
-        from backend.deep_agent.version import __version__
+        from deep_agent.main import create_app
+        from deep_agent.version import __version__
 
         app = create_app()
         schema = app.openapi()
