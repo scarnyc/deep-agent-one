@@ -124,8 +124,7 @@ def analyze_prompt(
 
     # Check for completion confirmation
     has_confirmation = any(
-        word in prompt.lower()
-        for word in ["confirm", "verify", "check", "ensure complete"]
+        word in prompt.lower() for word in ["confirm", "verify", "check", "ensure complete"]
     )
     if not has_confirmation:
         violations.append("agentic_behavior: No completion confirmation")
@@ -427,9 +426,7 @@ def evaluate_prompt(
         results["cost"] = total_tokens
 
     # Quality score combines accuracy and latency
-    results["quality_score"] = (
-        results["accuracy"] * 100 - results["latency"] * 5
-    )
+    results["quality_score"] = results["accuracy"] * 100 - results["latency"] * 5
 
     logger.info(
         "Prompt evaluation complete",
@@ -509,10 +506,12 @@ Generate {num_examples} examples with varying difficulty and edge cases."""
                 input_text = lines[0].strip()
                 output_text = lines[1].split("\n")[0].strip()
 
-                dataset.append({
-                    "input": input_text,
-                    "expected_output": output_text,
-                })
+                dataset.append(
+                    {
+                        "input": input_text,
+                        "expected_output": output_text,
+                    }
+                )
 
                 if len(dataset) >= num_examples:
                     break
@@ -590,9 +589,7 @@ def ab_test_prompts(
     # Calculate effect size (Cohen's d)
     mean_a = np.mean(scores_a)
     mean_b = np.mean(scores_b)
-    std_pooled = np.sqrt(
-        (np.std(scores_a) ** 2 + np.std(scores_b) ** 2) / 2
-    )
+    std_pooled = np.sqrt((np.std(scores_a) ** 2 + np.std(scores_b) ** 2) / 2)
     effect_size = (mean_b - mean_a) / std_pooled if std_pooled > 0 else 0.0
 
     # Determine winner

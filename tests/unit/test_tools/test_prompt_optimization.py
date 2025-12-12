@@ -4,9 +4,9 @@ Unit tests for prompt optimization tools.
 Tests all 5 prompt optimization tools with proper mocking.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
+import pytest
 from deep_agent.tools.prompt_optimization import (
     GPT_BEST_PRACTICES,
     ab_test_prompts,
@@ -111,9 +111,7 @@ class TestOptimizePrompt:
         """Test optimization with hierarchical_reflective algorithm."""
         # Arrange
         prompt = "You are a helpful assistant."
-        dataset = [
-            {"input": "What is AI?", "expected_output": "AI is artificial intelligence."}
-        ]
+        dataset = [{"input": "What is AI?", "expected_output": "AI is artificial intelligence."}]
 
         mock_opik_client = MagicMock()
         # Return a dict, not a MagicMock with attributes
@@ -437,4 +435,6 @@ class TestGPTBestPractices:
         all_practices_str = " ".join(all_practices).lower()
         assert "parallel" in all_practices_str  # Parallel tool limits
         assert "citation" in all_practices_str  # Citation requirements
-        assert "decompose" in all_practices_str or "subtask" in all_practices_str  # Task decomposition
+        assert (
+            "decompose" in all_practices_str or "subtask" in all_practices_str
+        )  # Task decomposition

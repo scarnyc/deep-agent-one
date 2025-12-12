@@ -5,7 +5,7 @@ Tests that agents are created with correct recursion_limit based on
 MAX_TOOL_CALLS_PER_INVOCATION setting.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from langgraph.graph.state import CompiledStateGraph
@@ -32,7 +32,9 @@ class TestRecursionLimitConfiguration:
         mock_graph_with_config = MagicMock(spec=CompiledStateGraph)
         mock_graph.with_config = MagicMock(return_value=mock_graph_with_config)
 
-        with patch("backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph):
+        with patch(
+            "backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph
+        ):
             with patch("backend.deep_agent.agents.deep_agent.create_llm"):
                 with patch("backend.deep_agent.agents.deep_agent.setup_langsmith"):
                     # Act
@@ -48,7 +50,7 @@ class TestRecursionLimitConfiguration:
         """Test that recursion_limit is calculated as (max_tool_calls * 2) + 1."""
         # Test with different MAX_TOOL_CALLS_PER_INVOCATION values
         test_cases = [
-            (8, 17),   # (8 * 2) + 1 = 17
+            (8, 17),  # (8 * 2) + 1 = 17
             (10, 21),  # (10 * 2) + 1 = 21
             (12, 25),  # (12 * 2) + 1 = 25
             (20, 41),  # (20 * 2) + 1 = 41
@@ -66,14 +68,18 @@ class TestRecursionLimitConfiguration:
             mock_graph_with_config = MagicMock(spec=CompiledStateGraph)
             mock_graph.with_config = MagicMock(return_value=mock_graph_with_config)
 
-            with patch("backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph):
+            with patch(
+                "backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph
+            ):
                 with patch("backend.deep_agent.agents.deep_agent.create_llm"):
                     with patch("backend.deep_agent.agents.deep_agent.setup_langsmith"):
                         # Act
                         await create_agent(settings=test_settings)
 
                         # Assert
-                        mock_graph.with_config.assert_called_with({"recursion_limit": expected_limit})
+                        mock_graph.with_config.assert_called_with(
+                            {"recursion_limit": expected_limit}
+                        )
 
     @pytest.mark.asyncio
     async def test_returns_compiled_state_graph(self):
@@ -88,7 +94,9 @@ class TestRecursionLimitConfiguration:
         mock_graph_with_config = MagicMock(spec=CompiledStateGraph)
         mock_graph.with_config = MagicMock(return_value=mock_graph_with_config)
 
-        with patch("backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph):
+        with patch(
+            "backend.deep_agent.agents.deep_agent.create_deep_agent", return_value=mock_graph
+        ):
             with patch("backend.deep_agent.agents.deep_agent.create_llm"):
                 with patch("backend.deep_agent.agents.deep_agent.setup_langsmith"):
                     # Act

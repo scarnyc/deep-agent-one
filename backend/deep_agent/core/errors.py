@@ -5,25 +5,27 @@ Provides:
 - Safe validation error whitelisting
 - Structured error responses with error codes
 """
-from typing import Any
 
+from typing import Any
 
 # Whitelist of safe validation error messages that can be returned to clients.
 # These provide actionable information without exposing internal implementation.
 # Only messages in this set will be returned; all others get a generic message.
-SAFE_VALIDATION_ERRORS: frozenset[str] = frozenset({
-    # Message validation
-    "Message cannot be empty",
-    "Message must not be whitespace only",
-    "Value cannot be empty or whitespace-only",
-    "Value must be a string",
-    # Thread validation
-    "Thread ID is required",
-    "Thread ID cannot be empty",
-    # Generic validation
-    "Invalid request format",
-    "Required field missing",
-})
+SAFE_VALIDATION_ERRORS: frozenset[str] = frozenset(
+    {
+        # Message validation
+        "Message cannot be empty",
+        "Message must not be whitespace only",
+        "Value cannot be empty or whitespace-only",
+        "Value must be a string",
+        # Thread validation
+        "Thread ID is required",
+        "Thread ID cannot be empty",
+        # Generic validation
+        "Invalid request format",
+        "Required field missing",
+    }
+)
 
 
 class ErrorCode:

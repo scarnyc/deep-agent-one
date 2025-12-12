@@ -191,9 +191,7 @@ class PerplexityClient:
 
             # Remove timestamps outside the window
             self._request_timestamps = [
-                ts
-                for ts in self._request_timestamps
-                if now - ts < self._rate_limit_window
+                ts for ts in self._request_timestamps if now - ts < self._rate_limit_window
             ]
 
             # Check if limit exceeded

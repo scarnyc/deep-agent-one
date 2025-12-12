@@ -1,11 +1,12 @@
 """Integration tests for WebSocket endpoint (AG-UI events)."""
-import json
-from typing import Any, AsyncIterator, Dict, Iterator
+
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
-from unittest.mock import AsyncMock
 
 from backend.deep_agent.api.dependencies import get_agent_service
 
@@ -21,7 +22,7 @@ def mock_agent_service() -> AsyncMock:
     mock_service = AsyncMock()
 
     # Default mock streaming response
-    async def mock_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+    async def mock_stream(*args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
         """Mock async generator for streaming events."""
         # Simulate AG-UI Protocol events
         events = [
@@ -46,7 +47,7 @@ def mock_agent_service() -> AsyncMock:
             yield event
 
     # Configure mock to return async generator
-    def create_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+    def create_stream(*args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
         return mock_stream(*args, **kwargs)
 
     mock_service.stream.side_effect = create_stream
@@ -218,12 +219,12 @@ class TestWebSocketEndpoint:
         }
 
         # Mock agent to raise error
-        async def mock_error_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        async def mock_error_stream(*args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
             yield {"event": "on_chat_model_start", "data": {}}
             raise RuntimeError("Agent execution failed")
 
         # Wrap in regular function to properly return async generator
-        def create_error_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        def create_error_stream(*args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
             return mock_error_stream(*args, **kwargs)
 
         mock_agent_service.stream.side_effect = create_error_stream
@@ -285,11 +286,13 @@ class TestWebSocketEndpoint:
         # Act
         with client.websocket_connect("/api/v1/ws") as websocket:
             # Send first message
-            websocket.send_json({
-                "type": "chat",
-                "message": "First message",
-                "thread_id": "test-thread-123",
-            })
+            websocket.send_json(
+                {
+                    "type": "chat",
+                    "message": "First message",
+                    "thread_id": "test-thread-123",
+                }
+            )
 
             # Receive first response events
             first_events = []
@@ -301,11 +304,13 @@ class TestWebSocketEndpoint:
                     break
 
             # Send second message
-            websocket.send_json({
-                "type": "chat",
-                "message": "Second message",
-                "thread_id": "test-thread-123",
-            })
+            websocket.send_json(
+                {
+                    "type": "chat",
+                    "message": "Second message",
+                    "thread_id": "test-thread-123",
+                }
+            )
 
             # Receive second response events
             second_events = []
@@ -329,11 +334,13 @@ class TestWebSocketEndpoint:
         # Act
         with client.websocket_connect("/api/v1/ws") as websocket:
             # Send a message
-            websocket.send_json({
-                "type": "chat",
-                "message": "Test",
-                "thread_id": "test-thread-123",
-            })
+            websocket.send_json(
+                {
+                    "type": "chat",
+                    "message": "Test",
+                    "thread_id": "test-thread-123",
+                }
+            )
 
             # Close connection explicitly
             websocket.close()

@@ -4,6 +4,7 @@ FastAPI dependencies for dependency injection.
 Provides reusable dependency functions for endpoints to enable
 proper testing with dependency overrides and maintain separation of concerns.
 """
+
 from typing import Annotated
 
 from fastapi import Depends
@@ -60,9 +61,7 @@ def get_agent_service() -> AgentService:
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            raise RuntimeError(
-                "Agent service initialization failed. Check configuration."
-            ) from e
+            raise RuntimeError("Agent service initialization failed. Check configuration.") from e
     return _agent_service_instance
 
 

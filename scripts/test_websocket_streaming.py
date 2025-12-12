@@ -37,23 +37,22 @@ import json
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 import websockets
-from websockets.client import WebSocketClientProtocol
 
 
 # ANSI color codes for terminal output
 class Colors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 class WebSocketTestClient:
@@ -61,11 +60,11 @@ class WebSocketTestClient:
 
     def __init__(self, url: str = "ws://localhost:8000/api/v1/ws"):
         self.url = url
-        self.event_counts: Dict[str, int] = {}
+        self.event_counts: dict[str, int] = {}
         self.token_buffer = ""
         self.start_time: float = 0
         self.first_token_time: float = 0
-        self.event_log: list[Dict[str, Any]] = []
+        self.event_log: list[dict[str, Any]] = []
 
     def print_header(self, text: str) -> None:
         """Print colored header."""
@@ -96,7 +95,7 @@ class WebSocketTestClient:
                 payload = {
                     "type": "chat",
                     "message": message,
-                    "thread_id": f"manual-test-{int(time.time())}"
+                    "thread_id": f"manual-test-{int(time.time())}",
                 }
 
                 print(f"\n{Colors.OKCYAN}Sending message:{Colors.ENDC}")
@@ -104,7 +103,7 @@ class WebSocketTestClient:
                 print(f"  Thread ID: {payload['thread_id']}")
 
                 await websocket.send(json.dumps(payload))
-                self.print_event("SENT", f"Message sent to server", Colors.OKCYAN)
+                self.print_event("SENT", "Message sent to server", Colors.OKCYAN)
 
                 self.start_time = time.time()
                 print(f"\n{Colors.OKGREEN}{Colors.BOLD}Streaming Response:{Colors.ENDC}")
@@ -131,7 +130,7 @@ class WebSocketTestClient:
         # Print summary
         self.print_summary()
 
-    async def process_event(self, event: Dict[str, Any]) -> None:
+    async def process_event(self, event: dict[str, Any]) -> None:
         """Process a single streaming event."""
         event_type = event.get("event", "unknown")
 
@@ -142,7 +141,7 @@ class WebSocketTestClient:
         event_log_entry = {
             "timestamp": time.time() - self.start_time,
             "event_type": event_type,
-            "event": event
+            "event": event,
         }
         self.event_log.append(event_log_entry)
 
@@ -175,7 +174,7 @@ class WebSocketTestClient:
             # Log other event types
             print(f"{Colors.WARNING}[{event_type}]{Colors.ENDC}", end=" ", flush=True)
 
-    async def handle_token_stream(self, event: Dict[str, Any]) -> None:
+    async def handle_token_stream(self, event: dict[str, Any]) -> None:
         """Handle on_chat_model_stream event (token streaming)."""
         data = event.get("data", {})
         chunk = data.get("chunk", {})
@@ -219,7 +218,7 @@ class WebSocketTestClient:
         # Event statistics
         print(f"\n{Colors.BOLD}Event Statistics:{Colors.ENDC}")
         print(f"  Total events received: {sum(self.event_counts.values())}")
-        print(f"\n  Event type breakdown:")
+        print("\n  Event type breakdown:")
         for event_type, count in sorted(self.event_counts.items()):
             print(f"    - {event_type}: {count}")
 
@@ -236,7 +235,12 @@ class WebSocketTestClient:
 
         # Check token streaming
         if "on_chat_model_stream" in self.event_counts:
-            checks.append(("✅", f"Token streaming works ({self.event_counts['on_chat_model_stream']} tokens)"))
+            checks.append(
+                (
+                    "✅",
+                    f"Token streaming works ({self.event_counts['on_chat_model_stream']} tokens)",
+                )
+            )
         else:
             checks.append(("❌", "No token streaming events received"))
 
@@ -258,21 +262,29 @@ class WebSocketTestClient:
             checks.append(("⚠️", "Total duration > 30s (slow)"))
 
         for status, message in checks:
-            color = Colors.OKGREEN if status == "✅" else (Colors.WARNING if status == "⚠️" else Colors.FAIL)
+            color = (
+                Colors.OKGREEN
+                if status == "✅"
+                else (Colors.WARNING if status == "⚠️" else Colors.FAIL)
+            )
             print(f"  {color}{status} {message}{Colors.ENDC}")
 
         # Final verdict
         all_passed = all(check[0] == "✅" for check in checks)
         if all_passed:
-            print(f"\n{Colors.OKGREEN}{Colors.BOLD}🎉 ALL CHECKS PASSED - Ready for UAT!{Colors.ENDC}")
+            print(
+                f"\n{Colors.OKGREEN}{Colors.BOLD}🎉 ALL CHECKS PASSED - Ready for UAT!{Colors.ENDC}"
+            )
         else:
-            print(f"\n{Colors.WARNING}{Colors.BOLD}⚠️  Some checks failed - review results above{Colors.ENDC}")
+            print(
+                f"\n{Colors.WARNING}{Colors.BOLD}⚠️  Some checks failed - review results above{Colors.ENDC}"
+            )
 
 
 async def main():
     """Main entry point."""
     print(f"{Colors.BOLD}WebSocket Streaming Manual Test{Colors.ENDC}")
-    print(f"Testing astream_events() implementation with live server\n")
+    print("Testing astream_events() implementation with live server\n")
 
     # Check if custom message provided
     if len(sys.argv) > 1:

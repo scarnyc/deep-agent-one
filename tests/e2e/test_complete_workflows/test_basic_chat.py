@@ -10,18 +10,18 @@ test runs and should only be run manually or as part of live API validation.
 """
 
 import os
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any, Dict
 
-from backend.deep_agent.models.chat import ChatResponse, MessageRole, ResponseStatus
+from backend.deep_agent.models.chat import ChatResponse, ResponseStatus
 
 # Skip all E2E tests unless OPENAI_API_KEY is set
 # These tests are for Phase 0.5 Live API Integration Testing
 pytestmark = pytest.mark.skipif(
     not os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY").startswith("your_"),
-    reason="E2E tests require valid OPENAI_API_KEY (Phase 0.5 Live API Testing)"
+    reason="E2E tests require valid OPENAI_API_KEY (Phase 0.5 Live API Testing)",
 )
 
 
@@ -34,6 +34,7 @@ def client() -> TestClient:
     fresh app instance for each test.
     """
     from backend.deep_agent.main import app
+
     return TestClient(app)
 
 
@@ -56,15 +57,11 @@ def mock_openai_client():
             MagicMock(
                 message=MagicMock(
                     content="I'm a helpful AI assistant. I can help you with various tasks. How can I assist you today?",
-                    role="assistant"
+                    role="assistant",
                 )
             )
         ]
-        mock_completion.usage = MagicMock(
-            prompt_tokens=10,
-            completion_tokens=20,
-            total_tokens=30
-        )
+        mock_completion.usage = MagicMock(prompt_tokens=10, completion_tokens=20, total_tokens=30)
 
         mock_client.chat.completions.create.return_value = mock_completion
 
@@ -119,7 +116,9 @@ class TestBasicChatWorkflow:
         response = client.post("/api/v1/chat", json=request_data)
 
         # Assert - Response structure
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        assert (
+            response.status_code == 200
+        ), f"Expected 200, got {response.status_code}: {response.text}"
 
         data = response.json()
         assert "messages" in data, "Response missing 'messages' field"
@@ -159,7 +158,7 @@ class TestBasicChatWorkflow:
             json={
                 "message": "My name is Alice",
                 "thread_id": thread_id,
-            }
+            },
         )
 
         # Act - Second message (should remember context)
@@ -168,7 +167,7 @@ class TestBasicChatWorkflow:
             json={
                 "message": "What is my name?",
                 "thread_id": thread_id,
-            }
+            },
         )
 
         # Assert - Both requests successful
@@ -204,8 +203,9 @@ class TestBasicChatWorkflow:
         assert response.status_code == 422, "Empty message should be rejected"
 
         # Assert - OpenAI NOT called for invalid input
-        assert not mock_openai_client.chat.completions.create.called, \
-            "OpenAI should not be called for invalid input"
+        assert (
+            not mock_openai_client.chat.completions.create.called
+        ), "OpenAI should not be called for invalid input"
 
     def test_chat_workflow_handles_long_messages(
         self,

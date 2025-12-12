@@ -34,7 +34,7 @@ async def test_websocket_events():
                 "type": "chat",
                 "message": "What is 2+2?",
                 "thread_id": "test-validation-thread",
-                "request_id": "test-validation-request"
+                "request_id": "test-validation-request",
             }
 
             print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Sending test message...")
@@ -52,7 +52,7 @@ async def test_websocket_events():
                     event_type = event.get("event", "unknown")
                     events_received.append(event_type)
 
-                    timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
                     # Highlight important events
                     if event_type == "on_chat_model_end":
@@ -88,7 +88,7 @@ async def test_websocket_events():
     print("=" * 80)
 
     print(f"\nTotal events received: {len(events_received)}")
-    print(f"\nEvent types received:")
+    print("\nEvent types received:")
     for event_type in sorted(set(events_received)):
         count = events_received.count(event_type)
         print(f"  - {event_type}: {count}x")

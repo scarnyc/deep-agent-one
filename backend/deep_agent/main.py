@@ -4,6 +4,7 @@ FastAPI application entry point for Deep Agent AGI.
 Provides HTTP API with CORS, rate limiting, structured logging,
 and global exception handling.
 """
+
 import asyncio
 import json
 import uuid
@@ -143,7 +144,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         settings = get_settings()
     except Exception as e:
         # Bootstrap logger (fallback before structured logging configured)
-        stdlib_logging.basicConfig(level=stdlib_logging.ERROR, format='%(asctime)s - BOOTSTRAP - %(levelname)s - %(message)s')
+        stdlib_logging.basicConfig(
+            level=stdlib_logging.ERROR,
+            format="%(asctime)s - BOOTSTRAP - %(levelname)s - %(message)s",
+        )
         bootstrap_logger = stdlib_logging.getLogger("bootstrap")
 
         bootstrap_logger.error(f"Failed to load settings: {type(e).__name__}: {str(e)}")
@@ -174,10 +178,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if settings.ENV != "test":
         from deep_agent.services.llm_factory import prewarm_llm_imports
 
-        prewarm_task = asyncio.create_task(
-            prewarm_llm_imports(),
-            name="llm-prewarm"
-        )
+        prewarm_task = asyncio.create_task(prewarm_llm_imports(), name="llm-prewarm")
         logger.info("LLM pre-warming started in background")
 
     yield
@@ -256,12 +257,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         TimeoutMiddleware,
         timeout=60,  # Increased to 60s to allow 3 parallel searches + synthesis
-        exclude_paths=["/api/v1/ws"]  # WebSocket endpoint uses its own streaming timeout
+        exclude_paths=["/api/v1/ws"],  # WebSocket endpoint uses its own streaming timeout
     )
     logger.debug(
-        "Request timeout middleware enabled",
-        timeout_seconds=60,
-        excluded_paths=["/api/v1/ws"]
+        "Request timeout middleware enabled", timeout_seconds=60, excluded_paths=["/api/v1/ws"]
     )
 
     # Document timeout hierarchy for debugging
@@ -275,8 +274,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "1. HTTP requests: 60s (TimeoutMiddleware) - allows 3 parallel searches + synthesis",
             "2. WebSocket streaming: 180s (STREAM_TIMEOUT_SECONDS)",
             "3. Web search tool: 30s (WEB_SEARCH_TIMEOUT)",
-            "Note: WebSocket excluded from HTTP timeout"
-        ]
+            "Note: WebSocket excluded from HTTP timeout",
+        ],
     )
 
     # Add rate limiting
@@ -523,16 +522,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         connection_id=connection_id,
                         error=str(e),
                     )
-                    await websocket.send_json({
-                        "event": "on_error",
-                        "data": {
-                            "error": "Invalid JSON format",
-                            "error_type": "JSONDecodeError",
-                        },
-                        "metadata": {
-                            "connection_id": connection_id,
-                        },
-                    })
+                    await websocket.send_json(
+                        {
+                            "event": "on_error",
+                            "data": {
+                                "error": "Invalid JSON format",
+                                "error_type": "JSONDecodeError",
+                            },
+                            "metadata": {
+                                "connection_id": connection_id,
+                            },
+                        }
+                    )
                     continue
 
                 # Generate request ID for this message
@@ -556,17 +557,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         request_id=request_id,
                         errors=e.errors(),
                     )
-                    await websocket.send_json({
-                        "event": "on_error",
-                        "data": {
-                            "error": f"Validation error: {str(e)}",
-                            "error_type": "ValidationError",
-                            "request_id": request_id,
-                        },
-                        "metadata": {
-                            "connection_id": connection_id,
-                        },
-                    })
+                    await websocket.send_json(
+                        {
+                            "event": "on_error",
+                            "data": {
+                                "error": f"Validation error: {str(e)}",
+                                "error_type": "ValidationError",
+                                "request_id": request_id,
+                            },
+                            "metadata": {
+                                "connection_id": connection_id,
+                            },
+                        }
+                    )
                     continue
 
                 # Process chat message
@@ -577,21 +580,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             connection_id=connection_id,
                             request_id=request_id,
                             thread_id=message.thread_id,
-                            message_preview=message.message[:50] if len(message.message) > 50 else message.message,
+                            message_preview=message.message[:50]
+                            if len(message.message) > 50
+                            else message.message,
                         )
 
                         # CUSTOM EVENT: processing_started
                         # This is NOT part of AG-UI Protocol - it's a custom event for UX feedback
                         # during cold starts (8-10s). Frontend must filter this event before passing
                         # to AG-UI handler to prevent "unknown event" errors.
-                        await websocket.send_json({
-                            "event": "processing_started",
-                            "data": {
-                                "message": "Agent initializing...",
-                                "request_id": request_id,
-                                "timestamp": datetime.utcnow().isoformat() + "Z"
+                        await websocket.send_json(
+                            {
+                                "event": "processing_started",
+                                "data": {
+                                    "message": "Agent initializing...",
+                                    "request_id": request_id,
+                                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                                },
                             }
-                        })
+                        )
 
                         event_count = 0
                         trace_id = None
@@ -659,24 +666,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             thread_id=message.thread_id,
                             error=str(e),
                         )
-                        await websocket.send_json({
-                            "event": "on_error",
-                            "data": {
-                                "error": str(e),
-                                "error_type": "ValueError",
-                                "request_id": request_id,
-                            },
-                            "metadata": {
-                                "thread_id": message.thread_id,
-                                "connection_id": connection_id,
-                            },
-                        })
+                        await websocket.send_json(
+                            {
+                                "event": "on_error",
+                                "data": {
+                                    "error": str(e),
+                                    "error_type": "ValueError",
+                                    "request_id": request_id,
+                                },
+                                "metadata": {
+                                    "thread_id": message.thread_id,
+                                    "connection_id": connection_id,
+                                },
+                            }
+                        )
 
                     except asyncio.CancelledError:
                         # Client disconnected or task cancelled
                         # Get trace_id if available
-                        captured_trace_id = trace_id if 'trace_id' in locals() else None
-                        captured_event_count = event_count if 'event_count' in locals() else 0
+                        captured_trace_id = trace_id if "trace_id" in locals() else None
+                        captured_event_count = event_count if "event_count" in locals() else 0
 
                         logger.info(
                             "WebSocket streaming cancelled (client disconnect or timeout)",
@@ -684,7 +693,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             request_id=request_id,
                             thread_id=message.thread_id,
                             trace_id=captured_trace_id,
-                            langsmith_url=generate_langsmith_url(captured_trace_id) if captured_trace_id else None,
+                            langsmith_url=generate_langsmith_url(captured_trace_id)
+                            if captured_trace_id
+                            else None,
                             events_sent=captured_event_count,
                             reason="client_disconnect_or_task_cancelled",
                         )
@@ -698,7 +709,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         sanitization = sanitize_error_with_metadata(str(e), e)
 
                         # Get trace_id if available
-                        captured_trace_id = trace_id if 'trace_id' in locals() else None
+                        captured_trace_id = trace_id if "trace_id" in locals() else None
 
                         logger.error(
                             "WebSocket agent execution failed",
@@ -706,24 +717,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             request_id=request_id,
                             thread_id=message.thread_id,
                             trace_id=captured_trace_id,
-                            langsmith_url=generate_langsmith_url(captured_trace_id) if captured_trace_id else None,
+                            langsmith_url=generate_langsmith_url(captured_trace_id)
+                            if captured_trace_id
+                            else None,
                             error=sanitization.message,
                             sanitized=sanitization.was_sanitized,
                             original_error_type=sanitization.original_error_type,
                         )
-                        await websocket.send_json({
-                            "event": "on_error",
-                            "data": {
-                                "error": "Agent execution failed",
-                                "error_type": type(e).__name__,
-                                "request_id": request_id,
-                            },
-                            "metadata": {
-                                "thread_id": message.thread_id,
-                                "trace_id": captured_trace_id,
-                                "connection_id": connection_id,
-                            },
-                        })
+                        await websocket.send_json(
+                            {
+                                "event": "on_error",
+                                "data": {
+                                    "error": "Agent execution failed",
+                                    "error_type": type(e).__name__,
+                                    "request_id": request_id,
+                                },
+                                "metadata": {
+                                    "thread_id": message.thread_id,
+                                    "trace_id": captured_trace_id,
+                                    "connection_id": connection_id,
+                                },
+                            }
+                        )
 
                 else:
                     # Unknown message type
@@ -733,17 +748,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         request_id=request_id,
                         message_type=message.type,
                     )
-                    await websocket.send_json({
-                        "event": "on_error",
-                        "data": {
-                            "error": f"Unknown message type: {message.type}",
-                            "error_type": "UnknownMessageType",
-                            "request_id": request_id,
-                        },
-                        "metadata": {
-                            "connection_id": connection_id,
-                        },
-                    })
+                    await websocket.send_json(
+                        {
+                            "event": "on_error",
+                            "data": {
+                                "error": f"Unknown message type: {message.type}",
+                                "error_type": "UnknownMessageType",
+                                "request_id": request_id,
+                            },
+                            "metadata": {
+                                "connection_id": connection_id,
+                            },
+                        }
+                    )
 
         except WebSocketDisconnect:
             logger.info(
