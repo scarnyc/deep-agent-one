@@ -282,7 +282,7 @@ class Settings(BaseSettings):
     CACHE_TTL: int = 3600
 
     # FastAPI Configuration
-    API_HOST: str = "0.0.0.0"
+    API_HOST: str = "0.0.0.0"  # nosec B104 - Intentional for container deployment
     API_PORT: int = 8000
     API_RELOAD: bool = False
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"

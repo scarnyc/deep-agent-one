@@ -8,9 +8,10 @@ Part of fix for UI truncation issue (GitHub Issue TBD).
 """
 
 import asyncio
+
 import pytest
-from httpx import AsyncClient, ASGITransport
 from deep_agent.main import app
+from httpx import ASGITransport, AsyncClient
 
 
 @pytest.mark.asyncio
@@ -67,11 +68,13 @@ async def test_websocket_streaming_completion():
 
     with client.websocket_connect("/ws/test-ws-completion") as websocket:
         # Send query
-        websocket.send_json({
-            "type": "chat",
-            "message": "Count to 3",
-            "thread_id": "test-ws-completion",
-        })
+        websocket.send_json(
+            {
+                "type": "chat",
+                "message": "Count to 3",
+                "thread_id": "test-ws-completion",
+            }
+        )
 
         # Track events received
         events_received = []
@@ -157,11 +160,13 @@ async def test_stream_watchdog_not_needed():
 
     with client.websocket_connect("/ws/test-watchdog") as websocket:
         # Send query
-        websocket.send_json({
-            "type": "chat",
-            "message": "Write a short poem",
-            "thread_id": "test-watchdog",
-        })
+        websocket.send_json(
+            {
+                "type": "chat",
+                "message": "Write a short poem",
+                "thread_id": "test-watchdog",
+            }
+        )
 
         last_token_time = asyncio.get_event_loop().time()
         max_gap_between_tokens = 0.0

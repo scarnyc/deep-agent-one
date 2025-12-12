@@ -1,10 +1,12 @@
 """Integration tests for chat streaming API endpoint (SSE)."""
+
 import json
-from typing import Any, AsyncIterator, Dict, Iterator
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch
 
 
 @pytest.fixture
@@ -16,6 +18,7 @@ def client() -> TestClient:
     fresh app instance for each test.
     """
     from backend.deep_agent.main import app
+
     return TestClient(app)
 
 
@@ -28,7 +31,7 @@ def mock_agent_service() -> Iterator[AsyncMock]:
         mock.return_value = mock_instance
 
         # Mock successful streaming response
-        async def mock_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        async def mock_stream(*args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
             """Mock async generator for streaming events."""
             # Simulate LangChain event stream
             events = [
@@ -190,7 +193,7 @@ class TestChatStreamEndpoint:
         }
 
         # Mock agent service to raise an error
-        async def mock_error_stream(*args: Any, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        async def mock_error_stream(*args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
             """Mock async generator that raises an error."""
             yield {"event": "on_chat_model_start", "data": {}}
             raise RuntimeError("Agent streaming failed")

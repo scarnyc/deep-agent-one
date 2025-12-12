@@ -4,6 +4,7 @@ Direct tool execution test with response capture.
 Tests that tool execution triggers error handling correctly.
 More direct approach than multi-turn test.
 """
+
 import asyncio
 import json
 import sys
@@ -40,7 +41,7 @@ async def test_direct_tool_execution():
             message = {
                 "type": "chat",
                 "message": "Search the web for the current weather in New York City",
-                "thread_id": thread_id
+                "thread_id": thread_id,
             }
 
             await websocket.send(json.dumps(message))
@@ -62,39 +63,41 @@ async def test_direct_tool_execution():
                     event = json.loads(response)
                     events.append(event)
 
-                    event_type = event.get('event', 'unknown')
+                    event_type = event.get("event", "unknown")
 
                     # Capture AI response tokens
-                    if event_type == 'on_chat_model_stream':
-                        token = event.get('data', {}).get('chunk', {}).get('content', '')
+                    if event_type == "on_chat_model_stream":
+                        token = event.get("data", {}).get("chunk", {}).get("content", "")
                         if token:
                             ai_response.append(token)
 
                     # Log important events
-                    if event_type == 'on_chain_start':
+                    if event_type == "on_chain_start":
                         print(f"  Chain started: {event.get('name', 'unknown')}")
-                    elif event_type == 'on_tool_start':
+                    elif event_type == "on_tool_start":
                         tool_executed = True
-                        tool_name = event.get('name', 'unknown')
+                        tool_name = event.get("name", "unknown")
                         tools_called.append(tool_name)
                         print(f"  Tool started: {tool_name}")
                         # Print tool arguments if available
-                        if 'input' in event:
+                        if "input" in event:
                             print(f"     Args: {event['input']}")
-                    elif event_type == 'on_tool_end':
+                    elif event_type == "on_tool_end":
                         print("  Tool completed")
-                    elif event_type == 'on_chat_model_end':
+                    elif event_type == "on_chat_model_end":
                         print("  Chat model finished")
-                    elif event_type in ['on_error', 'on_chain_error', 'on_llm_error', 'error']:
+                    elif event_type in ["on_error", "on_chain_error", "on_llm_error", "error"]:
                         errors.append(event)
                         print(f"  ERROR: {event_type}")
-                        error_data = event.get('data') or event.get('error')
+                        error_data = event.get("data") or event.get("error")
                         print(f"     Details: {error_data}")
-                    elif event_type == 'hitl_request':
-                        print(f"  HITL Request: {event.get('data', {}).get('tool_name', 'unknown')}")
+                    elif event_type == "hitl_request":
+                        print(
+                            f"  HITL Request: {event.get('data', {}).get('tool_name', 'unknown')}"
+                        )
 
                     # Check for completion
-                    if event_type in ['on_chain_end', 'on_llm_end']:
+                    if event_type in ["on_chain_end", "on_llm_end"]:
                         print("  Conversation complete")
                         complete = True
 
@@ -109,10 +112,10 @@ async def test_direct_tool_execution():
 
             # Display AI response
             if ai_response:
-                full_response = ''.join(ai_response)
+                full_response = "".join(ai_response)
                 print("\nAI RESPONSE:")
                 print("-" * 70)
-                print(full_response[:500] + ('...' if len(full_response) > 500 else ''))
+                print(full_response[:500] + ("..." if len(full_response) > 500 else ""))
                 print("-" * 70)
 
             # Results
@@ -136,7 +139,7 @@ async def test_direct_tool_execution():
             print("\nEVENT BREAKDOWN:")
             event_counts = {}
             for event in events:
-                event_type = event.get('event', 'unknown')
+                event_type = event.get("event", "unknown")
                 event_counts[event_type] = event_counts.get(event_type, 0) + 1
 
             for event_type, count in sorted(event_counts.items()):
@@ -164,26 +167,20 @@ async def test_direct_tool_execution():
                 "total_events": len(events),
                 "total_errors": len(errors),
                 "error_events": errors,
-                "ai_response_preview": ''.join(ai_response)[:200] if ai_response else None
+                "ai_response_preview": "".join(ai_response)[:200] if ai_response else None,
             }
 
     except websockets.exceptions.WebSocketException as e:
         print(f"\nWebSocket connection failed: {e}")
         print("\nMake sure the backend is running:")
         print("   cd backend && uvicorn deep_agent.main:app --reload --port 8000")
-        return {
-            "success": False,
-            "error": str(e),
-            "connection_failed": True
-        }
+        return {"success": False, "error": str(e), "connection_failed": True}
     except Exception as e:
         print(f"\nTest failed with exception: {e}")
         import traceback
+
         traceback.print_exc()
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 if __name__ == "__main__":
@@ -193,7 +190,7 @@ if __name__ == "__main__":
         print("\n" + "=" * 70)
         print("FINAL RESULT")
         print("=" * 70)
-        print(json.dumps({k: v for k, v in result.items() if k != 'error_events'}, indent=2))
+        print(json.dumps({k: v for k, v in result.items() if k != "error_events"}, indent=2))
         print("=" * 70)
 
         # Exit with appropriate code
@@ -205,5 +202,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nFatal error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

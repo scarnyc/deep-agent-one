@@ -6,7 +6,6 @@ to verify graceful termination via GraphRecursionError handling.
 """
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -93,7 +92,9 @@ class TestAgentServiceWithRecursionLimit:
 
         mock_agent.astream_events = mock_astream_events_raises_recursion_error
 
-        with patch("backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent):
+        with patch(
+            "backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent
+        ):
             service = AgentService(settings=test_settings)
 
             # Act - collect all events from stream
@@ -130,7 +131,9 @@ class TestAgentServiceWithRecursionLimit:
 
         mock_agent.astream_events = mock_astream_events_raises
 
-        with patch("backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent):
+        with patch(
+            "backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent
+        ):
             service = AgentService(settings=test_settings)
 
             # Act
@@ -157,8 +160,8 @@ class TestAgentServiceWithRecursionLimit:
         """Test that different MAX_TOOL_CALLS_PER_INVOCATION values produce different recursion_limits."""
         # Test cases: (max_tool_calls, expected_recursion_limit)
         test_cases = [
-            (3, 7),    # (3 * 2) + 1 = 7
-            (5, 11),   # (5 * 2) + 1 = 11
+            (3, 7),  # (3 * 2) + 1 = 7
+            (5, 11),  # (5 * 2) + 1 = 11
             (12, 25),  # (12 * 2) + 1 = 25
         ]
 
@@ -174,7 +177,9 @@ class TestAgentServiceWithRecursionLimit:
 
             mock_agent.astream_events = mock_astream_events_raises
 
-            with patch("backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent):
+            with patch(
+                "backend.deep_agent.services.agent_service.create_agent", return_value=mock_agent
+            ):
                 service = AgentService(settings=test_settings)
 
                 # Act

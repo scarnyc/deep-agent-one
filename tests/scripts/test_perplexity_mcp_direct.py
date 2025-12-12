@@ -63,6 +63,7 @@ async def test_perplexity_mcp():
     except Exception as e:
         print(f"\n❌ ERROR: {type(e).__name__}: {str(e)}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

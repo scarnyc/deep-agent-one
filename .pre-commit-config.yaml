@@ -6,6 +6,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json
+        exclude: ^frontend/(tsconfig|components)\.json$  # These use JSONC (JSON with comments)
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: check-merge-conflict

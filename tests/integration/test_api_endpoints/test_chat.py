@@ -1,9 +1,11 @@
 """Integration tests for chat API endpoints."""
-import pytest
-from fastapi.testclient import TestClient
+
 from unittest.mock import AsyncMock, patch
 
-from backend.deep_agent.models.chat import ChatRequest, ChatResponse, MessageRole, ResponseStatus
+import pytest
+from fastapi.testclient import TestClient
+
+from backend.deep_agent.models.chat import ChatResponse, ResponseStatus
 
 
 @pytest.fixture
@@ -15,6 +17,7 @@ def client() -> TestClient:
     fresh app instance for each test.
     """
     from backend.deep_agent.main import app
+
     return TestClient(app)
 
 

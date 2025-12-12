@@ -5,13 +5,11 @@ Tests checkpointer creation, configuration, cleanup, and resource management
 for LangGraph state persistence.
 """
 
-import asyncio
-import os
 import sqlite3
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
@@ -349,7 +347,9 @@ class TestErrorHandling:
     async def test_create_checkpointer_invalid_path_raises_error(self, checkpointer_manager):
         """Test creating checkpointer with invalid path raises appropriate error."""
         # Arrange
-        checkpointer_manager.settings.CHECKPOINT_DB_PATH = "/invalid/path/that/does/not/exist/db.sqlite"
+        checkpointer_manager.settings.CHECKPOINT_DB_PATH = (
+            "/invalid/path/that/does/not/exist/db.sqlite"
+        )
 
         # Act & Assert
         with pytest.raises((OSError, PermissionError, ValueError)):
@@ -398,8 +398,8 @@ class TestConfiguration:
 
         # Assert
         assert manager.settings is not None
-        assert hasattr(manager.settings, 'CHECKPOINT_DB_PATH')
-        assert hasattr(manager.settings, 'CHECKPOINT_CLEANUP_DAYS')
+        assert hasattr(manager.settings, "CHECKPOINT_DB_PATH")
+        assert hasattr(manager.settings, "CHECKPOINT_CLEANUP_DAYS")
 
     @pytest.mark.asyncio
     async def test_environment_specific_configuration(self, temp_db_dir):

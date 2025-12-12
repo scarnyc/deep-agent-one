@@ -4,6 +4,7 @@ Event serialization utilities for converting LangChain objects to JSON-safe dict
 Handles serialization of LangChain message objects (HumanMessage, AIMessage, etc.)
 for WebSocket streaming and API responses.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,7 +24,9 @@ def _lazy_import_langchain_types():
     from langchain_core.messages import BaseMessage
     from langchain_core.messages.ai import AIMessageChunk
     from langgraph.types import Send
+
     return BaseMessage, AIMessageChunk, Send
+
 
 logger = get_logger(__name__)
 

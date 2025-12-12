@@ -1,4 +1,5 @@
 """Tests for GPT Pydantic models."""
+
 import pytest
 from pydantic import ValidationError
 

@@ -4,7 +4,6 @@ Unit tests for agent prompts module.
 Tests prompt selection, environment-specific variants, and versioning.
 """
 
-import pytest
 from unittest.mock import Mock, patch
 
 from backend.deep_agent.config.settings import Settings
@@ -94,8 +93,8 @@ class TestGetAgentInstructions:
     def test_returns_dev_instructions_for_local_env(self) -> None:
         """Test function returns dev instructions for local environment."""
         from backend.deep_agent.agents.prompts import (
-            get_agent_instructions,
             DEEP_AGENT_INSTRUCTIONS_DEV,
+            get_agent_instructions,
         )
 
         instructions = get_agent_instructions(env="local")
@@ -104,8 +103,8 @@ class TestGetAgentInstructions:
     def test_returns_dev_instructions_for_dev_env(self) -> None:
         """Test function returns dev instructions for dev environment."""
         from backend.deep_agent.agents.prompts import (
-            get_agent_instructions,
             DEEP_AGENT_INSTRUCTIONS_DEV,
+            get_agent_instructions,
         )
 
         instructions = get_agent_instructions(env="dev")
@@ -114,8 +113,8 @@ class TestGetAgentInstructions:
     def test_returns_prod_instructions_for_prod_env(self) -> None:
         """Test function returns prod instructions for prod environment."""
         from backend.deep_agent.agents.prompts import (
-            get_agent_instructions,
             DEEP_AGENT_INSTRUCTIONS_PROD,
+            get_agent_instructions,
         )
 
         instructions = get_agent_instructions(env="prod")
@@ -124,8 +123,8 @@ class TestGetAgentInstructions:
     def test_returns_prod_instructions_for_staging_env(self) -> None:
         """Test function returns prod instructions for staging environment."""
         from backend.deep_agent.agents.prompts import (
-            get_agent_instructions,
             DEEP_AGENT_INSTRUCTIONS_PROD,
+            get_agent_instructions,
         )
 
         instructions = get_agent_instructions(env="staging")
@@ -134,8 +133,8 @@ class TestGetAgentInstructions:
     def test_defaults_to_dev_for_unknown_env(self) -> None:
         """Test function defaults to dev instructions for unknown environment."""
         from backend.deep_agent.agents.prompts import (
-            get_agent_instructions,
             DEEP_AGENT_INSTRUCTIONS_DEV,
+            get_agent_instructions,
         )
 
         instructions = get_agent_instructions(env="unknown")
@@ -144,8 +143,8 @@ class TestGetAgentInstructions:
     def test_case_insensitive_env_matching(self) -> None:
         """Test environment matching is case-insensitive."""
         from backend.deep_agent.agents.prompts import (
-            get_agent_instructions,
             DEEP_AGENT_INSTRUCTIONS_PROD,
+            get_agent_instructions,
         )
 
         # Should work with uppercase
@@ -163,8 +162,8 @@ class TestGetAgentInstructionsWithSettings:
     def test_uses_settings_env_when_provided(self) -> None:
         """Test function uses ENV from Settings when no env parameter."""
         from backend.deep_agent.agents.prompts import (
-            get_agent_instructions,
             DEEP_AGENT_INSTRUCTIONS_PROD,
+            get_agent_instructions,
         )
 
         # Mock settings with prod ENV
@@ -177,8 +176,8 @@ class TestGetAgentInstructionsWithSettings:
     def test_env_parameter_overrides_settings(self) -> None:
         """Test explicit env parameter overrides Settings.ENV."""
         from backend.deep_agent.agents.prompts import (
-            get_agent_instructions,
             DEEP_AGENT_INSTRUCTIONS_DEV,
+            get_agent_instructions,
         )
 
         # Settings says prod, but we explicitly pass dev
@@ -215,9 +214,9 @@ class TestPromptOpikCompatibility:
         INSTRUCTIONS constants should be template-free.
         """
         from backend.deep_agent.agents.prompts import (
-            DEEP_AGENT_SYSTEM_PROMPT,
             DEEP_AGENT_INSTRUCTIONS_DEV,
             DEEP_AGENT_INSTRUCTIONS_PROD,
+            DEEP_AGENT_SYSTEM_PROMPT,
         )
 
         # All prompts should be plain strings
@@ -233,7 +232,7 @@ class TestPromptOpikCompatibility:
         ]:
             # No f-string remnants or template markers
             assert "{" not in prompt or "{{" in prompt  # Double braces OK (escaped)
-            assert not prompt.startswith("f\"")
+            assert not prompt.startswith('f"')
             assert not prompt.startswith("f'")
 
     def test_get_agent_instructions_returns_complete_prompt(self) -> None:

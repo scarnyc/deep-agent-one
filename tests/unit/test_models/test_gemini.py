@@ -1,11 +1,12 @@
 """Tests for Gemini Pydantic models."""
+
 import pytest
 from pydantic import ValidationError
 
 from backend.deep_agent.models.llm import (
+    THINKING_LEVEL_TO_BUDGET,
     GeminiConfig,
     ThinkingLevel,
-    THINKING_LEVEL_TO_BUDGET,
 )
 
 

@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """Fetch LangSmith trace and analyze events for mocking."""
 
-import os
 import json
-from langsmith import Client
+import os
+
 from dotenv import load_dotenv
+from langsmith import Client
 
 # Load environment variables
 load_dotenv()
+
 
 def fetch_trace(trace_id: str):
     """Fetch a specific trace from LangSmith."""
     client = Client(
         api_key=os.getenv("LANGSMITH_API_KEY"),
-        api_url=os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+        api_url=os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com"),
     )
 
     print(f"🔍 Fetching trace: {trace_id}")
@@ -42,28 +44,28 @@ def fetch_trace(trace_id: str):
 
             # Print inputs
             if run.inputs:
-                print(f"\n📥 INPUTS:")
+                print("\n📥 INPUTS:")
                 print(json.dumps(run.inputs, indent=2)[:500])
 
             # Print outputs
             if run.outputs:
-                print(f"\n📤 OUTPUTS:")
+                print("\n📤 OUTPUTS:")
                 print(json.dumps(run.outputs, indent=2)[:500])
 
             # Print errors if any
             if run.error:
-                print(f"\n❌ ERROR:")
+                print("\n❌ ERROR:")
                 print(run.error)
 
             # Print events if available
-            if hasattr(run, 'events') and run.events:
+            if hasattr(run, "events") and run.events:
                 print(f"\n📊 EVENTS ({len(run.events)}):")
                 for event in run.events[:10]:  # First 10 events
                     print(f"  - {event}")
 
             # Print extra metadata
             if run.extra:
-                print(f"\n🔧 EXTRA METADATA:")
+                print("\n🔧 EXTRA METADATA:")
                 print(json.dumps(run.extra, indent=2)[:500])
 
         # Save full trace to JSON for analysis
@@ -83,7 +85,7 @@ def fetch_trace(trace_id: str):
                     "extra": run.extra,
                 }
                 for run in runs
-            ]
+            ],
         }
 
         output_file = f"tests/scripts/trace_{trace_id.replace('-', '_')}.json"
@@ -103,7 +105,11 @@ def fetch_trace(trace_id: str):
         for i, tool_run in enumerate(tool_calls, 1):
             print(f"\n  Tool #{i}: {tool_run.name}")
             print(f"    Status: {tool_run.status}")
-            print(f"    Duration: {(tool_run.end_time - tool_run.start_time).total_seconds():.2f}s" if tool_run.end_time else "    Duration: N/A")
+            print(
+                f"    Duration: {(tool_run.end_time - tool_run.start_time).total_seconds():.2f}s"
+                if tool_run.end_time
+                else "    Duration: N/A"
+            )
             if tool_run.inputs:
                 print(f"    Input: {str(tool_run.inputs)[:100]}...")
             if tool_run.outputs:
@@ -112,7 +118,9 @@ def fetch_trace(trace_id: str):
     except Exception as e:
         print(f"❌ Error fetching trace: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     # Trace ID from user request (investigating 44.85s timeout)

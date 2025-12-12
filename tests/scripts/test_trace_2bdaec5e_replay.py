@@ -64,7 +64,7 @@ async def test_trace_2bdaec5e_replay():
             message = {
                 "type": "chat",
                 "message": "latest trends in quantum",
-                "thread_id": thread_id
+                "thread_id": thread_id,
             }
 
             print(f"📤 Sending: {message['message']}")
@@ -86,42 +86,42 @@ async def test_trace_2bdaec5e_replay():
                     event = json.loads(response)
                     events_received.append(event)
 
-                    event_type = event.get('event', 'unknown')
+                    event_type = event.get("event", "unknown")
 
                     # Track tool execution
-                    if event_type == 'on_tool_start' or event_type == 'on_tool_call_start':
+                    if event_type == "on_tool_start" or event_type == "on_tool_call_start":
                         tool_calls_started += 1
-                        tool_data = event.get('data', {})
-                        tool_name = tool_data.get('name', event.get('name', 'unknown'))
-                        query = tool_data.get('input', {}).get('query', 'N/A')
+                        tool_data = event.get("data", {})
+                        tool_name = tool_data.get("name", event.get("name", "unknown"))
+                        query = tool_data.get("input", {}).get("query", "N/A")
                         print(f"  🔧 Tool #{tool_calls_started} started: {tool_name}")
                         if len(query) > 80:
                             print(f"     Query: {query[:77]}...")
                         else:
                             print(f"     Query: {query}")
 
-                    elif event_type == 'on_tool_end' or event_type == 'on_tool_call_end':
+                    elif event_type == "on_tool_end" or event_type == "on_tool_call_end":
                         tool_calls_completed += 1
                         print(f"  ✅ Tool #{tool_calls_completed} completed")
 
                     # Track errors
-                    elif event_type == 'on_error':
+                    elif event_type == "on_error":
                         error_events.append(event)
-                        error_data = event.get('data', {})
-                        print(f"\n  ❌ ERROR EVENT RECEIVED:")
+                        error_data = event.get("data", {})
+                        print("\n  ❌ ERROR EVENT RECEIVED:")
                         print(f"     {json.dumps(error_data, indent=6)}\n")
 
                     # Track chain completion (only for main LangGraph chain, not middleware)
-                    elif event_type == 'on_chain_end':
-                        event_name = event.get('name', '')
-                        if event_name == 'LangGraph':
-                            print(f"\n  🏁 LangGraph chain complete")
+                    elif event_type == "on_chain_end":
+                        event_name = event.get("name", "")
+                        if event_name == "LangGraph":
+                            print("\n  🏁 LangGraph chain complete")
                             complete = True
                         else:
                             # Middleware chain ended, continue waiting for main chain
                             pass
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     elapsed = time.time() - start_time
                     print(f"\n⏱️  Timeout waiting for response ({elapsed:.1f}s elapsed)")
                     print("   This indicates the stream timed out (>300s)")
@@ -155,20 +155,17 @@ async def test_trace_2bdaec5e_replay():
                 "name": "Completed within 300s timeout",
                 "pass": elapsed_time < 300,
                 "expected": "< 300 seconds",
-                "actual": f"{elapsed_time:.2f} seconds"
+                "actual": f"{elapsed_time:.2f} seconds",
             }
             checks.append(check_timeout)
 
             # Check 2: No CancelledError
-            cancelled_errors = [
-                e for e in error_events
-                if 'cancel' in json.dumps(e).lower()
-            ]
+            cancelled_errors = [e for e in error_events if "cancel" in json.dumps(e).lower()]
             check_no_cancelled = {
                 "name": "No CancelledError received",
                 "pass": len(cancelled_errors) == 0,
                 "expected": "0 cancellation errors",
-                "actual": f"{len(cancelled_errors)} cancellation errors"
+                "actual": f"{len(cancelled_errors)} cancellation errors",
             }
             checks.append(check_no_cancelled)
 
@@ -177,16 +174,18 @@ async def test_trace_2bdaec5e_replay():
                 "name": "Tool calls executed",
                 "pass": tool_calls_started > 0,
                 "expected": ">= 1 tool call",
-                "actual": f"{tool_calls_started} tool calls"
+                "actual": f"{tool_calls_started} tool calls",
             }
             checks.append(check_tools)
 
             # Check 4: Tools completed successfully
             check_completion = {
                 "name": "Tool calls completed",
-                "pass": tool_calls_completed == tool_calls_started if tool_calls_started > 0 else True,
+                "pass": tool_calls_completed == tool_calls_started
+                if tool_calls_started > 0
+                else True,
                 "expected": f"{tool_calls_started} completions",
-                "actual": f"{tool_calls_completed} completions"
+                "actual": f"{tool_calls_completed} completions",
             }
             checks.append(check_completion)
 
@@ -195,7 +194,7 @@ async def test_trace_2bdaec5e_replay():
                 "name": "No duplicate error events",
                 "pass": len(error_events) <= 1,  # At most one error
                 "expected": "<= 1 error event",
-                "actual": f"{len(error_events)} error events"
+                "actual": f"{len(error_events)} error events",
             }
             checks.append(check_duplicates)
 
@@ -237,6 +236,7 @@ async def test_trace_2bdaec5e_replay():
     except Exception as e:
         print(f"\n💥 Test failed with exception: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -265,5 +265,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n💥 Fatal error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

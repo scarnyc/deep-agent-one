@@ -5,9 +5,9 @@ Tests the configuration and setup of LangSmith tracing for observability
 of agent operations, LLM calls, and tool invocations.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from typing import Any
+
+import pytest
 
 from backend.deep_agent.config.settings import Settings
 
@@ -94,9 +94,7 @@ class TestLangSmithSetup:
         """Test that setup_langsmith uses get_settings() when settings=None."""
         from backend.deep_agent.integrations.langsmith import setup_langsmith
 
-        with patch(
-            "backend.deep_agent.integrations.langsmith.get_settings"
-        ) as mock_get_settings:
+        with patch("backend.deep_agent.integrations.langsmith.get_settings") as mock_get_settings:
             mock_settings = Mock(spec=Settings)
             mock_settings.LANGSMITH_API_KEY = "test_key"
             mock_settings.LANGSMITH_PROJECT = "test-project"

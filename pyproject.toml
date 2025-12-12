@@ -169,3 +169,8 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@abstractmethod",
 ]
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv", ".pf", ".cache", "scripts"]
+targets = ["backend"]
+skips = ["B110", "B311"]  # B110: try_except_pass (intentional for trace logging), B311: random (non-security use)

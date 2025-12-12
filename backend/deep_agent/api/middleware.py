@@ -50,7 +50,7 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
             logger.debug(
                 "Skipping timeout for excluded path",
                 path=request.url.path,
-                reason="websocket_with_own_timeout"
+                reason="websocket_with_own_timeout",
             )
             return await call_next(request)
 

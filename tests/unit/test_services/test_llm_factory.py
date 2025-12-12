@@ -3,15 +3,16 @@
 NOTE: Uses string-based type checking to avoid importing langchain_google_genai
 at module load time, which causes gRPC initialization hangs.
 """
+
 import pytest
 
 from backend.deep_agent.models.llm import (
+    THINKING_LEVEL_TO_BUDGET,
     GeminiConfig,
     GPTConfig,
     ReasoningEffort,
     ThinkingLevel,
     Verbosity,
-    THINKING_LEVEL_TO_BUDGET,
 )
 from backend.deep_agent.services.llm_factory import create_gemini_llm, create_gpt_llm
 

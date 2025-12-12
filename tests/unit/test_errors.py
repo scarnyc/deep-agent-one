@@ -6,20 +6,21 @@ inheritance, error message handling, and raise/catch behavior for all
 exception types. Also tests error handling utilities for safe validation
 errors and structured error responses.
 """
+
 import pytest
 
 from backend.deep_agent.core.errors import (
-    DeepAgentError,
-    ConfigurationError,
-    LLMError,
-    ToolError,
-    MCPError,
-    AuthenticationError,
-    DatabaseError,
-    ErrorCode,
     SAFE_VALIDATION_ERRORS,
-    safe_validation_error,
+    AuthenticationError,
+    ConfigurationError,
+    DatabaseError,
+    DeepAgentError,
+    ErrorCode,
+    LLMError,
+    MCPError,
+    ToolError,
     build_structured_error,
+    safe_validation_error,
 )
 
 

@@ -74,11 +74,13 @@ def __getattr__(name):
         )
 
         # Cache the imports in module globals
-        globals().update({
-            "OpikClient": OpikClient,
-            "OptimizerAlgorithm": OptimizerAlgorithm,
-            "ALGORITHM_SELECTION_GUIDE": ALGORITHM_SELECTION_GUIDE,
-            "get_opik_client": get_opik_client,
-        })
+        globals().update(
+            {
+                "OpikClient": OpikClient,
+                "OptimizerAlgorithm": OptimizerAlgorithm,
+                "ALGORITHM_SELECTION_GUIDE": ALGORITHM_SELECTION_GUIDE,
+                "get_opik_client": get_opik_client,
+            }
+        )
         return globals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

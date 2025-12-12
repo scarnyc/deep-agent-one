@@ -45,7 +45,7 @@ async def test_websocket_events():
             # Send test message
             message = {
                 "message": "Hello, can you help me?",
-                "thread_id": f"test-{int(datetime.utcnow().timestamp())}"
+                "thread_id": f"test-{int(datetime.utcnow().timestamp())}",
             }
 
             print(f"Sending message: {message['message']}")
@@ -90,7 +90,7 @@ async def test_websocket_events():
                     else:
                         print(f"  {event_type}")
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     continue
                 except json.JSONDecodeError as e:
                     print(f"⚠️  JSON decode error: {e}")

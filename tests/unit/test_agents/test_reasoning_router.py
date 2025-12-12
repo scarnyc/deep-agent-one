@@ -1,4 +1,5 @@
 """Tests for reasoning router."""
+
 import pytest
 
 from backend.deep_agent.agents.reasoning_router import ReasoningRouter

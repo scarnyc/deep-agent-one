@@ -1,4 +1,5 @@
 """Checkpointer manager for LangGraph state persistence."""
+
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -9,13 +10,16 @@ from deep_agent.config.settings import Settings, get_settings
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
-    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+    pass
 
 
 def _lazy_import_checkpointer():
     """Lazy import of AsyncSqliteSaver to avoid blocking at module load time."""
     from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
     return AsyncSqliteSaver
+
+
 from deep_agent.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -345,9 +349,7 @@ class CheckpointerManager:
                 self._connection = None
                 logger.debug("Closed database connection")
             except Exception as e:
-                logger.warning(
-                    "Error closing database connection", error=str(e)
-                )
+                logger.warning("Error closing database connection", error=str(e))
 
     async def __aenter__(self) -> "CheckpointerManager":
         """

@@ -7,13 +7,13 @@ end-to-end flows for essential features.
 
 Workflows Covered:
     1. Basic Chat Workflow (test_basic_chat.py)
-       - User sends message ’ Agent processes ’ Response returned
+       - User sends message -> Agent processes -> Response returned
        - Conversation history management
        - Input validation and error handling
        - Response time performance
 
     2. Human-in-the-Loop (HITL) Workflow (test_hitl_workflow.py)
-       - Agent requests approval ’ User approves/rejects ’ Agent continues
+       - Agent requests approval -> User approves/rejects -> Agent continues
        - State persistence during interruption
        - Multiple approval checkpoints
        - Timeout handling
@@ -26,7 +26,7 @@ Workflows Covered:
 
 Testing Approach:
     - Mock only external APIs (OpenAI, Perplexity, LangSmith)
-    - Test complete internal flow (API ’ Service ’ Agent ’ Tools)
+    - Test complete internal flow (API -> Service -> Agent -> Tools)
     - Verify state persistence through checkpointer
     - Validate response structure and business logic
     - Measure performance against success criteria

@@ -144,8 +144,7 @@ PROMPT_VARIANTS: dict[str, str] = {
 
 
 def select_prompt_variant(
-    user_id: str | None = None,
-    variant_name: str | None = None
+    user_id: str | None = None, variant_name: str | None = None
 ) -> tuple[str, str]:
     """
     Select a prompt variant for A/B testing.
@@ -173,8 +172,7 @@ def select_prompt_variant(
     if variant_name:
         if variant_name not in PROMPT_VARIANTS:
             raise ValueError(
-                f"Unknown variant: {variant_name}. "
-                f"Available: {list(PROMPT_VARIANTS.keys())}"
+                f"Unknown variant: {variant_name}. " f"Available: {list(PROMPT_VARIANTS.keys())}"
             )
         return variant_name, PROMPT_VARIANTS[variant_name]
 
@@ -236,33 +234,30 @@ def get_variant_metadata(variant_name: str) -> dict[str, any]:
             "description": "Current production prompt (dev version)",
             "estimated_tokens": 778,
             "target_reduction": 0,
-            "focus": "Baseline for comparison"
+            "focus": "Baseline for comparison",
         },
         "max_compression": {
             "description": "Maximum compression - 50% reduction",
             "estimated_tokens": 389,
             "target_reduction": 50,
-            "focus": "Token efficiency and cost optimization"
+            "focus": "Token efficiency and cost optimization",
         },
         "balanced": {
             "description": "Balanced optimization - 35% reduction",
             "estimated_tokens": 505,
             "target_reduction": 35,
-            "focus": "Balance between efficiency and clarity"
+            "focus": "Balance between efficiency and clarity",
         },
         "conservative": {
             "description": "Conservative refinement - 20% reduction",
             "estimated_tokens": 622,
             "target_reduction": 20,
-            "focus": "Minimal changes, preserve all information"
+            "focus": "Minimal changes, preserve all information",
         },
     }
 
     if variant_name not in metadata:
-        raise ValueError(
-            f"Unknown variant: {variant_name}. "
-            f"Available: {list(metadata.keys())}"
-        )
+        raise ValueError(f"Unknown variant: {variant_name}. " f"Available: {list(metadata.keys())}")
 
     return metadata[variant_name]
 

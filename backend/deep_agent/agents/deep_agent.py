@@ -26,9 +26,7 @@ from deep_agent.models.llm import (
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
-    from deepagents import create_deep_agent
-    from langchain.agents.middleware import ModelFallbackMiddleware
-    from langgraph.graph.state import CompiledStateGraph
+    pass
 
 logger = get_logger(__name__)
 
@@ -36,12 +34,14 @@ logger = get_logger(__name__)
 def _lazy_import_deepagents():
     """Lazy import of deepagents to avoid blocking at module load time."""
     from deepagents import create_deep_agent
+
     return create_deep_agent
 
 
 def _lazy_import_middleware():
     """Lazy import of ModelFallbackMiddleware to avoid blocking at module load time."""
     from langchain.agents.middleware import ModelFallbackMiddleware
+
     return ModelFallbackMiddleware
 
 

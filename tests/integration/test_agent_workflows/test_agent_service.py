@@ -4,11 +4,11 @@ Integration tests for AgentService orchestration layer.
 Tests the service that orchestrates agent creation, invocation, and lifecycle management.
 """
 
-import pytest
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from langgraph.graph.state import CompiledStateGraph
 
 from backend.deep_agent.config.settings import Settings
@@ -126,10 +126,7 @@ class TestAgentServiceInvocation:
             service = AgentService(settings=mock_settings)
 
             # Act
-            result = await service.invoke(
-                message="Hello, agent!",
-                thread_id="test-thread-123"
-            )
+            result = await service.invoke(message="Hello, agent!", thread_id="test-thread-123")
 
             # Assert
             assert result is not None
@@ -162,10 +159,7 @@ class TestAgentServiceInvocation:
             service = AgentService(settings=mock_settings)
 
             # Act
-            await service.invoke(
-                message="Test message",
-                thread_id="user-456"
-            )
+            await service.invoke(message="Test message", thread_id="user-456")
 
             # Assert
             call_args = mock_agent.ainvoke.call_args
@@ -225,8 +219,7 @@ class TestAgentServiceStreaming:
             # Act
             chunks = []
             async for chunk in service.stream(
-                message="Test streaming",
-                thread_id="stream-thread-1"
+                message="Test streaming", thread_id="stream-thread-1"
             ):
                 chunks.append(chunk)
 
@@ -434,6 +427,7 @@ class TestAgentServiceConcurrency:
     ) -> None:
         """Test concurrent invocations only create agent once (thread-safe)."""
         import asyncio
+
         from backend.deep_agent.services.agent_service import AgentService
 
         call_count = 0
@@ -450,10 +444,7 @@ class TestAgentServiceConcurrency:
             service = AgentService(settings=mock_settings)
 
             # Act - invoke concurrently (should only create agent once)
-            tasks = [
-                service.invoke(f"Message {i}", f"thread-{i}")
-                for i in range(5)
-            ]
+            tasks = [service.invoke(f"Message {i}", f"thread-{i}") for i in range(5)]
             await asyncio.gather(*tasks)
 
             # Assert - create_agent called exactly once despite concurrent calls

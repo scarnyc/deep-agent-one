@@ -6,6 +6,7 @@ Provides REST endpoints for:
 - Approving/responding to HITL requests
 - Managing agent execution state
 """
+
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -106,7 +107,9 @@ async def get_agent_status(request: Request, thread_id: str) -> AgentRunInfo:
             thread_id=thread_id,
             status=agent_status,
             started_at=state.get("created_at") or datetime.now(UTC).isoformat(),
-            completed_at=None if agent_status == AgentRunStatus.RUNNING else state.get("created_at"),
+            completed_at=None
+            if agent_status == AgentRunStatus.RUNNING
+            else state.get("created_at"),
             metadata=state.get("metadata", {}),
         )
 
@@ -135,7 +138,7 @@ async def get_agent_status(request: Request, thread_id: str) -> AgentRunInfo:
         # Try to extract run_id if state was retrieved
         run_id = None
         try:
-            if 'state' in locals():
+            if "state" in locals():
                 run_id = state["config"]["configurable"].get("checkpoint_id")
         except Exception:
             pass
@@ -296,7 +299,11 @@ async def approve_hitl_request(
                 error=str(e),
             )
 
-            status_code = status.HTTP_404_NOT_FOUND if "not found" in error_msg else status.HTTP_400_BAD_REQUEST
+            status_code = (
+                status.HTTP_404_NOT_FOUND
+                if "not found" in error_msg
+                else status.HTTP_400_BAD_REQUEST
+            )
 
             raise HTTPException(
                 status_code=status_code,

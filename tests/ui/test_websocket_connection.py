@@ -6,11 +6,7 @@ AG-UI Protocol endpoint at /api/v1/ws.
 
 Following TDD: These tests are written BEFORE implementing the hook.
 """
-import json
-import time
-from typing import Any
 
-import pytest
 from playwright.sync_api import Page, expect
 
 
@@ -259,6 +255,7 @@ class TestWebSocketConnection:
 
         # Should start as "connecting" or "connected"
         import re
+
         expect(connection_status).to_have_text(re.compile(r"connecting|connected"), timeout=5000)
 
         # Eventually should be "connected"
@@ -268,7 +265,9 @@ class TestWebSocketConnection:
         page.context.set_offline(True)
 
         # Should show "disconnected" or "reconnecting"
-        expect(connection_status).to_have_text(re.compile(r"disconnected|reconnecting"), timeout=3000)
+        expect(connection_status).to_have_text(
+            re.compile(r"disconnected|reconnecting"), timeout=3000
+        )
 
         # Reconnect
         page.context.set_offline(False)

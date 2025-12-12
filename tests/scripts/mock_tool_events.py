@@ -5,9 +5,9 @@ This module simulates the exact event sequence from the original trace where
 10 parallel web_search tool calls were executed, taking 8-14 seconds each.
 """
 
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
 import uuid
+from datetime import datetime
+from typing import Any
 
 
 class TraceEventGenerator:
@@ -31,14 +31,14 @@ class TraceEventGenerator:
     TOOL_DURATIONS = [
         11.47,  # Tool 1: 11.47s
         13.63,  # Tool 2: 13.63s (longest)
-        7.71,   # Tool 3: 7.71s
-        7.49,   # Tool 4: 7.49s
-        7.72,   # Tool 5: 7.72s
-        9.43,   # Tool 6: 9.43s
-        8.20,   # Tool 7: 8.20s
-        8.19,   # Tool 8: 8.19s
-        9.43,   # Tool 9: 9.43s
-        9.63,   # Tool 10: 9.63s
+        7.71,  # Tool 3: 7.71s
+        7.49,  # Tool 4: 7.49s
+        7.72,  # Tool 5: 7.72s
+        9.43,  # Tool 6: 9.43s
+        8.20,  # Tool 7: 8.20s
+        8.19,  # Tool 8: 8.19s
+        9.43,  # Tool 9: 9.43s
+        9.63,  # Tool 10: 9.63s
     ]
 
     # Mock web search queries (realistic based on quantum computing trends)
@@ -61,17 +61,14 @@ class TraceEventGenerator:
         self.trace_id = trace_id or "e2eaaf57-67f2-4f2b-9143-9eb9fcdc8f06"
         self.start_time = datetime.now()
 
-    def generate_chain_start(self) -> Dict[str, Any]:
+    def generate_chain_start(self) -> dict[str, Any]:
         """Generate on_chain_start event."""
         return {
             "event": "on_chain_start",
             "data": {
                 "input": {
                     "messages": [
-                        {
-                            "content": "what's the latest trends in quantum?",
-                            "type": "human"
-                        }
+                        {"content": "what's the latest trends in quantum?", "type": "human"}
                     ]
                 }
             },
@@ -86,10 +83,10 @@ class TraceEventGenerator:
             },
         }
 
-    def generate_tool_call_start_events(self) -> List[Dict[str, Any]]:
+    def generate_tool_call_start_events(self) -> list[dict[str, Any]]:
         """Generate 10 on_tool_call_start events (parallel tool execution)."""
         events = []
-        for i, (tool_id, query) in enumerate(zip(self.TOOL_IDS, self.TOOL_QUERIES)):
+        for i, (tool_id, query) in enumerate(zip(self.TOOL_IDS, self.TOOL_QUERIES, strict=False)):
             event = {
                 "event": "on_tool_call_start",
                 "data": {
@@ -112,11 +109,11 @@ class TraceEventGenerator:
             events.append(event)
         return events
 
-    def generate_tool_call_end_events(self) -> List[tuple[float, Dict[str, Any]]]:
+    def generate_tool_call_end_events(self) -> list[tuple[float, dict[str, Any]]]:
         """Generate 10 on_tool_call_end events with timing (duration, event)."""
         events = []
         for i, (tool_id, duration, query) in enumerate(
-            zip(self.TOOL_IDS, self.TOOL_DURATIONS, self.TOOL_QUERIES)
+            zip(self.TOOL_IDS, self.TOOL_DURATIONS, self.TOOL_QUERIES, strict=False)
         ):
             event = {
                 "event": "on_tool_call_end",
@@ -146,7 +143,7 @@ class TraceEventGenerator:
             events.append((duration, event))
         return events
 
-    def generate_llm_stream_events(self) -> List[Dict[str, Any]]:
+    def generate_llm_stream_events(self) -> list[dict[str, Any]]:
         """Generate on_chat_model_stream events (model response after tools)."""
         response_chunks = [
             "Based on the latest research, here are the key quantum computing trends:\n\n",
@@ -179,7 +176,7 @@ class TraceEventGenerator:
             events.append(event)
         return events
 
-    def generate_chain_end(self) -> Dict[str, Any]:
+    def generate_chain_end(self) -> dict[str, Any]:
         """Generate on_chain_end event."""
         return {
             "event": "on_chain_end",
@@ -188,7 +185,7 @@ class TraceEventGenerator:
                     "messages": [
                         {
                             "content": "Based on the latest research, quantum trends include...",
-                            "type": "ai"
+                            "type": "ai",
                         }
                     ]
                 }
@@ -203,7 +200,7 @@ class TraceEventGenerator:
             },
         }
 
-    def generate_all_events(self) -> List[tuple[float, Dict[str, Any]]]:
+    def generate_all_events(self) -> list[tuple[float, dict[str, Any]]]:
         """Generate complete event sequence with timing.
 
         Returns:
@@ -266,14 +263,15 @@ def main():
         print(f"  {event_type:30s}: {count:2d}")
 
     # Verify tool events are present
-    tool_events = [
-        e for _, e in events
-        if e["event"] in ["on_tool_call_start", "on_tool_call_end"]
-    ]
+    tool_events = [e for _, e in events if e["event"] in ["on_tool_call_start", "on_tool_call_end"]]
 
     print(f"\n✓ Tool events present: {len(tool_events)} (expected: 20)")
-    print(f"  - on_tool_call_start: {len([e for _, e in events if e['event'] == 'on_tool_call_start'])}")
-    print(f"  - on_tool_call_end: {len([e for _, e in events if e['event'] == 'on_tool_call_end'])}")
+    print(
+        f"  - on_tool_call_start: {len([e for _, e in events if e['event'] == 'on_tool_call_start'])}"
+    )
+    print(
+        f"  - on_tool_call_end: {len([e for _, e in events if e['event'] == 'on_tool_call_end'])}"
+    )
 
 
 if __name__ == "__main__":

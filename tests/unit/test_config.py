@@ -5,8 +5,9 @@ Tests the Settings class and get_settings() function, ensuring proper loading
 from environment variables, validation of required fields, default values,
 and singleton pattern behavior.
 """
-import os
+
 from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -52,7 +53,9 @@ class TestSettings:
         assert settings.API_HOST == "127.0.0.1"
         assert settings.API_PORT == 8000
 
-    def test_settings_required_fields(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_settings_required_fields(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         """
         Test that required fields must be provided.
 
@@ -67,9 +70,15 @@ class TestSettings:
         empty_env.write_text("")
 
         # Patch env_file to use empty file and delete OPENAI_API_KEY from env
-        monkeypatch.setattr("backend.deep_agent.config.settings.Settings.model_config",
-                           {"env_file": str(empty_env), "env_file_encoding": "utf-8",
-                            "case_sensitive": True, "extra": "ignore"})
+        monkeypatch.setattr(
+            "backend.deep_agent.config.settings.Settings.model_config",
+            {
+                "env_file": str(empty_env),
+                "env_file_encoding": "utf-8",
+                "case_sensitive": True,
+                "extra": "ignore",
+            },
+        )
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
         with pytest.raises(ValidationError) as exc_info:
@@ -102,9 +111,7 @@ class TestSettings:
         assert settings.API_HOST == "0.0.0.0"
         assert settings.API_PORT == 8000
 
-    def test_settings_reasoning_effort_validation(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_settings_reasoning_effort_validation(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Test that reasoning effort must be valid value.
 
@@ -120,9 +127,7 @@ class TestSettings:
         with pytest.raises(ValidationError):
             Settings()
 
-    def test_settings_cors_origins_parsing(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_settings_cors_origins_parsing(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Test that CORS origins are parsed from comma-separated string.
 
@@ -159,9 +164,7 @@ class TestSettings:
 
         assert settings1 is settings2
 
-    def test_settings_log_level_conversion(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_settings_log_level_conversion(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Test that log level string is converted to uppercase.
 
@@ -178,9 +181,7 @@ class TestSettings:
 
         assert settings.LOG_LEVEL == "INFO"
 
-    def test_settings_database_url_format(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_settings_database_url_format(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
         Test that database URL is properly formatted.
 
@@ -191,9 +192,7 @@ class TestSettings:
             Settings.DATABASE_URL matches environment value
         """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-        monkeypatch.setenv(
-            "DATABASE_URL", "postgresql://user:pass@localhost:5432/testdb"
-        )
+        monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/testdb")
 
         settings = Settings()
 

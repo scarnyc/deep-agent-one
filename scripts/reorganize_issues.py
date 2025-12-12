@@ -47,9 +47,55 @@ Exit Codes:
 
 # Issue categorization based on migration strategy analysis
 DEFERRED_ISSUES = [6, 26, 28, 30, 31, 99, 113]
-OBSOLETE_ISSUES = [35, 38, 39, 40, 41, 42, 43, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62,
-                    63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 78, 79, 82,
-                    91, 92, 93, 94, 95, 96, 97, 98, 107, 108, 109, 110, 111]
+OBSOLETE_ISSUES = [
+    35,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    78,
+    79,
+    82,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    107,
+    108,
+    109,
+    110,
+    111,
+]
 TRACKED_ISSUES = [14, 21, 100, 101, 102, 103, 104, 105, 106, 112]
 
 HEADER = """# GitHub Issues - Migration Strategy
@@ -126,6 +172,7 @@ HEADER = """# GitHub Issues - Migration Strategy
 
 """
 
+
 def extract_issue_content(lines, issue_num):
     """Extract complete issue content from file lines."""
     start_marker = f"## Issue {issue_num}:"
@@ -146,6 +193,7 @@ def extract_issue_content(lines, issue_num):
 
     return "".join(content).strip()
 
+
 def add_migration_note(issue_num, category):
     """Generate migration strategy note for an issue."""
 
@@ -155,44 +203,44 @@ def add_migration_note(issue_num, category):
             "service": "Agent Service",
             "week": "Weeks 7-8",
             "rationale": "ReasoningRouter configuration will be redesigned as part of Agent Service microservice. New service will have proper config management patterns.",
-            "workaround": "Phase 1 placeholder feature, not needed for Phase 0."
+            "workaround": "Phase 1 placeholder feature, not needed for Phase 0.",
         },
         26: {
             "service": "API Gateway",
             "week": "Weeks 9-10",
             "rationale": "API Gateway (Kong) will implement centralized health checks with dependency status for all microservices. Don't build this in monolith.",
-            "workaround": "Basic health check works for Phase 0."
+            "workaround": "Basic health check works for Phase 0.",
         },
         28: {
             "service": "All Microservices",
             "week": "Weeks 9-10",
             "rationale": "Each microservice will have its own version management. Implement consistent versioning strategy during service creation.",
-            "workaround": "Hardcoded version acceptable for Phase 0."
+            "workaround": "Hardcoded version acceptable for Phase 0.",
         },
         30: {
             "service": "Chat Service",
             "week": "Weeks 5-6",
             "rationale": "Chat Service microservice will implement proper timeout handling for SSE streams with configurable limits.",
-            "workaround": "Not critical for Phase 0 single-user dev environment."
+            "workaround": "Not critical for Phase 0 single-user dev environment.",
         },
         31: {
             "service": "Chat Service",
             "week": "Weeks 5-6",
             "rationale": "Event transformation will be redesigned in Chat Service microservice. May implement new event pipeline architecture.",
-            "workaround": "Current implementation works, will be refactored."
+            "workaround": "Current implementation works, will be refactored.",
         },
         99: {
             "service": "State Service + Agent Service",
             "week": "Weeks 3-4",
             "rationale": "Agent Service microservice will have new initialization pattern with dependency injection. State Service provides checkpointer.",
-            "workaround": "Errors caught at FastAPI level, manageable for MVP."
+            "workaround": "Errors caught at FastAPI level, manageable for MVP.",
         },
         113: {
             "service": "Agent Service",
             "week": "Weeks 7-8",
             "rationale": "Agent Service will implement incremental synthesis to avoid 45s timeout. Complex architectural change better done during service split.",
-            "workaround": "Users can limit parallel tools by rephrasing queries."
-        }
+            "workaround": "Users can limit parallel tools by rephrasing queries.",
+        },
     }
 
     # TRACKED notes
@@ -206,7 +254,7 @@ def add_migration_note(issue_num, category):
         104: "Code quality improvement for IDE support. Non-functional change.",
         105: "Documentation clarity. Update comment to reference Phase 1.",
         106: "CI/CD debugging improvement. Useful for migration testing.",
-        112: "Security tooling fix. Manual reviews working, can defer to Phase 1."
+        112: "Security tooling fix. Manual reviews working, can defer to Phase 1.",
     }
 
     if category == "DEFERRED":
@@ -250,9 +298,10 @@ def add_migration_note(issue_num, category):
 
     return ""
 
+
 def main():
     # Read original file
-    with open("GITHUB_ISSUES.md", "r") as f:
+    with open("GITHUB_ISSUES.md") as f:
         lines = f.readlines()
 
     # Start building new file
@@ -272,8 +321,12 @@ def main():
 
     # === TRACKED SECTION ===
     new_content.append("\n\n## 📋 TRACKED ISSUES (10 Low-Priority Issues)\n\n")
-    new_content.append("**Strategy:** Fix when time permits - Non-blocking quality improvements.\n\n")
-    new_content.append("**Rationale:** These are nice-to-have improvements that don't block migration or production deployment. Can be addressed incrementally after migration completes.\n\n")
+    new_content.append(
+        "**Strategy:** Fix when time permits - Non-blocking quality improvements.\n\n"
+    )
+    new_content.append(
+        "**Rationale:** These are nice-to-have improvements that don't block migration or production deployment. Can be addressed incrementally after migration completes.\n\n"
+    )
     new_content.append("**Priority:** All issues in this section are LOW priority.\n\n")
     new_content.append("---\n\n")
 
@@ -293,7 +346,10 @@ def main():
     print(f"   - OBSOLETE: {len(OBSOLETE_ISSUES)} issues (REMOVED from file)")
     print(f"   - TRACKED: {len(TRACKED_ISSUES)} issues (in file)")
     print(f"   - TOTAL IN FILE: {len(DEFERRED_ISSUES) + len(TRACKED_ISSUES)} issues")
-    print(f"   - ORIGINAL TOTAL: {len(DEFERRED_ISSUES) + len(OBSOLETE_ISSUES) + len(TRACKED_ISSUES)} issues")
+    print(
+        f"   - ORIGINAL TOTAL: {len(DEFERRED_ISSUES) + len(OBSOLETE_ISSUES) + len(TRACKED_ISSUES)} issues"
+    )
+
 
 if __name__ == "__main__":
     main()

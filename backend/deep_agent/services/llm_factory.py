@@ -12,6 +12,7 @@ PERFORMANCE OPTIMIZATION:
     - This module provides async versions that run imports in thread pool
     - Pre-warming functions allow background initialization at server startup
 """
+
 import asyncio
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -26,12 +27,11 @@ from tenacity import (
 )
 
 from deep_agent.core.logging import get_logger
-from deep_agent.models.llm import GeminiConfig, GPTConfig, THINKING_LEVEL_TO_BUDGET
+from deep_agent.models.llm import THINKING_LEVEL_TO_BUDGET, GeminiConfig, GPTConfig
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
-    from langchain_google_genai import ChatGoogleGenerativeAI
-    from langchain_openai import ChatOpenAI
+    pass
 
 logger = get_logger(__name__)
 
@@ -60,6 +60,7 @@ def _lazy_import_openai():
     try:
         from langchain_openai import ChatOpenAI
         from openai import AsyncOpenAI
+
         _openai_class_cache = (ChatOpenAI, AsyncOpenAI)
         return _openai_class_cache
     except ImportError as e:
@@ -88,6 +89,7 @@ def _lazy_import_google_genai():
     try:
         logger.debug("Starting Gemini import (may take 8-12 seconds for gRPC compilation)")
         from langchain_google_genai import ChatGoogleGenerativeAI
+
         _gemini_class_cache = ChatGoogleGenerativeAI
         logger.debug("Gemini import completed")
         return _gemini_class_cache
@@ -131,15 +133,12 @@ async def async_import_google_genai(timeout_seconds: float = 30.0) -> Any:
 
     try:
         result = await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(
-                _init_executor,
-                _lazy_import_google_genai
-            ),
-            timeout=timeout_seconds
+            asyncio.get_event_loop().run_in_executor(_init_executor, _lazy_import_google_genai),
+            timeout=timeout_seconds,
         )
         logger.info("Async Gemini import completed")
         return result
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(
             "Gemini import timed out",
             timeout_seconds=timeout_seconds,
@@ -167,15 +166,12 @@ async def async_import_openai(timeout_seconds: float = 15.0) -> tuple[Any, Any]:
 
     try:
         result = await asyncio.wait_for(
-            asyncio.get_event_loop().run_in_executor(
-                _init_executor,
-                _lazy_import_openai
-            ),
-            timeout=timeout_seconds
+            asyncio.get_event_loop().run_in_executor(_init_executor, _lazy_import_openai),
+            timeout=timeout_seconds,
         )
         logger.info("Async OpenAI import completed")
         return result
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error("OpenAI import timed out", timeout_seconds=timeout_seconds)
         raise RuntimeError(f"OpenAI initialization timed out after {timeout_seconds}s")
 
@@ -254,7 +250,7 @@ def create_gemini_llm(
 
     This factory function creates LangChain-compatible ChatGoogleGenerativeAI instances
     configured for Gemini 3 Pro with thinking level and temperature settings.
-    
+
     Uses lazy import to prevent blocking during module initialization.
 
     Args:
@@ -308,7 +304,18 @@ def create_gemini_llm(
         thinking_budget=thinking_budget,  # Use token budget instead of level string
         max_output_tokens=kwargs.get("max_output_tokens", config.max_output_tokens),
         streaming=config.streaming,
-        **{k: v for k, v in kwargs.items() if k not in ["model", "temperature", "max_output_tokens", "thinking_level", "thinking_budget"]},
+        **{
+            k: v
+            for k, v in kwargs.items()
+            if k
+            not in [
+                "model",
+                "temperature",
+                "max_output_tokens",
+                "thinking_level",
+                "thinking_budget",
+            ]
+        },
     )
 
 
@@ -371,9 +378,9 @@ def create_gpt_llm(
         api_key=api_key,
         timeout=Timeout(
             connect=10.0,  # Connection timeout
-            read=120.0,    # Read timeout (increased from default 60s)
-            write=10.0,    # Write timeout
-            pool=10.0,     # Pool timeout
+            read=120.0,  # Read timeout (increased from default 60s)
+            write=10.0,  # Write timeout
+            pool=10.0,  # Pool timeout
         ),
         max_retries=2,  # Built-in retry for transient failures
     )

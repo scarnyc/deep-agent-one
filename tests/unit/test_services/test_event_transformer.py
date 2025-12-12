@@ -4,8 +4,8 @@ Unit tests for EventTransformer.
 Tests transformation logic for LangGraph events → UI-compatible format.
 """
 
-
 import pytest
+
 from backend.deep_agent.services.event_transformer import EventTransformer
 
 
@@ -24,16 +24,11 @@ class TestToolEventTransformation:
             "event": "on_tool_start",
             "run_id": "tool-123",
             "name": "web_search",
-            "data": {
-                "input": {
-                    "query": "latest AI news",
-                    "max_results": 5
-                }
-            },
+            "data": {"input": {"query": "latest AI news", "max_results": 5}},
             "metadata": {
                 "thread_id": "thread-456",
                 "trace_id": "trace-789",
-            }
+            },
         }
 
         result = transformer.transform(langgraph_event)
@@ -63,14 +58,10 @@ class TestToolEventTransformation:
             "run_id": "tool-123",
             "name": "web_search",
             "data": {
-                "input": {
-                    "query": "latest AI news"
-                },
-                "output": "Found 5 sources for 'latest AI news'..."
+                "input": {"query": "latest AI news"},
+                "output": "Found 5 sources for 'latest AI news'...",
             },
-            "metadata": {
-                "thread_id": "thread-456"
-            }
+            "metadata": {"thread_id": "thread-456"},
         }
 
         result = transformer.transform(langgraph_event)
@@ -117,12 +108,8 @@ class TestChainEventTransformation:
             "event": "on_chain_start",
             "run_id": "step-123",
             "name": "Agent Planning",
-            "data": {
-                "context": "initial planning"
-            },
-            "metadata": {
-                "thread_id": "thread-456"
-            }
+            "data": {"context": "initial planning"},
+            "metadata": {"thread_id": "thread-456"},
         }
 
         result = transformer.transform(langgraph_event)
@@ -148,10 +135,8 @@ class TestChainEventTransformation:
             "event": "on_chain_end",
             "run_id": "step-123",
             "name": "Agent Planning",
-            "data": {
-                "output": "Plan created successfully"
-            },
-            "metadata": {}
+            "data": {"output": "Plan created successfully"},
+            "metadata": {},
         }
 
         result = transformer.transform(langgraph_event)
@@ -194,12 +179,9 @@ class TestPassThroughEvents:
                 "status": "processing",
                 "message": "Agent is still processing...",
                 "heartbeat_number": 3,
-                "elapsed_seconds": 15
+                "elapsed_seconds": 15,
             },
-            "metadata": {
-                "thread_id": "thread-456",
-                "timestamp": "2025-11-14T12:00:00Z"
-            }
+            "metadata": {"thread_id": "thread-456", "timestamp": "2025-11-14T12:00:00Z"},
         }
 
         result = transformer.transform(heartbeat_event)
@@ -213,15 +195,8 @@ class TestPassThroughEvents:
         """Test on_chat_model_stream passes through unchanged."""
         stream_event = {
             "event": "on_chat_model_stream",
-            "data": {
-                "chunk": {
-                    "content": "Hello, ",
-                    "id": "msg-123"
-                }
-            },
-            "metadata": {
-                "thread_id": "thread-456"
-            }
+            "data": {"chunk": {"content": "Hello, ", "id": "msg-123"}},
+            "metadata": {"thread_id": "thread-456"},
         }
 
         result = transformer.transform(stream_event)
@@ -235,11 +210,8 @@ class TestPassThroughEvents:
         """Test on_error events pass through unchanged."""
         error_event = {
             "event": "on_error",
-            "data": {
-                "error": "Something went wrong",
-                "error_type": "RuntimeError"
-            },
-            "metadata": {}
+            "data": {"error": "Something went wrong", "error_type": "RuntimeError"},
+            "metadata": {},
         }
 
         result = transformer.transform(error_event)
@@ -250,12 +222,7 @@ class TestPassThroughEvents:
 
     def test_unknown_event_passthrough(self, transformer):
         """Test unknown event types pass through unchanged."""
-        unknown_event = {
-            "event": "custom_event_type",
-            "data": {
-                "custom_field": "custom_value"
-            }
-        }
+        unknown_event = {"event": "custom_event_type", "data": {"custom_field": "custom_value"}}
 
         result = transformer.transform(unknown_event)
 
@@ -269,9 +236,7 @@ class TestEdgeCases:
 
     def test_missing_event_field(self, transformer):
         """Test transformation when 'event' field is missing."""
-        malformed_event = {
-            "data": {"some": "data"}
-        }
+        malformed_event = {"data": {"some": "data"}}
 
         # Should handle gracefully by passing through
         result = transformer.transform(malformed_event)
@@ -290,7 +255,7 @@ class TestEdgeCases:
             "event": "on_tool_start",
             "run_id": "tool-123",
             "name": "test_tool",
-            "data": {"input": {}}
+            "data": {"input": {}},
             # No metadata field
         }
 

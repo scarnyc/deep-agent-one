@@ -9,7 +9,6 @@ This script checks:
 4. OpenAI response time monitoring is active
 """
 
-import ast
 import sys
 from pathlib import Path
 
