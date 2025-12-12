@@ -63,11 +63,6 @@ npx playwright --version
 deep-agent-one/
 ├── .env                      # Active configuration (gitignored, NOT committed)
 ├── .env.example              # Template with comprehensive documentation (committed)
-├── docs/
-│   └── templates/
-│       ├── env.local.template   # Local development defaults (committed)
-│       ├── env.test.template    # Test environment defaults (committed)
-│       └── env.prod.template    # Production template (committed)
 ├── frontend/
 │   ├── .env.test             # Frontend test fixtures (committed)
 │   └── .env.local.example    # Documentation only (frontend reads from root .env)
@@ -139,7 +134,6 @@ GPT_MODEL_NAME=gpt-5.1-2025-11-13
 # Run: python scripts/validate_config.py
 ```
 
-**Single Source of Truth:** All configuration is managed through the root `.env` file. No separate template files are used.
 
 #### Configuration Validation
 
@@ -446,107 +440,6 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 - Retry logic with exponential backoff
 - Structured error handling
 
-### Success Criteria - Phase 0
-
-**Must Pass All:**
-
-1. **Framework Integration** ✓
-   - [ ] DeepAgents installed and running
-   - [ ] All 4 file system tools functional
-   - [ ] Planning tool creates and tracks plans
-   - [ ] Sub-agent delegation works
-   - [ ] HITL approval workflow functional
-
-2. **LLM Integration** ✓
-   - [ ] GPT-5.1 API connected
-   - [ ] Streaming responses work
-   - [ ] Token usage tracking implemented
-   - [ ] Rate limiting active
-
-3. **UI Functionality** ✓
-   - [ ] Chat interface displays streaming text
-   - [ ] Subtask list updates in real-time
-   - [ ] Tool calls visible with "inspect source" toggle
-   - [ ] HITL approval UI works (accept/respond/edit)
-   - [ ] Progress indicators show agent state
-
-4. **Monitoring** ✓
-   - [ ] LangSmith traces all agent runs
-   - [ ] Tool calls tracked with arguments and results
-   - [ ] Error states logged and visible
-
-5. **Web Search** ✓
-   - [ ] Perplexity MCP server connected
-   - [ ] Search results returned and displayed
-
-6. **Testing & Reporting** ✓
-   - [ ] 80%+ test coverage
-   - [ ] Unit, integration, E2E, UI tests passing
-   - [ ] Test reports generated automatically
-   - [ ] testing-expert and code-review-expert agents run before every commit
-
-7. **Infrastructure** ✓
-   - [ ] FastAPI backend running
-   - [ ] Separate dev/staging/prod environments
-   - [ ] Rate limiting active
-   - [ ] Error messages user-friendly
-
-8. **Code Quality & Commits** ✓
-   - [ ] Constant commits (every logical change)
-   - [ ] Meaningful commit messages (semantic format)
-   - [ ] No secrets in version control
-   - [ ] Type hints throughout
-
-**Quantitative Metrics:**
-- Response latency: <2s for simple queries
-- Test coverage: ≥80%
-- HITL approval time: <30s
-- API error rate: <1%
-
----
-
-## Phase 1: Enhance MVP (Productionization)
-
-**Objective:** Production-grade features - advanced reasoning, memory, authentication, enhanced UI.
-
-**Core Enhancements:**
-1. Variable Reasoning Effort (trigger phrases, complexity analysis, cost optimization)
-2. Memory System (PostgreSQL pgvector, semantic search, context retrieval)
-3. Authentication & IAM (OAuth 2.0, rotating credentials, least-privilege)
-4. Provenance Store (source tracking, citations, confidence scores)
-5. Enhanced AG-UI (reasoning indicators, state events, provenance display)
-6. **Custom TypeScript Components** - Explore UI redesign with custom AG-UI components on top of SDK:
-   - Custom chat components using `@ag-ui/react` hooks for full UI control
-   - Advanced HITL workflows (multi-step approval, conditional branching)
-   - Custom event visualizers (tool call timeline, reasoning display)
-   - Company-specific branding, animations, and UX enhancements
-   - Use `@ag-ui/core` types and `@ag-ui/react` hooks as building blocks
-   - Replace CopilotKit components incrementally as needed
-   - Create ErrorDisplay.tsx component & update WebSocketProvider.tsx to use ErrorDisplay.
-7. Prompt Optimization (Opik) - Auto-prompt optimization, A/B testing infrastructure, prompt versioning
-8. **WebSocket Reliability Improvements** - Deferred from Phase 0:
-   - Proactive client disconnect monitoring (parallel task using `websocket.wait_closed()`)
-   - Progress events for long-running tools (emit status every 5-10 seconds)
-   - Reconnection logic for network hiccups (automatic retry with backoff)
-   - Tool execution progress tracking (show "Tool X of Y executing..." in UI)
-   - Note: Phase 0 implemented graceful cancellation (✅ complete) and reactive disconnect detection (✅ sufficient for MVP)
-
-**Key Metrics:** Memory retrieval >90%, auth token refresh >99%, deep reasoning >5% queries, provenance 100% sources, prompt A/B improvement >10%
-
----
-
-## Phase 2: Implement Deep Research
-
-**Objective:** Comprehensive research capabilities via LangChain's Open Deep Research framework.
-
-**Core Components:**
-1. Deep Research Framework (multi-step planning, source gathering, synthesis, reporting)
-2. Custom MCP Servers (fastmcp for research tools, data aggregation, multi-source querying)
-3. Infrastructure Hardening (Cloudflare WAF, load balancing, database scaling)
-4. Security Testing (TheAuditor penetration testing, prompt injection defenses)
-
-**Key Metrics:** Research <10min, ≥10 sources/task, uptime >99.5%, zero critical vulnerabilities, 100 concurrent users
-
 ---
 
 ## Technical Stack
@@ -584,20 +477,7 @@ Create a functional deep agent framework with core capabilities, basic UI, and m
 
 ---
 
-## Technical Debt & Known Issues
-
-All code quality issues and technical debt items are tracked in `GITHUB_ISSUES.md` with detailed descriptions, code examples, fixes, and impact assessments.
-
-**Find resolved issues:** `git log --grep="Issue [0-9]"` or search commit messages for specific issue numbers.
-
----
-
 ## Testing Strategy
-
-### Unit Tests
-- All functions and methods
-- Tool implementations
-- 80% minimum coverage
 
 ### Integration Tests
 - Agent workflows
@@ -787,7 +667,6 @@ git worktree remove ../deep-agent-feature-b
    ```bash
    # Before committing tests, verify:
    # - AAA pattern followed
-   # - Coverage ≥80%
    # - Edge cases covered
    # - Proper mocking
    # Agent will identify issues and suggest improvements
@@ -978,12 +857,13 @@ High token usage often indicates verbose or inefficient prompts. Proactively use
 
 After each phase, validate:
 - [ ] All success criteria met
-- [ ] Tests pass with 80%+ coverage
+- [ ] No regressions
 - [ ] **Test reports generated** (HTML, coverage, JSON)
 - [ ] **Playwright MCP UI tests** pass
 - [ ] **TheAuditor security scan** completed (`aud full`)
 - [ ] **Security report shows PASS** (no critical vulnerabilities)
 - [ ] **testing-expert and code-review-expert agents run before every commit**
+- [ ] **curl "what is 2+2" to BE for validation**
 - [ ] No secrets in version control
 - [ ] Environment separation working
 - [ ] Monitoring/tracing operational
@@ -1210,82 +1090,11 @@ This pattern redirects stderr to stdout (`2>&1`) then duplicates output to both 
 
 ---
 
-## Next Steps for Claude Code
-
-1. **Review this guide thoroughly**
-2. **Set up Phase 0 environment** (venv, git, Poetry, Node.js)
-3. **Install Playwright MCP** and browsers
-4. **Install TheAuditor** for security scanning
-5. **Create project structure** (see README.md)
-6. **Start with TDD:** Write tests first
-7. **Implement incrementally:** One component at a time
-8. **Commit constantly:** After every logical unit of work
-9. **Run TheAuditor** after AI-generated code (`aud full`)
-10. **Validate against success criteria** before moving to next phase
-
 Remember: **Evaluation-driven, test-driven, phase-driven, commit-driven, security-first.**
 
 Build incrementally, commit constantly, test thoroughly, scan for security issues, measure continuously, deploy confidently.
 
 **Before writing any code:** Add todos to this file. Update todos accordingly, checking them off as you complete tasks. Only use one subagent when instructed. Plan subagent delegation for optimal task distribution.
-
----
-
-## 📋 Phase 0 Implementation TODO List
-
-### ✅ **Layers 1-7: COMPLETED**
-
-**Layer 1: Foundation** - Configuration, logging, error handling ✓
-**Layer 2: GPT-5.1 Integration** - Models, LLM factory, reasoning router ✓
-**Layer 3: LangGraph DeepAgents** - Checkpointer, agent initialization, service layer ✓
-**Layer 4: MCP Integration** - Perplexity client, web search tool ✓
-**Layer 5: LangSmith** - Tracing and observability ✓
-**Layer 6: FastAPI Backend** - API models, chat/WS/agents endpoints ✓
-**Layer 7: Frontend** - Next.js, AG-UI Protocol, custom components (migrated from CopilotKit) ✓
-
-### **Layer 8: Testing & Quality**
-
-#### E2E Test Suite
-- [ ] Create `tests/e2e/test_complete_workflows/test_basic_chat.py` - user sends query, gets response
-- [ ] Create `tests/e2e/test_complete_workflows/test_hitl_workflow.py` - full HITL approval flow
-- [ ] Create `tests/e2e/test_complete_workflows/test_tool_usage.py` - agent uses file tools
-- [ ] Verify all E2E tests pass
-- [ ] Commit: `test(phase-0): add E2E tests for complete workflows`
-
-#### Test Reporting
-- [ ] Update `scripts/test.sh` - ensure all report generation works
-- [ ] Run full test suite: `./scripts/test.sh`
-- [ ] Verify reports generated: HTML, coverage, JSON, Playwright
-- [ ] Verify coverage ≥80%
-- [ ] Commit: `test(phase-0): configure comprehensive test reporting`
-
-#### Security Scanning
-- [ ] Run TheAuditor: `./scripts/security_scan.sh`
-- [ ] Review findings in `.pf/readthis/`
-- [ ] Fix any critical/high vulnerabilities found
-- [ ] Re-run scan to verify fixes
-- [ ] Commit: `security(phase-0): run TheAuditor scan and address findings`
-
-### **Final Phase 0 Steps**
-
-#### Documentation
-- [ ] Create `docs/development/setup.md` - local setup guide
-- [ ] Create `docs/api/endpoints.md` - API endpoint documentation
-- [ ] Create `docs/development/testing.md` - testing guide
-- [ ] Commit: `docs(phase-0): add setup and API documentation`
-
-#### Success Criteria Validation
-- [ ] Review all Phase 0 success criteria in this file
-- [ ] Verify all checkboxes can be checked
-- [ ] Run full test suite one final time
-- [ ] Verify all metrics met (latency <2s, coverage ≥80%, etc.)
-- [ ] Commit: `chore(phase-0): validate all success criteria met`
-
-#### Phase 0 Completion
-- [ ] Tag release: `git tag v0.1.0-phase0`
-- [ ] Push to remote: `git push origin phase-0-mvp --tags`
-- [ ] Create summary report of Phase 0 accomplishments
-- [ ] Commit: `chore(phase-0): complete Phase 0 MVP`
 
 ---
 
