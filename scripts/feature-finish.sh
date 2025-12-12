@@ -45,7 +45,12 @@ NC='\033[0m'
 
 # Configuration
 INTEGRATION_BRANCH="main"
-REPO="scarnyc/deep-agent-agi"
+# Derive REPO dynamically from git remote (supports SSH and HTTPS URLs)
+REPO=$(git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+/[^/]+)(\.git)?$|\1|')
+if [[ -z "$REPO" ]]; then
+    echo -e "${RED}Error: Could not determine repository from git remote${NC}"
+    exit 1
+fi
 
 # Parse arguments
 FORCE=false
