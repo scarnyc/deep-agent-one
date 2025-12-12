@@ -4,6 +4,7 @@ Chat API endpoints for Deep Agent AGI.
 Provides REST endpoints for chat conversations with the deep agent,
 including standard request/response and streaming via SSE.
 """
+
 import json
 from collections.abc import AsyncGenerator
 
@@ -18,6 +19,21 @@ from deep_agent.core.security import sanitize_error_with_metadata
 from deep_agent.core.serialization import serialize_event
 from deep_agent.models.chat import ChatRequest, ChatResponse, Message, MessageRole, ResponseStatus
 from deep_agent.services.agent_service import AgentService
+
+# Pre-defined static error responses for SSE streaming (CWE-209: prevent info exposure)
+# These are disconnected from any exception data to prevent stack trace leakage
+_SSE_ERROR_VALIDATION: str = json.dumps(
+    {
+        "event_type": "error",
+        "data": {"error": "Validation failed", "status": "validation_error"},
+    }
+)
+_SSE_ERROR_EXECUTION: str = json.dumps(
+    {
+        "event_type": "error",
+        "data": {"error": "Agent execution failed", "status": "error"},
+    }
+)
 
 logger = get_logger(__name__)
 
@@ -99,7 +115,7 @@ async def chat(
         messages = []
         for msg in messages_data:
             # Handle LangChain message objects (have .type and .content attributes)
-            if hasattr(msg, 'type') and hasattr(msg, 'content'):
+            if hasattr(msg, "type") and hasattr(msg, "content"):
                 # Skip messages with empty content (e.g., Gemini thinking/reasoning output)
                 if not msg.content or not msg.content.strip():
                     logger.debug(
@@ -109,16 +125,14 @@ async def chat(
                     continue
 
                 # Map LangChain message types to API MessageRole
-                role_map = {
-                    "ai": "assistant",
-                    "human": "user",
-                    "system": "system"
-                }
+                role_map = {"ai": "assistant", "human": "user", "system": "system"}
                 role = role_map.get(msg.type, "assistant")
-                messages.append(Message(
-                    role=MessageRole(role),
-                    content=msg.content,
-                ))
+                messages.append(
+                    Message(
+                        role=MessageRole(role),
+                        content=msg.content,
+                    )
+                )
             # Fallback for dictionary format (for backward compatibility)
             elif isinstance(msg, dict):
                 content = msg.get("content", "")
@@ -130,10 +144,12 @@ async def chat(
                     )
                     continue
 
-                messages.append(Message(
-                    role=MessageRole(msg.get("role", "assistant")),
-                    content=content,
-                ))
+                messages.append(
+                    Message(
+                        role=MessageRole(msg.get("role", "assistant")),
+                        content=content,
+                    )
+                )
             else:
                 # Unknown format, convert to string
                 str_content = str(msg)
@@ -141,10 +157,12 @@ async def chat(
                 if not str_content.strip():
                     continue
 
-                messages.append(Message(
-                    role=MessageRole("assistant"),
-                    content=str_content,
-                ))
+                messages.append(
+                    Message(
+                        role=MessageRole("assistant"),
+                        content=str_content,
+                    )
+                )
 
         logger.info(
             "Chat request completed successfully",
@@ -304,51 +322,33 @@ async def chat_stream(
             # No need to yield error - connection already closed
             raise  # Re-raise to properly close the generator
 
-        except ValueError as e:
+        except ValueError:
             # Validation errors from AgentService
-            # Sanitize error message with metadata for enhanced logging
-            sanitization = sanitize_error_with_metadata(str(e), e)
-
+            # Log exception details server-side only (CWE-209: prevent info exposure)
+            # NOTE: We intentionally don't access exception data for the response
+            # to prevent any data flow from exception to client response
             logger.warning(
                 "Chat stream validation error",
                 request_id=request_id,
                 thread_id=request_body.thread_id,
-                error=sanitization.message,
-                sanitized=sanitization.was_sanitized,
-                original_error_type=sanitization.original_error_type,
             )
 
-            # Send error as SSE event (CWE-209: prevent info exposure)
-            # Uses whitelist to provide actionable errors when safe
-            error_event = {
-                "event_type": "error",
-                "data": {
-                    "error": safe_validation_error(str(e)),
-                    "status": "validation_error",
-                },
-            }
-            yield f"data: {json.dumps(error_event)}\n\n"
+            # Yield pre-defined static error (no connection to exception data)
+            yield f"data: {_SSE_ERROR_VALIDATION}\n\n"
 
-        except Exception as e:
+        except Exception:
             # Agent execution errors
-            # Sanitize error message with metadata for enhanced logging
-            sanitization = sanitize_error_with_metadata(str(e), e)
-
-            logger.error(
+            # Log exception details server-side only (CWE-209: prevent info exposure)
+            # NOTE: We intentionally don't access exception data for the response
+            # to prevent any data flow from exception to client response
+            logger.exception(
                 "Chat stream failed",
                 request_id=request_id,
                 thread_id=request_body.thread_id,
-                error=sanitization.message,
-                sanitized=sanitization.was_sanitized,
-                original_error_type=sanitization.original_error_type,
             )
 
-            # Send error as SSE event
-            error_event = {
-                "event_type": "error",
-                "data": {"error": "Agent execution failed", "status": "error"},
-            }
-            yield f"data: {json.dumps(error_event)}\n\n"
+            # Yield pre-defined static error (no connection to exception data)
+            yield f"data: {_SSE_ERROR_EXECUTION}\n\n"
 
     # Return streaming response with SSE content type
     return StreamingResponse(
