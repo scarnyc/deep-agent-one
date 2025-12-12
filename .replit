@@ -79,7 +79,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000 --reload"
+args = "mkdir -p logs/backend && poetry run uvicorn backend.deep_agent.main:app --host 0.0.0.0 --port 8000 --reload 2>&1 | tee logs/backend/$(date +%Y-%m-%d-%H-%M-%S).log"
 waitForPort = 8000
 
 [[workflows.workflow]]
@@ -88,7 +88,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd frontend && pnpm run dev --port 5000 --hostname 0.0.0.0"
+args = "mkdir -p logs/frontend && cd frontend && pnpm run dev --port 5000 --hostname 0.0.0.0 2>&1 | tee ../logs/frontend/$(date +%Y-%m-%d-%H-%M-%S).log"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
