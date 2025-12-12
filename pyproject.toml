@@ -9,7 +9,8 @@ packages = [{include = "deep_agent", from = "backend"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 # Core FastAPI
-fastapi = "^0.115.0"
+fastapi = "^0.121.0"  # Bumped from ^0.115.0 to support starlette>=0.49.1 (CVE-2025-62727 fix)
+starlette = ">=0.49.1"  # Security fix: CVE-2025-62727 Range header DoS vulnerability
 uvicorn = {extras = ["standard"], version = ">=0.27.0"}  # Relaxed for mcp-atlassian compatibility
 pydantic = ">=2.10.0,<2.12.0"  # Pinned for mcp-atlassian compatibility
 pydantic-settings = "^2.6.0"
