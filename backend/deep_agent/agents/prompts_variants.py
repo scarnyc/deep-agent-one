@@ -180,8 +180,8 @@ def select_prompt_variant(
 
     # If user_id provided, deterministic selection
     if user_id:
-        # Hash user_id to get consistent variant
-        hash_val = int(hashlib.md5(user_id.encode()).hexdigest(), 16)
+        # Hash user_id to get consistent variant (SHA-256 for security)
+        hash_val = int(hashlib.sha256(user_id.encode()).hexdigest(), 16)
         variant_idx = hash_val % len(PROMPT_VARIANTS)
         variant_name = list(PROMPT_VARIANTS.keys())[variant_idx]
         return variant_name, PROMPT_VARIANTS[variant_name]
