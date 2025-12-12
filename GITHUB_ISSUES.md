@@ -1,6 +1,6 @@
 # GitHub Issues - Migration Strategy
 
-**Last Updated:** 2025-12-10
+**Last Updated:** 2025-12-12
 
 ## 🎯 Migration Strategy Overview
 
@@ -23,8 +23,8 @@
 ### By Category:
 - **⏭️ DEFERRED:** 7 backend issues (8%) - Fix during service implementation
 - **🗑️ OBSOLETE:** 47 frontend issues (57%) - **REMOVED FROM FILE** (will be replaced by frontend-v2/)
-- **📋 TRACKED:** 15 low-priority issues (18%) - Fix when time permits
-- **✅ RESOLVED:** 1 issue (Issue 126: prompt mode bug - fixed in DA1-1)
+- **📋 TRACKED:** 10 low-priority issues (12%) - Fix when time permits
+- **✅ RESOLVED:** 6 issues (Issues 21, 99, 104, 116, 126, 127 - fixed in DA1-1, DA1-16)
 - **TOTAL IN FILE:** 23 issues (DEFERRED + TRACKED + RESOLVED)
 
 ### By Priority:
@@ -190,9 +190,10 @@ async for event in service.stream(
 **🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in Chat Service microservice (Weeks 5-6). Current implementation works.
 
 
-## Issue 99: Add error handling to AgentService initialization in dependencies
+## Issue 99: Add error handling to AgentService initialization in dependencies ✅ RESOLVED
 
 **Labels:** `enhancement`, `error-handling`, `medium-priority`, `phase-0`
+**Status:** ✅ **RESOLVED** in DA1-16 (2025-12-12)
 
 **Title:** Add try-except error handling for AgentService initialization failures
 
@@ -201,47 +202,12 @@ The `get_agent_service()` dependency function in `backend/deep_agent/api/depende
 
 **File:** `backend/deep_agent/api/dependencies.py:37`
 
-**Current Code:**
-```python
-def get_agent_service() -> AgentService:
-    """Dependency that provides an AgentService instance."""
-    return AgentService()
-```
-
-**Recommended Fix:**
-```python
-from backend.deep_agent.core.logging import get_logger
-
-logger = get_logger(__name__)
-
-def get_agent_service() -> AgentService:
-    """
-    Dependency that provides an AgentService instance.
-
-    Returns:
-        AgentService: Initialized agent service instance
-
-    Raises:
-        RuntimeError: If service initialization fails
-    """
-    try:
-        return AgentService()
-    except Exception as e:
-        logger.error(
-            "Failed to initialize AgentService",
-            error=str(e),
-            error_type=type(e).__name__,
-        )
-        raise RuntimeError(
-            "Agent service initialization failed. Check configuration."
-        ) from e
-```
-
 **Impact:** MEDIUM - Improves error messages and debugging experience. Not blocking for Phase 0.
 
 **Found in:** code-review-expert Pre-Commit Review (2025-10-27)
 
-**🔄 MIGRATION STRATEGY: DEFERRED** - Will be fixed in State Service + Agent Service (Weeks 3-4). Errors caught at FastAPI level.
+**✅ RESOLUTION (DA1-16, 2025-12-12):**
+Added try-except error handling with structured logging. Now logs error details (error message, error type) and raises RuntimeError with user-friendly message when AgentService initialization fails.
 
 
 ## Issue 113: LangGraph internal 45s timeout causes Agent streaming timeout
@@ -335,9 +301,10 @@ Post-commit review by testing-expert identified optional coverage improvement. L
 **📋 TRACKED (LOW PRIORITY)** - Optional quality improvement. 89.89% coverage exceeds 80% requirement.
 
 
-## Issue 21: Duplicate validator logic across agent models
+## Issue 21: Duplicate validator logic across agent models ✅ RESOLVED
 
 **Labels:** `refactoring`, `technical-debt`, `low-priority`, `phase-1`
+**Status:** ✅ **RESOLVED** in DA1-16 (2025-12-12)
 
 **Title:** Extract shared `strip_and_validate_string()` validator to reduce duplication
 
@@ -353,7 +320,8 @@ All three agent models (`AgentRunInfo`, `HITLApprovalRequest`, `HITLApprovalResp
 
 **Found in:** Agent Models Review
 
-**📋 TRACKED (LOW PRIORITY)** - Code duplication doesn't affect functionality. Backend models remain in microservices.
+**✅ RESOLUTION (DA1-16, 2025-12-12):**
+Extracted duplicate validator to module-level `_strip_and_validate_string()` function. All three model classes now call this shared function, eliminating code duplication.
 
 
 ## Issue 100: Add test for WebSocket secret redaction feature
@@ -503,9 +471,10 @@ Playwright UI tests assume the backend is running but don't verify it. If the ba
 **When to Fix:** When spare time available, not urgent for migration.
 
 
-## Issue 104: Add explicit `__all__` export list to dependencies.py
+## Issue 104: Add explicit `__all__` export list to dependencies.py ✅ RESOLVED
 
 **Labels:** `code-quality`, `low-priority`, `phase-0`
+**Status:** ✅ **RESOLVED** in DA1-16 (2025-12-12)
 
 **Title:** Export public API explicitly using `__all__` in dependencies module
 
@@ -514,30 +483,12 @@ The dependencies module defines a type alias `AgentServiceDep` but doesn't use `
 
 **File:** `backend/deep_agent/api/dependencies.py:41`
 
-**Recommended Addition:**
-```python
-__all__ = ["get_agent_service", "AgentServiceDep"]
-```
-
 **Impact:** LOW - Code quality and IDE support improvement.
 
 **Found in:** code-review-expert Pre-Commit Review (2025-10-27)
 
----
----
-
-**📋 TRACKED (LOW PRIORITY)**
-
-**Priority:** NON-BLOCKING
-**Rationale:** Code quality improvement for IDE support. Non-functional change.
-**When to Fix:** When spare time available, not urgent for migration.
----
-
-**📋 TRACKED (LOW PRIORITY)**
-
-**Priority:** NON-BLOCKING
-**Rationale:** Code quality improvement for IDE support. Non-functional change.
-**When to Fix:** When spare time available, not urgent for migration.
+**✅ RESOLUTION (DA1-16, 2025-12-12):**
+Added `__all__ = ["get_agent_service", "AgentServiceDep", "reset_agent_service"]` to explicitly declare the public API.
 
 
 ## Issue 105: Document TODO in authenticated_page fixture with Phase 1 reference
@@ -726,9 +677,10 @@ SyntaxError: source code string cannot contain null bytes
 **📋 TRACKED (HIGH PRIORITY)** - Blocks test execution. Workaround: Use code review agents for static analysis.
 
 
-## Issue 116: Add tool limit configuration example to create_agent docstring
+## Issue 116: Add tool limit configuration example to create_agent docstring ✅ RESOLVED
 
 **Labels:** `documentation`, `enhancement`, `low-priority`, `phase-0`
+**Status:** ✅ **RESOLVED** in DA1-16 (2025-12-12)
 
 **Title:** Enhance create_agent docstring with tool call limit configuration example
 
@@ -737,29 +689,12 @@ The `create_agent` docstring includes A/B testing examples but lacks an example 
 
 **File:** `backend/deep_agent/agents/deep_agent.py:186-235`
 
-**Current:** Docstring shows prompt variant A/B testing example (lines 216-219)
-
-**Suggested Addition:**
-```python
-Tool Call Limit Example:
-    >>> # Custom tool call limit
-    >>> from backend.deep_agent.config.settings import Settings
-    >>> settings = Settings(MAX_TOOL_CALLS_PER_INVOCATION=5)
-    >>> agent = await create_agent(settings=settings)
-    >>> # Agent will terminate gracefully after 5th tool call
-```
-
 **Impact:** LOW - Documentation enhancement, improves developer experience.
 
 **Found in:** code-review-expert pre-commit review (2025-11-13)
 
----
-
-**📋 TRACKED (LOW PRIORITY)**
-
-**Priority:** NON-BLOCKING
-**Rationale:** Documentation improvement. Non-functional enhancement.
-**When to Fix:** When spare time available, not urgent for migration.
+**✅ RESOLUTION (DA1-16, 2025-12-12):**
+Added "Tool Call Limit Example" section to docstring showing how to configure custom limits via Settings(MAX_TOOL_CALLS_PER_INVOCATION=5).
 
 
 ## Issue 117: LangSmith mock could use MagicMock instead of Mock
@@ -1302,9 +1237,10 @@ Root cause identified: THREE caching layers prevented ENV changes from taking ef
 ~~**🔄 MIGRATION STRATEGY: FIX NOW** - High priority bug affecting production behavior.~~
 
 
-## Issue 127: Hardcoded REPO variable in feature-finish.sh
+## Issue 127: Hardcoded REPO variable in feature-finish.sh ✅ RESOLVED
 
 **Labels:** `enhancement`, `scripts`, `low-priority`
+**Status:** ✅ **RESOLVED** in DA1-16 (2025-12-12)
 
 **Title:** Derive REPO variable dynamically from git remote
 
@@ -1318,22 +1254,12 @@ This should be derived dynamically from the git remote to make the script portab
 
 **File:** `scripts/feature-finish.sh:48`
 
-**Recommended Fix:**
-```bash
-REPO=$(git remote get-url origin | sed -E 's|.*[:/]([^/]+/[^/]+)(\.git)?$|\1|')
-```
-
 **Impact:** LOW - Script works but is not portable to forks.
 
 **Found in:** code-review-expert Pre-Commit Review (2025-12-10, DA1-15)
 
----
-
-**📋 TRACKED (LOW PRIORITY)**
-
-**Priority:** NON-BLOCKING
-**Rationale:** Portability improvement. Script works for current use case.
-**When to Fix:** When spare time available.
+**✅ RESOLUTION (DA1-16, 2025-12-12):**
+Replaced hardcoded REPO with dynamic extraction from git remote URL. Supports both SSH and HTTPS URLs. Includes error handling if remote is not configured.
 
 
 ## Issue 128: git unwip alias is destructive without warning
