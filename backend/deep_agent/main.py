@@ -27,6 +27,7 @@ from deep_agent.api.middleware import TimeoutMiddleware
 from deep_agent.config.settings import Settings, clear_settings_cache, get_settings
 from deep_agent.core.errors import ConfigurationError, DeepAgentError
 from deep_agent.core.logging import LogLevel, generate_langsmith_url, get_logger, setup_logging
+from deep_agent.core.security import sanitize_error_with_metadata
 from deep_agent.core.serialization import serialize_event
 from deep_agent.services.event_transformer import EventTransformer
 
@@ -692,10 +693,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
                     except Exception as e:
                         # Agent execution errors
-                        # Sanitize error message (security)
-                        error_msg = str(e)
-                        if any(pattern in error_msg for pattern in ["sk-", "lsv2_", "key=", "token=", "password="]):
-                            error_msg = "[REDACTED: Potential secret in error message]"
+                        # Use centralized sanitization (security)
+                        sanitization = sanitize_error_with_metadata(str(e), e)
 
                         # Get trace_id if available
                         captured_trace_id = trace_id if 'trace_id' in locals() else None
@@ -707,8 +706,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             thread_id=message.thread_id,
                             trace_id=captured_trace_id,
                             langsmith_url=generate_langsmith_url(captured_trace_id) if captured_trace_id else None,
-                            error=error_msg,
-                            error_type=type(e).__name__,
+                            error=sanitization.message,
+                            sanitized=sanitization.was_sanitized,
+                            original_error_type=sanitization.original_error_type,
                         )
                         await websocket.send_json({
                             "event": "on_error",
