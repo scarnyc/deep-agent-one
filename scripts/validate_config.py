@@ -14,6 +14,7 @@ Usage:
   ./scripts/validate_config.py
 """
 
+import re
 import sys
 from pathlib import Path
 
@@ -126,10 +127,9 @@ def validate_config() -> bool:
             "Must be a valid OpenAI model name."
         )
 
-    # Warn if not using dated release format
-    if settings.GPT_MODEL_NAME.startswith("gpt-5") and not any(
-        char.isdigit() and "-" in settings.GPT_MODEL_NAME[-10:]
-        for char in settings.GPT_MODEL_NAME[-10:]
+    # Warn if not using dated release format (YYYY-MM-DD suffix)
+    if settings.GPT_MODEL_NAME.startswith("gpt-5") and not re.search(
+        r"\d{4}-\d{2}-\d{2}$", settings.GPT_MODEL_NAME
     ):
         warnings.append(
             f"GPT_MODEL_NAME='{settings.GPT_MODEL_NAME}' should use dated release format. "
