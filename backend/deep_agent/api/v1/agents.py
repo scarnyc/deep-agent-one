@@ -83,6 +83,7 @@ async def get_agent_status(request: Request, thread_id: str) -> AgentRunInfo:
         thread_id=thread_id,
     )
 
+    state = None  # Initialize for error handler access
     try:
         # Initialize service
         service = AgentService()
@@ -138,7 +139,7 @@ async def get_agent_status(request: Request, thread_id: str) -> AgentRunInfo:
         # Try to extract run_id if state was retrieved
         run_id = None
         try:
-            if "state" in locals():
+            if state is not None:
                 run_id = state["config"]["configurable"].get("checkpoint_id")
         except Exception:
             pass  # nosec B110 - best-effort run_id extraction for error logging
