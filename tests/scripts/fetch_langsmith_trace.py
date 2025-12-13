@@ -105,11 +105,11 @@ def fetch_trace(trace_id: str):
         for i, tool_run in enumerate(tool_calls, 1):
             print(f"\n  Tool #{i}: {tool_run.name}")
             print(f"    Status: {tool_run.status}")
-            print(
-                f"    Duration: {(tool_run.end_time - tool_run.start_time).total_seconds():.2f}s"
-                if tool_run.end_time
-                else "    Duration: N/A"
-            )
+            if tool_run.start_time and tool_run.end_time:
+                duration = (tool_run.end_time - tool_run.start_time).total_seconds()
+                print(f"    Duration: {duration:.2f}s")
+            else:
+                print("    Duration: N/A")
             if tool_run.inputs:
                 print(f"    Input: {str(tool_run.inputs)[:100]}...")
             if tool_run.outputs:
