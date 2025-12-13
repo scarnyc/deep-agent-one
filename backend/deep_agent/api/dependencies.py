@@ -15,6 +15,11 @@ from deep_agent.services.agent_service import AgentService
 
 logger = get_logger(__name__)
 
+
+class AgentServiceInitializationError(RuntimeError):
+    """Raised when AgentService fails to initialize."""
+
+
 # Module-level singleton for AgentService (thread-safe with double-checked locking)
 # Cache service instance to prevent creating expensive service per connection
 # Each AgentService initialization creates LangGraph agents, checkpointers, etc.
@@ -65,7 +70,7 @@ def get_agent_service() -> AgentService:
                         error=str(e),
                         error_type=type(e).__name__,
                     )
-                    raise RuntimeError(
+                    raise AgentServiceInitializationError(
                         "Agent service initialization failed. Check configuration."
                     ) from e
     return _agent_service_instance
@@ -99,4 +104,9 @@ def reset_agent_service() -> None:
 AgentServiceDep = Annotated[AgentService, Depends(get_agent_service)]
 
 # Explicit public API for IDE autocomplete and import hygiene
-__all__ = ["get_agent_service", "AgentServiceDep", "reset_agent_service"]
+__all__ = [
+    "AgentServiceInitializationError",
+    "get_agent_service",
+    "AgentServiceDep",
+    "reset_agent_service",
+]
