@@ -20,8 +20,7 @@ from tenacity import (
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
-    from langgraph.errors import GraphRecursionError
-    from langgraph.graph.state import CompiledStateGraph
+    pass
 from deep_agent.config.settings import Settings, get_settings
 from deep_agent.core.logging import generate_langsmith_url, get_logger
 
@@ -37,6 +36,7 @@ def _get_current_run_tree():
     """
     try:
         from langsmith import get_current_run_tree
+
         return get_current_run_tree()
     except ImportError:
         logger.warning("langsmith not available, skipping trace context")
@@ -125,6 +125,7 @@ class AgentService:
 
             # Check if pre-warming completed (reduces init time significantly)
             from deep_agent.services.llm_factory import is_prewarm_complete
+
             prewarm_status = "complete" if is_prewarm_complete() else "pending"
 
             logger.info(
@@ -200,18 +201,10 @@ class AgentService:
         agent = await self._ensure_agent()
 
         # Prepare input
-        input_data = {
-            "messages": [
-                {"role": "user", "content": message}
-            ]
-        }
+        input_data = {"messages": [{"role": "user", "content": message}]}
 
         # Prepare config with thread_id for checkpointer
-        config = {
-            "configurable": {
-                "thread_id": thread_id
-            }
-        }
+        config = {"configurable": {"thread_id": thread_id}}
 
         # Invoke agent with retry logic for transient failures
         try:
@@ -238,8 +231,7 @@ class AgentService:
                 if run_tree:
                     trace_id = str(run_tree.trace_id)
             except Exception:
-                # Don't fail if trace_id capture fails
-                pass
+                pass  # nosec B110 - best-effort LangSmith trace_id capture
 
             logger.info(
                 "Agent invocation completed",
@@ -262,7 +254,7 @@ class AgentService:
                 if run_tree:
                     trace_id = str(run_tree.trace_id)
             except Exception:
-                pass
+                pass  # nosec B110 - best-effort trace_id capture in error path
 
             logger.error(
                 "Agent invocation failed",
@@ -322,18 +314,10 @@ class AgentService:
         agent = await self._ensure_agent()
 
         # Prepare input
-        input_data = {
-            "messages": [
-                {"role": "user", "content": message}
-            ]
-        }
+        input_data = {"messages": [{"role": "user", "content": message}]}
 
         # Prepare config (no stream_mode needed for astream_events)
-        config = {
-            "configurable": {
-                "thread_id": thread_id
-            }
-        }
+        config = {"configurable": {"thread_id": thread_id}}
 
         # Get streaming configuration from settings
         settings = get_settings()
@@ -375,12 +359,19 @@ class AgentService:
             # Wrap streaming in timeout to prevent infinite hangs
             async with asyncio.timeout(timeout_seconds):
                 # Create event queue for multiplexing agent events + heartbeats
-                event_queue: asyncio.Queue[tuple[str, dict[str, Any] | None]] = asyncio.Queue(maxsize=100)
+                event_queue: asyncio.Queue[tuple[str, dict[str, Any] | None]] = asyncio.Queue(
+                    maxsize=100
+                )
                 shutdown_event = asyncio.Event()
 
                 async def agent_task():
                     """Stream agent events and queue them."""
-                    nonlocal last_event_time, trace_id, event_count, event_types_seen, streaming_completed
+                    nonlocal \
+                        last_event_time, \
+                        trace_id, \
+                        event_count, \
+                        event_types_seen, \
+                        streaming_completed
 
                     # Track OpenAI API response times
                     openai_call_start = None
@@ -403,7 +394,9 @@ class AgentService:
 
                                 # Use astream_events() for fine-grained event streaming
                                 # This provides real-time token streaming and tool execution events
-                                async for event in agent.astream_events(input_data, config, version=stream_version):
+                                async for event in agent.astream_events(
+                                    input_data, config, version=stream_version
+                                ):
                                     event_count += 1
                                     event_type = event.get("event", "unknown")
                                     last_event_time = time.time()  # Update last event time
@@ -418,8 +411,7 @@ class AgentService:
                                             if run_tree:
                                                 trace_id = str(run_tree.trace_id)
                                         except Exception:
-                                            # Don't fail if trace_id capture fails
-                                            pass
+                                            pass  # nosec B110 - best-effort trace_id for streaming
 
                                     # Track OpenAI API call timing
                                     if event_type == "on_chat_model_start":
@@ -476,7 +468,9 @@ class AgentService:
                                                 trace_id=trace_id,
                                                 run_id=event.get("run_id"),
                                                 event_name=event.get("name"),
-                                                data_output=str(event.get("data", {}).get("output", ""))[:200],
+                                                data_output=str(
+                                                    event.get("data", {}).get("output", "")
+                                                )[:200],
                                             )
 
                                         # Queue event for output
@@ -591,7 +585,9 @@ class AgentService:
                 # Give checkpoint grace period to finalize
                 checkpoint_task = asyncio.create_task(asyncio.sleep(0.5))
                 try:
-                    await asyncio.wait_for(checkpoint_task, timeout=settings.CHECKPOINT_GRACE_PERIOD_SECONDS)
+                    await asyncio.wait_for(
+                        checkpoint_task, timeout=settings.CHECKPOINT_GRACE_PERIOD_SECONDS
+                    )
                 except (TimeoutError, asyncio.CancelledError):
                     # Expected during shutdown - ignore
                     pass
@@ -608,6 +604,7 @@ class AgentService:
         except Exception as exc:
             # Check for GraphRecursionError (lazy import to avoid module load blocking)
             from langgraph.errors import GraphRecursionError
+
             if not isinstance(exc, GraphRecursionError):
                 raise
             logger.warning(
@@ -679,7 +676,9 @@ class AgentService:
                 # Wait for checkpoint task if it exists
                 if checkpoint_task and not checkpoint_task.done():
                     try:
-                        await asyncio.wait_for(checkpoint_task, timeout=settings.CHECKPOINT_GRACE_PERIOD_SECONDS)
+                        await asyncio.wait_for(
+                            checkpoint_task, timeout=settings.CHECKPOINT_GRACE_PERIOD_SECONDS
+                        )
                     except (TimeoutError, asyncio.CancelledError):
                         pass  # Expected during shutdown
                 # Do NOT yield error event - this is normal shutdown
@@ -732,7 +731,7 @@ class AgentService:
             # Do NOT re-raise - cancellation is expected behavior
             return
 
-        except Exception as e:
+        except Exception as e:  # noqa: B025 - outer exception handler, inner at 723 handles yield failures
             logger.error(
                 "Agent streaming failed",
                 thread_id=thread_id,

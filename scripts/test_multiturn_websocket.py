@@ -67,11 +67,15 @@ async def test_weather_multiturn():
 
             # ===== TURN 1: Initial weather question =====
             print("📤 TURN 1: Sending 'what's the weather in Queens, NYC today?'")
-            await ws.send(json.dumps({
-                "type": "chat",
-                "message": "what's the weather in Queens, NYC today?",
-                "thread_id": thread_id
-            }))
+            await ws.send(
+                json.dumps(
+                    {
+                        "type": "chat",
+                        "message": "what's the weather in Queens, NYC today?",
+                        "thread_id": thread_id,
+                    }
+                )
+            )
 
             # Read all events from turn 1
             turn1_complete = False
@@ -103,7 +107,7 @@ async def test_weather_multiturn():
                         turn1_complete = True
                         print(f"\n\n✅ Turn 1 complete ({event_count} events)")
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     print("\n⏱️ Timeout waiting for turn 1 response")
                     return False
 
@@ -112,13 +116,17 @@ async def test_weather_multiturn():
             # ===== TURN 2: User confirmation with specifics =====
             await asyncio.sleep(1)  # Brief pause like real user
 
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("📤 TURN 2: Sending 'yes Fahrenheit Astoria'")
-            await ws.send(json.dumps({
-                "type": "chat",
-                "message": "yes Fahrenheit Astoria",
-                "thread_id": thread_id  # Same thread!
-            }))
+            await ws.send(
+                json.dumps(
+                    {
+                        "type": "chat",
+                        "message": "yes Fahrenheit Astoria",
+                        "thread_id": thread_id,  # Same thread!
+                    }
+                )
+            )
 
             # Read all events from turn 2 (should include tool execution)
             turn2_complete = False
@@ -150,13 +158,13 @@ async def test_weather_multiturn():
 
                     if event_type == "on_tool_end":
                         tool_data = event.get("data", {})
-                        print(f"✅ Tool execution completed")
+                        print("✅ Tool execution completed")
                         print(f"   Output preview: {str(tool_data.get('output', ''))[:100]}...")
 
                     # Check for errors
                     if event_type == "on_error":
                         error_data = event.get("data", {})
-                        print(f"\n❌ ERROR EVENT RECEIVED:")
+                        print("\n❌ ERROR EVENT RECEIVED:")
                         print(f"   {json.dumps(error_data, indent=2)}")
                         error_occurred = True
 
@@ -170,14 +178,14 @@ async def test_weather_multiturn():
                         turn2_complete = True
                         print(f"\n\n✅ Turn 2 complete ({event_count} events)")
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     print("\n⏱️ Timeout waiting for turn 2 response")
                     return False
 
             # ===== VALIDATION =====
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("VALIDATION RESULTS:")
-            print("="*60)
+            print("=" * 60)
 
             if tool_called:
                 print("✅ Tool was called (web_search)")
@@ -201,24 +209,25 @@ async def test_weather_multiturn():
     except Exception as e:
         print(f"\n❌ Test failed with exception: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 async def main():
-    print("="*60)
+    print("=" * 60)
     print("Multi-Turn WebSocket Test with Tool Execution")
-    print("="*60)
+    print("=" * 60)
     print("\nThis test validates:")
     print("1. Multi-turn conversation works (same thread_id)")
     print("2. Tool execution (web_search) completes without CancelledError")
     print("3. Events use correct AG-UI format (event: not type:)")
     print("4. No error events with old broken format")
-    print("\n" + "="*60 + "\n")
+    print("\n" + "=" * 60 + "\n")
 
     success = await test_weather_multiturn()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if success:
         print("🎉 TEST PASSED - Fix is working!")
         print("\nNext: Check backend logs for CancelledError traces")

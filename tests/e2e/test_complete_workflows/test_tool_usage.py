@@ -9,17 +9,16 @@ Phase 0.5 Live API Integration Testing. They will be skipped in regular
 test runs and should only be run manually or as part of live API validation.
 """
 
+import os
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock, patch, mock_open
-from typing import Any, Dict
-import tempfile
-import os
 
 # Skip all E2E tests unless OPENAI_API_KEY is set
 pytestmark = pytest.mark.skipif(
     not os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY").startswith("your_"),
-    reason="E2E tests require valid OPENAI_API_KEY (Phase 0.5 Live API Testing)"
+    reason="E2E tests require valid OPENAI_API_KEY (Phase 0.5 Live API Testing)",
 )
 
 
@@ -32,6 +31,7 @@ def client() -> TestClient:
     fresh app instance for each test.
     """
     from backend.deep_agent.main import app
+
     return TestClient(app)
 
 
@@ -78,14 +78,11 @@ def mock_openai_client_with_tool_calls():
                         MagicMock(
                             id="call_123",
                             type="function",
-                            function=MagicMock(
-                                name="read_file",
-                                arguments='{"path": "test.txt"}'
-                            )
+                            function=MagicMock(name="read_file", arguments='{"path": "test.txt"}'),
                         )
-                    ]
+                    ],
                 ),
-                finish_reason="tool_calls"
+                finish_reason="tool_calls",
             )
         ]
 
@@ -95,17 +92,14 @@ def mock_openai_client_with_tool_calls():
                 message=MagicMock(
                     content="I've read the file. It contains: Hello, this is a test file.",
                     role="assistant",
-                    tool_calls=None
+                    tool_calls=None,
                 ),
-                finish_reason="stop"
+                finish_reason="stop",
             )
         ]
 
         # Return sequence: tool call, then final response
-        mock_client.chat.completions.create.side_effect = [
-            tool_call_response,
-            final_response
-        ]
+        mock_client.chat.completions.create.side_effect = [tool_call_response, final_response]
 
         yield mock_client
 
@@ -197,7 +191,7 @@ class TestFileToolUsage:
                 MagicMock(
                     message=MagicMock(
                         content="I've created the file output.txt with the content 'Hello World'.",
-                        role="assistant"
+                        role="assistant",
                     )
                 )
             ]
@@ -241,7 +235,7 @@ class TestFileToolUsage:
                 MagicMock(
                     message=MagicMock(
                         content="Here are the files: test.txt, data.json, output.txt",
-                        role="assistant"
+                        role="assistant",
                     )
                 )
             ]
@@ -285,7 +279,7 @@ class TestFileToolUsage:
                 MagicMock(
                     message=MagicMock(
                         content="I've edited test.txt and replaced 'Hello' with 'Goodbye'.",
-                        role="assistant"
+                        role="assistant",
                     )
                 )
             ]
@@ -334,7 +328,7 @@ class TestWebSearchToolUsage:
                 MagicMock(
                     message=MagicMock(
                         content="Here are the latest Python news: Python 3.12 released with new features...",
-                        role="assistant"
+                        role="assistant",
                     )
                 )
             ]
@@ -382,18 +376,34 @@ class TestMultipleToolUsage:
             responses = [
                 # Response after ls
                 MagicMock(
-                    choices=[MagicMock(message=MagicMock(content="Found files: test.txt, data.json", role="assistant"))]
+                    choices=[
+                        MagicMock(
+                            message=MagicMock(
+                                content="Found files: test.txt, data.json", role="assistant"
+                            )
+                        )
+                    ]
                 ),
                 # Response after read_file
                 MagicMock(
-                    choices=[MagicMock(message=MagicMock(content="Read content from test.txt", role="assistant"))]
+                    choices=[
+                        MagicMock(
+                            message=MagicMock(
+                                content="Read content from test.txt", role="assistant"
+                            )
+                        )
+                    ]
                 ),
                 # Final response after web_search
                 MagicMock(
-                    choices=[MagicMock(message=MagicMock(
-                        content="Here's the summary: Files listed, test.txt read, and web search completed.",
-                        role="assistant"
-                    ))]
+                    choices=[
+                        MagicMock(
+                            message=MagicMock(
+                                content="Here's the summary: Files listed, test.txt read, and web search completed.",
+                                role="assistant",
+                            )
+                        )
+                    ]
                 ),
             ]
 
@@ -438,7 +448,7 @@ class TestMultipleToolUsage:
                 MagicMock(
                     message=MagicMock(
                         content="I tried to read non_existent.txt but the file doesn't exist.",
-                        role="assistant"
+                        role="assistant",
                     )
                 )
             ]
@@ -487,7 +497,7 @@ class TestToolUsageWithPlanning:
                 MagicMock(
                     message=MagicMock(
                         content="I've created the project structure with README.md, src/, and tests/ directories.",
-                        role="assistant"
+                        role="assistant",
                     )
                 )
             ]
@@ -529,12 +539,7 @@ class TestToolUsageTransparency:
 
             mock_completion = MagicMock()
             mock_completion.choices = [
-                MagicMock(
-                    message=MagicMock(
-                        content="Files: test.txt, data.json",
-                        role="assistant"
-                    )
-                )
+                MagicMock(message=MagicMock(content="Files: test.txt, data.json", role="assistant"))
             ]
             mock_client.chat.completions.create.return_value = mock_completion
 
@@ -577,12 +582,7 @@ class TestToolUsagePerformance:
 
             mock_completion = MagicMock()
             mock_completion.choices = [
-                MagicMock(
-                    message=MagicMock(
-                        content="Files listed",
-                        role="assistant"
-                    )
-                )
+                MagicMock(message=MagicMock(content="Files listed", role="assistant"))
             ]
             mock_client.chat.completions.create.return_value = mock_completion
 

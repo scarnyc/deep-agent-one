@@ -4,14 +4,13 @@ Unit tests for security utilities.
 Tests error message sanitization functions to prevent secret leakage
 in logs and API responses.
 """
-import pytest
 
 from backend.deep_agent.core.security import (
     SECRET_PATTERNS,
     SanitizationResult,
+    mask_api_key,
     sanitize_error_message,
     sanitize_error_with_metadata,
-    mask_api_key,
 )
 
 

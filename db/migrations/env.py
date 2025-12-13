@@ -1,9 +1,10 @@
 """Alembic environment configuration for Deep Agent AGI."""
-from logging.config import fileConfig
+
 import os
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from logging.config import fileConfig
+
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 # Import your models' Base here for autogenerate support
 # from backend.deep_agent.models import Base
@@ -48,7 +49,11 @@ def run_migrations_online() -> None:
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
-            target_metadata=target_metadata
+            target_metadata=target_metadata,
+            # Future options (uncomment as needed):
+            # compare_type=True,
+            # include_object=include_object,
+            # render_as_batch=True,
         )
 
         with context.begin_transaction():

@@ -22,7 +22,8 @@ PROMPT_VERSION = "3.0.0"  # Pure Markdown, sequential execution, loop prevention
 # Note: Gemini natively supports parallel tool calls, but the wrapper does not
 # See: https://github.com/langchain-ai/langchain-google/issues/816
 SEQUENTIAL_EXECUTION_GUIDANCE = (
-    "Execute tools ONE AT A TIME. Wait for each result before proceeding.")
+    "Execute tools ONE AT A TIME. Wait for each result before proceeding."
+)
 
 # Base system prompt for DeepAgents (~280 tokens, 32% reduction from v2.0.0)
 # Middleware already documents: write_todos, ls, read_file, write_file, edit_file,
@@ -144,7 +145,8 @@ def get_agent_instructions(
     # Note: Using sequential mode due to langchain_google_genai wrapper limitation
     # See: https://github.com/langchain-ai/langchain-google/issues/816
     base_prompt = DEEP_AGENT_SYSTEM_PROMPT.format(
-        parallel_execution_guidance=SEQUENTIAL_EXECUTION_GUIDANCE)
+        parallel_execution_guidance=SEQUENTIAL_EXECUTION_GUIDANCE
+    )
 
     # Add environment-specific appendix
     # Production environments: prod, staging
@@ -160,15 +162,11 @@ def get_agent_instructions(
 # These combine base prompt (with sequential guidance) + environment appendix
 # Note: These are computed at import time with SEQUENTIAL_EXECUTION_GUIDANCE
 DEEP_AGENT_INSTRUCTIONS_DEV = (
-    DEEP_AGENT_SYSTEM_PROMPT.format(
-        parallel_execution_guidance=SEQUENTIAL_EXECUTION_GUIDANCE
-    )
+    DEEP_AGENT_SYSTEM_PROMPT.format(parallel_execution_guidance=SEQUENTIAL_EXECUTION_GUIDANCE)
     + DEEP_AGENT_DEV_APPENDIX
 )
 
 DEEP_AGENT_INSTRUCTIONS_PROD = (
-    DEEP_AGENT_SYSTEM_PROMPT.format(
-        parallel_execution_guidance=SEQUENTIAL_EXECUTION_GUIDANCE
-    )
+    DEEP_AGENT_SYSTEM_PROMPT.format(parallel_execution_guidance=SEQUENTIAL_EXECUTION_GUIDANCE)
     + DEEP_AGENT_PROD_APPENDIX
 )

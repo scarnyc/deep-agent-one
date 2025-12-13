@@ -10,17 +10,16 @@ test runs and should only be run manually or as part of live API validation.
 """
 
 import os
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any, Dict
-
-from backend.deep_agent.models.agents import AgentRunStatus, HITLAction
 
 # Skip all E2E tests unless OPENAI_API_KEY is set
 pytestmark = pytest.mark.skipif(
     not os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY").startswith("your_"),
-    reason="E2E tests require valid OPENAI_API_KEY (Phase 0.5 Live API Testing)"
+    reason="E2E tests require valid OPENAI_API_KEY (Phase 0.5 Live API Testing)",
 )
 
 
@@ -33,6 +32,7 @@ def client() -> TestClient:
     fresh app instance for each test.
     """
     from backend.deep_agent.main import app
+
     return TestClient(app)
 
 
@@ -48,16 +48,11 @@ def mock_openai_client():
         mock_completion.choices = [
             MagicMock(
                 message=MagicMock(
-                    content="I need approval to proceed with this action.",
-                    role="assistant"
+                    content="I need approval to proceed with this action.", role="assistant"
                 )
             )
         ]
-        mock_completion.usage = MagicMock(
-            prompt_tokens=15,
-            completion_tokens=25,
-            total_tokens=40
-        )
+        mock_completion.usage = MagicMock(prompt_tokens=15, completion_tokens=25, total_tokens=40)
 
         mock_client.chat.completions.create.return_value = mock_completion
 
@@ -143,7 +138,7 @@ class TestHITLWorkflowBasic:
             mock_service = AsyncMock()
             mock_service_class.return_value = mock_service
 
-            async def mock_get_state(**kwargs) -> Dict[str, Any]:
+            async def mock_get_state(**kwargs) -> dict[str, Any]:
                 return {
                     "values": {"messages": []},
                     "next": ["__interrupt__"],  # Interrupted state
@@ -202,10 +197,7 @@ class TestHITLWorkflowBasic:
             mock_service.update_state.return_value = None
 
             # Act
-            response = client.post(
-                f"/api/v1/agents/{thread_id}/approve",
-                json=approval_data
-            )
+            response = client.post(f"/api/v1/agents/{thread_id}/approve", json=approval_data)
 
             # Assert
             assert response.status_code == 200
@@ -248,10 +240,7 @@ class TestHITLWorkflowBasic:
             mock_service.update_state.return_value = None
 
             # Act
-            response = client.post(
-                f"/api/v1/agents/{thread_id}/approve",
-                json=rejection_data
-            )
+            response = client.post(f"/api/v1/agents/{thread_id}/approve", json=rejection_data)
 
             # Assert
             assert response.status_code == 200
@@ -292,10 +281,7 @@ class TestHITLWorkflowBasic:
             mock_service.update_state.return_value = None
 
             # Act
-            response = client.post(
-                f"/api/v1/agents/{thread_id}/approve",
-                json=custom_response_data
-            )
+            response = client.post(f"/api/v1/agents/{thread_id}/approve", json=custom_response_data)
 
             # Assert
             assert response.status_code == 200
@@ -335,7 +321,7 @@ class TestHITLWorkflowComplex:
             # Track approval count
             approval_count = 0
 
-            async def mock_get_state(**kwargs) -> Dict[str, Any]:
+            async def mock_get_state(**kwargs) -> dict[str, Any]:
                 # First two calls show interrupted, third shows completed
                 if approval_count < 2:
                     return {
@@ -366,7 +352,7 @@ class TestHITLWorkflowComplex:
             # Act - First approval
             response1 = client.post(
                 f"/api/v1/agents/{thread_id}/approve",
-                json={"action": "approve", "message": "First approval"}
+                json={"action": "approve", "message": "First approval"},
             )
 
             # Act - Check status (should still be interrupted)
@@ -375,7 +361,7 @@ class TestHITLWorkflowComplex:
             # Act - Second approval
             response2 = client.post(
                 f"/api/v1/agents/{thread_id}/approve",
-                json={"action": "approve", "message": "Second approval"}
+                json={"action": "approve", "message": "Second approval"},
             )
 
             # Assert
@@ -403,7 +389,7 @@ class TestHITLWorkflowComplex:
             mock_service_class.return_value = mock_service
 
             # Mock state that's been waiting for a long time
-            async def mock_get_state(**kwargs) -> Dict[str, Any]:
+            async def mock_get_state(**kwargs) -> dict[str, Any]:
                 return {
                     "values": {"messages": []},
                     "next": ["__interrupt__"],
@@ -451,10 +437,7 @@ class TestHITLWorkflowValidation:
             mock_service.update_state.side_effect = mock_update_state
 
             # Act
-            response = client.post(
-                f"/api/v1/agents/{thread_id}/approve",
-                json=approval_data
-            )
+            response = client.post(f"/api/v1/agents/{thread_id}/approve", json=approval_data)
 
             # Assert
             assert response.status_code in [404, 500]
@@ -474,10 +457,7 @@ class TestHITLWorkflowValidation:
         }
 
         # Act
-        response = client.post(
-            f"/api/v1/agents/{thread_id}/approve",
-            json=invalid_data
-        )
+        response = client.post(f"/api/v1/agents/{thread_id}/approve", json=invalid_data)
 
         # Assert
         # Should validate action field
@@ -499,10 +479,7 @@ class TestHITLWorkflowValidation:
         }
 
         # Act
-        response = client.post(
-            f"/api/v1/agents/{thread_id}/approve",
-            json=incomplete_data
-        )
+        response = client.post(f"/api/v1/agents/{thread_id}/approve", json=incomplete_data)
 
         # Assert
         assert response.status_code == 422
@@ -543,7 +520,7 @@ class TestHITLStatePermistence:
                 "parent_config": None,
             }
 
-            async def mock_get_state(**kwargs) -> Dict[str, Any]:
+            async def mock_get_state(**kwargs) -> dict[str, Any]:
                 return interrupted_state
 
             mock_service.get_state.side_effect = mock_get_state

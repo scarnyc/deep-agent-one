@@ -8,20 +8,17 @@ Note: Since deepagents package is not yet installed, these tests verify the setu
       logic and integration points. Tests will pass once deepagents is installed.
 """
 
-import pytest
-import sys
 from importlib.util import find_spec
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch, MagicMock, call
 from typing import Any
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from langchain_openai import ChatOpenAI
-from langgraph.graph.state import CompiledStateGraph
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.graph.state import CompiledStateGraph
 
-from backend.deep_agent.config.settings import Settings, get_settings
-from backend.deep_agent.agents.checkpointer import CheckpointerManager
-
+from backend.deep_agent.config.settings import Settings
 
 # Test fixtures
 
@@ -379,13 +376,13 @@ class TestErrorHandling:
 
         # Mock CheckpointerManager to raise error on create_checkpointer
         mock_manager = AsyncMock()
-        mock_manager.create_checkpointer = AsyncMock(
-            side_effect=OSError("Cannot create database")
-        )
+        mock_manager.create_checkpointer = AsyncMock(side_effect=OSError("Cannot create database"))
         mock_manager.__aenter__ = AsyncMock(return_value=mock_manager)
+
         # Important: __aexit__ should return None (not suppress exception)
         async def mock_aexit(*args):
             return None
+
         mock_manager.__aexit__ = mock_aexit
         mock_checkpointer_manager_class.return_value = mock_manager
 
@@ -477,10 +474,11 @@ class TestSystemInstructions:
     ) -> None:
         """Test system instructions mention file system tools."""
         # Arrange
-        from backend.deep_agent.agents.deep_agent import create_agent
-
         # Act - inspect the function source to verify instructions
         import inspect
+
+        from backend.deep_agent.agents.deep_agent import create_agent
+
         source = inspect.getsource(create_agent)
 
         # Assert - verify instructions mention key capabilities
@@ -497,9 +495,10 @@ class TestSystemInstructions:
     ) -> None:
         """Test system instructions mention HITL approval."""
         # Arrange
+        import inspect
+
         from backend.deep_agent.agents.deep_agent import create_agent
 
-        import inspect
         source = inspect.getsource(create_agent)
 
         # Assert
@@ -516,10 +515,7 @@ class TestDeepAgentsIntegration:
     These tests will be skipped if deepagents is not available.
     """
 
-    @pytest.mark.skipif(
-        find_spec("deepagents") is None,
-        reason="deepagents package not installed"
-    )
+    @pytest.mark.skipif(find_spec("deepagents") is None, reason="deepagents package not installed")
     @pytest.mark.asyncio
     async def test_create_agent_with_real_deepagents(
         self,

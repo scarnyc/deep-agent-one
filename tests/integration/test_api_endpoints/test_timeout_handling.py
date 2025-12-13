@@ -8,13 +8,12 @@ Tests verify that:
 """
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
+from deep_agent.main import create_app
 from fastapi import status
 from fastapi.testclient import TestClient
-
-from deep_agent.main import create_app
 
 
 class TestTimeoutMiddleware:
@@ -43,14 +42,10 @@ class TestTimeoutMiddleware:
                 "data": {"chunk": {"content": "Result after 45s"}},
             }
 
-        with patch(
-            "deep_agent.services.agent_service.AgentService.stream", new=slow_stream
-        ):
+        with patch("deep_agent.services.agent_service.AgentService.stream", new=slow_stream):
             # Act
             with client.websocket_connect("/api/v1/ws") as websocket:
-                websocket.send_json(
-                    {"type": "chat", "message": "test", "thread_id": "test-123"}
-                )
+                websocket.send_json({"type": "chat", "message": "test", "thread_id": "test-123"})
 
                 # Should complete without timeout (WebSocket excluded from 30s HTTP timeout)
                 data = websocket.receive_json(timeout=50)
@@ -110,9 +105,7 @@ class TestTimeoutMiddleware:
         ):
             # Act
             with client.websocket_connect("/api/v1/ws") as websocket:
-                websocket.send_json(
-                    {"type": "chat", "message": "test", "thread_id": "test-123"}
-                )
+                websocket.send_json({"type": "chat", "message": "test", "thread_id": "test-123"})
 
                 # Should receive timeout error from agent service
                 data = websocket.receive_json(timeout=185)
@@ -145,11 +138,7 @@ class TestWebSearchTimeout:
             await asyncio.sleep(25)
             yield {
                 "event": "on_tool_end",
-                "data": {
-                    "output": {
-                        "results": [{"title": "Result 1", "content": "Test content"}]
-                    }
-                },
+                "data": {"output": {"results": [{"title": "Result 1", "content": "Test content"}]}},
             }
 
         with patch(
@@ -192,11 +181,9 @@ class TestWebSearchTimeout:
             """Simulate web search timeout."""
             await asyncio.sleep(35)
             # In reality, this would be cancelled by WEB_SEARCH_TIMEOUT
-            raise asyncio.TimeoutError("Search timed out")
+            raise TimeoutError("Search timed out")
 
-        with patch(
-            "deep_agent.tools.web_search.WebSearchTool._arun", new=timeout_web_search
-        ):
+        with patch("deep_agent.tools.web_search.WebSearchTool._arun", new=timeout_web_search):
             # Act
             with client.websocket_connect("/api/v1/ws") as websocket:
                 websocket.send_json(
@@ -212,9 +199,7 @@ class TestWebSearchTimeout:
 
         # Assert - should receive on_error or on_tool_error event
         assert data["event"] in ["on_error", "on_tool_error"]
-        assert "timeout" in str(data["data"]).lower() or "timed out" in str(
-            data["data"]
-        ).lower()
+        assert "timeout" in str(data["data"]).lower() or "timed out" in str(data["data"]).lower()
 
 
 class TestTimeoutHierarchy:

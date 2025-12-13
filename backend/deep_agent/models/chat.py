@@ -53,6 +53,7 @@ Streaming Example:
     >>> # Serialize to SSE format
     >>> print(f"event: {event.event_type}\\ndata: {event.data}\\n\\n")
 """
+
 import json
 from datetime import UTC, datetime
 from enum import Enum
@@ -310,11 +311,15 @@ class ChatResponse(BaseModel):
             "example": {
                 "messages": [
                     {"role": "user", "content": "Hello", "timestamp": "2025-01-01T12:00:00"},
-                    {"role": "assistant", "content": "Hi there!", "timestamp": "2025-01-01T12:00:01"},
+                    {
+                        "role": "assistant",
+                        "content": "Hi there!",
+                        "timestamp": "2025-01-01T12:00:01",
+                    },
                 ],
                 "thread_id": "user-123",
                 "status": "success",
-                "metadata": {"tokens": 100, "model": "gpt-5"},
+                "metadata": {"tokens": 100, "model": "gpt-5.1-2025-11-13"},
             }
         }
     }

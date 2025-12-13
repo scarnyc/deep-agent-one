@@ -27,6 +27,7 @@ Usage with LLMFactory:
     >>> primary_llm = create_gemini_llm(api_key="...", config=gemini_config)
     >>> fallback_llm = create_gpt_llm(api_key="sk-...", config=gpt_config)
 """
+
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -83,7 +84,7 @@ class ThinkingLevel(str, Enum):
 # google-ai-generativelanguage ThinkingConfig, but v0.9.0 only supports `thinking_budget`
 # See: https://github.com/langchain-ai/langchain-google/issues/XXX
 THINKING_LEVEL_TO_BUDGET: dict[str, int] = {
-    "low": 1024,   # Minimal reasoning - faster, cheaper
+    "low": 1024,  # Minimal reasoning - faster, cheaper
     "high": 8192,  # Deep reasoning - more thorough
 }
 
@@ -117,7 +118,7 @@ class GPTConfig(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "model_name": "gpt-5",
+                "model_name": "gpt-5.1-2025-11-13",
                 "reasoning_effort": "medium",
                 "verbosity": "medium",
                 "max_tokens": 4096,

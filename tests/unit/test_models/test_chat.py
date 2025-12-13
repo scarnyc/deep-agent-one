@@ -1,4 +1,5 @@
 """Tests for Chat API Pydantic models."""
+
 from datetime import datetime
 
 import pytest

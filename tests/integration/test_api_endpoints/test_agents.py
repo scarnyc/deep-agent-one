@@ -1,6 +1,8 @@
 """Integration tests for Agent Management endpoints (HITL workflows)."""
-from typing import Any, Iterator
-from unittest.mock import AsyncMock, MagicMock, patch
+
+from collections.abc import Iterator
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient

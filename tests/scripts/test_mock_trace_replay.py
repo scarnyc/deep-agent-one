@@ -5,23 +5,21 @@ This test verifies that our fixes (expanded STREAM_ALLOWED_EVENTS and increased
 timeout) allow tool events to stream correctly through the event filter.
 """
 
-import asyncio
 import sys
-import os
-from typing import List, Dict, Any
 from pathlib import Path
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from tests.scripts.mock_tool_events import TraceEventGenerator
 from backend.deep_agent.config.settings import get_settings
+from tests.scripts.mock_tool_events import TraceEventGenerator
 
 
 def filter_events(
-    events: List[Dict[str, Any]], allowed_events: set[str]
-) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    events: list[dict[str, Any]], allowed_events: set[str]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Simulate the event filtering logic from agent_service.py.
 
     Args:
@@ -44,9 +42,7 @@ def filter_events(
     return passed, filtered
 
 
-def analyze_results(
-    passed: List[Dict[str, Any]], filtered: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+def analyze_results(passed: list[dict[str, Any]], filtered: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze filtering results and generate report."""
 
     # Count event types
@@ -82,31 +78,35 @@ def analyze_results(
     }
 
 
-def print_report(analysis: Dict[str, Any], allowed_events: set[str]):
+def print_report(analysis: dict[str, Any], allowed_events: set[str]):
     """Print detailed test report."""
     print("\n" + "=" * 80)
     print("MOCK TRACE REPLAY TEST - RESULTS")
     print("=" * 80)
 
-    print(f"\n📊 Event Statistics:")
+    print("\n📊 Event Statistics:")
     print(f"  Total events generated: {analysis['total_events']}")
-    print(f"  Events passed through:  {analysis['passed_events']} ({analysis['passed_events'] / analysis['total_events'] * 100:.1f}%)")
-    print(f"  Events filtered out:    {analysis['filtered_events']} ({analysis['filtered_events'] / analysis['total_events'] * 100:.1f}%)")
+    print(
+        f"  Events passed through:  {analysis['passed_events']} ({analysis['passed_events'] / analysis['total_events'] * 100:.1f}%)"
+    )
+    print(
+        f"  Events filtered out:    {analysis['filtered_events']} ({analysis['filtered_events'] / analysis['total_events'] * 100:.1f}%)"
+    )
 
-    print(f"\n✅ Passed Event Types:")
+    print("\n✅ Passed Event Types:")
     for event_type, count in sorted(analysis["passed_counts"].items()):
         print(f"  - {event_type:30s}: {count:2d}")
 
     if analysis["filtered_counts"]:
-        print(f"\n❌ Filtered Event Types:")
+        print("\n❌ Filtered Event Types:")
         for event_type, count in sorted(analysis["filtered_counts"].items()):
             print(f"  - {event_type:30s}: {count:2d}")
 
-    print(f"\n🔧 Tool Event Analysis:")
+    print("\n🔧 Tool Event Analysis:")
     print(f"  Tool events passed:    {analysis['tool_events_passed']}")
     print(f"  Tool events filtered:  {analysis['tool_events_filtered']}")
 
-    print(f"\n⚙️  Configuration:")
+    print("\n⚙️  Configuration:")
     print(f"  Allowed events: {sorted(allowed_events)}")
 
     print("\n" + "=" * 80)
@@ -121,7 +121,7 @@ def print_report(analysis: Dict[str, Any], allowed_events: set[str]):
         "name": "Tool events pass through filter",
         "expected": "20 tool events (10 start + 10 end)",
         "actual": f"{analysis['tool_events_passed']} tool events",
-        "pass": analysis['tool_events_passed'] == 20,
+        "pass": analysis["tool_events_passed"] == 20,
     }
     checks.append(tool_check)
 
@@ -130,7 +130,7 @@ def print_report(analysis: Dict[str, Any], allowed_events: set[str]):
         "name": "No tool events filtered out",
         "expected": "0 tool events filtered",
         "actual": f"{analysis['tool_events_filtered']} tool events filtered",
-        "pass": analysis['tool_events_filtered'] == 0,
+        "pass": analysis["tool_events_filtered"] == 0,
     }
     checks.append(no_filter_check)
 
@@ -139,7 +139,7 @@ def print_report(analysis: Dict[str, Any], allowed_events: set[str]):
         "name": "Chat model stream events pass",
         "expected": "6+ streaming events",
         "actual": f"{analysis['passed_counts'].get('on_chat_model_stream', 0)} streaming events",
-        "pass": analysis['passed_counts'].get('on_chat_model_stream', 0) >= 6,
+        "pass": analysis["passed_counts"].get("on_chat_model_stream", 0) >= 6,
     }
     checks.append(chat_stream_check)
 
@@ -149,8 +149,8 @@ def print_report(analysis: Dict[str, Any], allowed_events: set[str]):
         "expected": "2 chain events (start + end)",
         "actual": f"{analysis['passed_counts'].get('on_chain_start', 0) + analysis['passed_counts'].get('on_chain_end', 0)} chain events",
         "pass": (
-            analysis['passed_counts'].get('on_chain_start', 0) == 1
-            and analysis['passed_counts'].get('on_chain_end', 0) == 1
+            analysis["passed_counts"].get("on_chain_start", 0) == 1
+            and analysis["passed_counts"].get("on_chain_end", 0) == 1
         ),
     }
     checks.append(chain_check)
@@ -194,7 +194,7 @@ def main():
     settings = get_settings()
     allowed_events = set(settings.stream_allowed_events_list)
 
-    print(f"\n📋 Test Configuration:")
+    print("\n📋 Test Configuration:")
     print(f"  Stream version: {settings.STREAM_VERSION}")
     print(f"  Stream timeout: {settings.STREAM_TIMEOUT_SECONDS}s")
     print(f"  Allowed events: {len(allowed_events)} types")
@@ -202,8 +202,7 @@ def main():
     # Generate mock events
     print("\n🎬 Generating mock events from trace...")
     generator = TraceEventGenerator(
-        thread_id="test-thread-123",
-        trace_id="e2eaaf57-67f2-4f2b-9143-9eb9fcdc8f06"
+        thread_id="test-thread-123", trace_id="e2eaaf57-67f2-4f2b-9143-9eb9fcdc8f06"
     )
 
     events_with_timing = generator.generate_all_events()

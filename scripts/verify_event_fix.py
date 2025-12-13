@@ -9,8 +9,9 @@ This script sends a message to the WebSocket endpoint and validates:
 
 import asyncio
 import json
-import websockets
 from datetime import datetime
+
+import websockets
 
 
 async def test_event_transformation():
@@ -62,7 +63,7 @@ async def test_event_transformation():
                     else:
                         print(f"  Event: {event_type}")
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     continue
                 except Exception as e:
                     print(f"Error receiving: {e}")

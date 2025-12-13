@@ -12,10 +12,7 @@ exists and is verified via code review. Comprehensive cancellation testing
 will be added in Phase 1 with real MCP integration.
 """
 
-import asyncio
-
 import pytest
-
 from deep_agent.tools.web_search import web_search
 
 
@@ -30,20 +27,26 @@ async def test_web_search_has_cancellation_handler():
     """
     # Read the source file directly
     import pathlib
-    source_file = pathlib.Path(__file__).parent.parent.parent / "backend" / "deep_agent" / "tools" / "web_search.py"
+
+    source_file = (
+        pathlib.Path(__file__).parent.parent.parent
+        / "backend"
+        / "deep_agent"
+        / "tools"
+        / "web_search.py"
+    )
     source = source_file.read_text()
 
     # Verify CancelledError handler exists
-    assert "except asyncio.CancelledError" in source, \
-        "web_search must have asyncio.CancelledError exception handler"
+    assert (
+        "except asyncio.CancelledError" in source
+    ), "web_search must have asyncio.CancelledError exception handler"
 
     # Verify it returns error message (doesn't re-raise)
-    assert "return error_msg" in source, \
-        "CancelledError handler must return error message"
+    assert "return error_msg" in source, "CancelledError handler must return error message"
 
     # Verify logging is present
-    assert "logger.warning" in source, \
-        "CancelledError handler should log the cancellation"
+    assert "logger.warning" in source, "CancelledError handler should log the cancellation"
 
 
 @pytest.mark.asyncio

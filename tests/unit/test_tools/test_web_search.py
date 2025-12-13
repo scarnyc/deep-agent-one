@@ -5,9 +5,10 @@ Tests the LangChain tool wrapper that provides web search capabilities
 to agents via the Perplexity MCP client.
 """
 
-import pytest
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from backend.deep_agent.config.settings import Settings
 
@@ -118,9 +119,7 @@ class TestSearchSuccess:
         from backend.deep_agent.tools.web_search import web_search
 
         # Mock PerplexityClient
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(return_value=mock_search_results)
             mock_client.format_results_for_agent = Mock(return_value=mock_formatted_results)
@@ -133,12 +132,8 @@ class TestSearchSuccess:
             assert isinstance(result, str)
             assert "Python Tutorial" in result
             assert "https://example.com/python" in result
-            mock_client.search.assert_called_once_with(
-                query="python tutorial", max_results=5
-            )
-            mock_client.format_results_for_agent.assert_called_once_with(
-                mock_search_results
-            )
+            mock_client.search.assert_called_once_with(query="python tutorial", max_results=5)
+            mock_client.format_results_for_agent.assert_called_once_with(mock_search_results)
 
     @pytest.mark.asyncio
     async def test_search_with_custom_max_results(
@@ -150,24 +145,18 @@ class TestSearchSuccess:
         """Test that max_results parameter is passed to client."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(return_value=mock_search_results)
             mock_client.format_results_for_agent = Mock(return_value=mock_formatted_results)
             MockClient.return_value = mock_client
 
             # Act
-            result = await web_search.ainvoke(
-                {"query": "python tutorial", "max_results": 10}
-            )
+            result = await web_search.ainvoke({"query": "python tutorial", "max_results": 10})
 
             # Assert
             assert isinstance(result, str)
-            mock_client.search.assert_called_once_with(
-                query="python tutorial", max_results=10
-            )
+            mock_client.search.assert_called_once_with(query="python tutorial", max_results=10)
 
     @pytest.mark.asyncio
     async def test_search_with_complex_query(
@@ -179,9 +168,7 @@ class TestSearchSuccess:
         """Test search with complex multi-word query."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(return_value=mock_search_results)
             mock_client.format_results_for_agent = Mock(return_value="Results")
@@ -204,9 +191,7 @@ class TestSearchSuccess:
         """Test that PerplexityClient is initialized with get_settings()."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(return_value=mock_search_results)
             mock_client.format_results_for_agent = Mock(return_value="Results")
@@ -227,13 +212,9 @@ class TestErrorHandling:
         """Test that empty query returns user-friendly error."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
-            mock_client.search = AsyncMock(
-                side_effect=ValueError("Search query cannot be empty")
-            )
+            mock_client.search = AsyncMock(side_effect=ValueError("Search query cannot be empty"))
             MockClient.return_value = mock_client
 
             # Act
@@ -248,9 +229,7 @@ class TestErrorHandling:
         """Test that ConnectionError is handled gracefully."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(
                 side_effect=ConnectionError("Failed to connect to MCP server")
@@ -270,9 +249,7 @@ class TestErrorHandling:
         """Test that TimeoutError is handled gracefully."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(side_effect=TimeoutError("Request timed out"))
             MockClient.return_value = mock_client
@@ -289,9 +266,7 @@ class TestErrorHandling:
         """Test that rate limit RuntimeError is handled gracefully."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(
                 side_effect=RuntimeError("Rate limit exceeded: 10 requests per 60s")
@@ -311,9 +286,7 @@ class TestErrorHandling:
         """Test that generic RuntimeError is handled gracefully."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(side_effect=RuntimeError("API error occurred"))
             MockClient.return_value = mock_client
@@ -330,9 +303,7 @@ class TestErrorHandling:
         """Test that unexpected exceptions are caught and logged."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(side_effect=Exception("Unexpected error"))
             MockClient.return_value = mock_client
@@ -353,9 +324,7 @@ class TestErrorHandling:
         """Test that search operations are logged."""
         from backend.deep_agent.tools.web_search import web_search
 
-        with patch(
-            "backend.deep_agent.tools.web_search.PerplexityClient"
-        ) as MockClient:
+        with patch("backend.deep_agent.tools.web_search.PerplexityClient") as MockClient:
             mock_client = Mock()
             mock_client.search = AsyncMock(return_value=mock_search_results)
             mock_client.format_results_for_agent = Mock(return_value="Results")

@@ -4,10 +4,11 @@ Integration tests for Perplexity MCP client.
 Tests the MCP client that connects to Perplexity for web search capabilities.
 """
 
-import pytest
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from backend.deep_agent.config.settings import Settings
 
@@ -119,9 +120,7 @@ class TestPerplexitySearch:
         )
 
         # Mock the underlying MCP call
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_perplexity_response
 
             client = PerplexityClient(settings=mock_settings)
@@ -152,9 +151,7 @@ class TestPerplexitySearch:
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_perplexity_response
 
             client = PerplexityClient(settings=mock_settings)
@@ -214,9 +211,7 @@ class TestPerplexityErrorHandling:
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.side_effect = ConnectionError("Failed to connect to MCP server")
 
             client = PerplexityClient(settings=mock_settings)
@@ -235,9 +230,7 @@ class TestPerplexityErrorHandling:
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.side_effect = TimeoutError("MCP request timed out")
 
             client = PerplexityClient(settings=mock_settings)
@@ -256,9 +249,7 @@ class TestPerplexityErrorHandling:
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.side_effect = RuntimeError("Perplexity API error: Rate limit exceeded")
 
             client = PerplexityClient(settings=mock_settings)
@@ -277,9 +268,7 @@ class TestPerplexityErrorHandling:
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             # Return invalid response without "results" key
             mock_call.return_value = {"invalid": "response"}
 
@@ -304,9 +293,7 @@ class TestPerplexityResponseFormatting:
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_perplexity_response
 
             client = PerplexityClient(settings=mock_settings)
@@ -358,9 +345,7 @@ class TestPerplexityRateLimiting:
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_perplexity_response
 
             client = PerplexityClient(settings=mock_settings)
@@ -382,13 +367,12 @@ class TestPerplexityRateLimiting:
     ) -> None:
         """Test rate limit window resets after time passes."""
         import time
+
         from backend.deep_agent.integrations.mcp_clients.perplexity import (
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_perplexity_response
 
             client = PerplexityClient(settings=mock_settings)
@@ -421,9 +405,7 @@ class TestPerplexityQuerySanitization:
             PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_perplexity_response
 
             client = PerplexityClient(settings=mock_settings)
@@ -446,13 +428,11 @@ class TestPerplexityQuerySanitization:
     ) -> None:
         """Test very long queries are truncated."""
         from backend.deep_agent.integrations.mcp_clients.perplexity import (
-            PerplexityClient,
             MAX_QUERY_LENGTH,
+            PerplexityClient,
         )
 
-        with patch.object(
-            PerplexityClient, "_call_mcp", new_callable=AsyncMock
-        ) as mock_call:
+        with patch.object(PerplexityClient, "_call_mcp", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_perplexity_response
 
             client = PerplexityClient(settings=mock_settings)
@@ -482,10 +462,7 @@ class TestPerplexityWithRealSettings:
 
         # Create temporary .env file
         env_file = tmp_path / ".env"
-        env_file.write_text(
-            "PERPLEXITY_API_KEY=test-key-from-env\n"
-            "MCP_PERPLEXITY_TIMEOUT=45\n"
-        )
+        env_file.write_text("PERPLEXITY_API_KEY=test-key-from-env\n" "MCP_PERPLEXITY_TIMEOUT=45\n")
 
         with patch(
             "backend.deep_agent.integrations.mcp_clients.perplexity.get_settings"
@@ -527,10 +504,11 @@ class TestPerplexityMCPServerConfiguration:
         Regression test for trace f4a77df6-82f8-466d-9dd1-478ee55835c0.
         Ensures we use the correct console script command, not python -m.
         """
+        from mcp import StdioServerParameters
+
         from backend.deep_agent.integrations.mcp_clients.perplexity import (
             PerplexityClient,
         )
-        from mcp import StdioServerParameters
 
         # Create client
         client = PerplexityClient(settings=mock_settings)
@@ -541,21 +519,22 @@ class TestPerplexityMCPServerConfiguration:
         async def mock_stdio_client(params):
             nonlocal captured_params
             captured_params = params
+
             # Return mock context manager
             class MockContext:
                 async def __aenter__(self):
                     return (AsyncMock(), AsyncMock())
+
                 async def __aexit__(self, *args):
                     pass
+
             return MockContext()
 
         with patch(
             "backend.deep_agent.integrations.mcp_clients.perplexity.stdio_client",
-            side_effect=mock_stdio_client
+            side_effect=mock_stdio_client,
         ):
-            with patch(
-                "backend.deep_agent.integrations.mcp_clients.perplexity.ClientSession"
-            ):
+            with patch("backend.deep_agent.integrations.mcp_clients.perplexity.ClientSession"):
                 try:
                     await client.search("test query", max_results=1)
                 except:
@@ -596,6 +575,7 @@ class TestPerplexityMCPServerConfiguration:
 
         # Verify it's in the virtual environment (for development)
         import sys
+
         venv_path = sys.prefix
         assert venv_path in mcp_command, (
             f"perplexity-mcp found at {mcp_command}, but expected it in "

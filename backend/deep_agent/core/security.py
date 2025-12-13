@@ -130,11 +130,7 @@ def sanitize_error_with_metadata(
         'ValueError'
     """
     was_sanitized = any(pattern in error_msg for pattern in SECRET_PATTERNS)
-    sanitized_msg = (
-        "[REDACTED: Potential secret in error message]"
-        if was_sanitized
-        else error_msg
-    )
+    sanitized_msg = "[REDACTED: Potential secret in error message]" if was_sanitized else error_msg
 
     error_type = type(error).__name__ if error else None
 

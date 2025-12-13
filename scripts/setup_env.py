@@ -24,7 +24,7 @@ Exit Codes:
     0 - Setup completed successfully
     1 - Python version too old, Node.js missing, or .env.example not found
 """
-import os
+
 import sys
 from pathlib import Path
 
@@ -50,7 +50,7 @@ def create_env_file() -> None:
 
 def check_python_version() -> None:
     """Check if Python version is 3.10+."""
-    if sys.version_info < (3, 10):
+    if sys.version_info < (3, 10):  # noqa: UP036 - intentional runtime check for user-facing validation
         print(f"❌ Python 3.10+ required, found {sys.version}")
         sys.exit(1)
     print(f"✅ Python {sys.version_info.major}.{sys.version_info.minor} detected")
@@ -58,16 +58,14 @@ def check_python_version() -> None:
 
 def check_node_version() -> None:
     """Check if Node.js version is 18+."""
-    import subprocess
+    import subprocess  # nosec B404 - needed for Node.js version check
+
     try:
-        result = subprocess.run(
-            ["node", "--version"],
-            capture_output=True,
-            text=True,
-            check=True
+        result = subprocess.run(  # nosec: B603, B607
+            ["node", "--version"], capture_output=True, text=True, check=True
         )
         version = result.stdout.strip()
-        major_version = int(version.lstrip('v').split('.')[0])
+        major_version = int(version.lstrip("v").split(".")[0])
 
         if major_version < 18:
             print(f"❌ Node.js 18+ required, found {version}")

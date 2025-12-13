@@ -4,6 +4,8 @@ FastAPI dependencies for dependency injection.
 Provides reusable dependency functions for endpoints to enable
 proper testing with dependency overrides and maintain separation of concerns.
 """
+
+import threading
 from typing import Annotated
 
 from fastapi import Depends
@@ -13,11 +15,16 @@ from deep_agent.services.agent_service import AgentService
 
 logger = get_logger(__name__)
 
-# Module-level singleton for AgentService
-# Phase 0: Cache service instance to prevent creating expensive service per connection
+
+class AgentServiceInitializationError(RuntimeError):
+    """Raised when AgentService fails to initialize."""
+
+
+# Module-level singleton for AgentService (thread-safe with double-checked locking)
+# Cache service instance to prevent creating expensive service per connection
 # Each AgentService initialization creates LangGraph agents, checkpointers, etc.
-# WARNING: This makes the service stateful. Must ensure thread safety in Phase 1.
 _agent_service_instance: AgentService | None = None
+_agent_service_lock = threading.Lock()
 
 
 def get_agent_service() -> AgentService:
@@ -47,22 +54,25 @@ def get_agent_service() -> AgentService:
         ```
 
     Note:
-        Phase 0: Simple singleton caching
-        Phase 1: Consider thread safety, connection pooling, or per-user instances
+        Thread-safe singleton with double-checked locking pattern.
+        Phase 1: Consider connection pooling or per-user instances.
     """
     global _agent_service_instance
     if _agent_service_instance is None:
-        try:
-            _agent_service_instance = AgentService()
-        except Exception as e:
-            logger.error(
-                "Failed to initialize AgentService",
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise RuntimeError(
-                "Agent service initialization failed. Check configuration."
-            ) from e
+        with _agent_service_lock:
+            # Double-checked locking to prevent race condition under concurrent requests
+            if _agent_service_instance is None:
+                try:
+                    _agent_service_instance = AgentService()
+                except Exception as e:
+                    logger.error(
+                        "Failed to initialize AgentService",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+                    raise AgentServiceInitializationError(
+                        "Agent service initialization failed. Check configuration."
+                    ) from e
     return _agent_service_instance
 
 
@@ -86,11 +96,17 @@ def reset_agent_service() -> None:
         >>> # Next request will use new settings
     """
     global _agent_service_instance
-    _agent_service_instance = None
+    with _agent_service_lock:
+        _agent_service_instance = None
 
 
 # Type alias for injected AgentService
 AgentServiceDep = Annotated[AgentService, Depends(get_agent_service)]
 
 # Explicit public API for IDE autocomplete and import hygiene
-__all__ = ["get_agent_service", "AgentServiceDep", "reset_agent_service"]
+__all__ = [
+    "AgentServiceInitializationError",
+    "get_agent_service",
+    "AgentServiceDep",
+    "reset_agent_service",
+]

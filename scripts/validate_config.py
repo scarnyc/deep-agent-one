@@ -13,7 +13,10 @@ Usage:
   python scripts/validate_config.py
   ./scripts/validate_config.py
 """
+
+import re
 import sys
+import traceback
 from pathlib import Path
 
 # Add backend to Python path
@@ -46,23 +49,13 @@ def validate_config() -> bool:
     # =========================================================================
     print("✓ Checking environment consistency...")
 
-    # ENV must not be prod with DEBUG enabled
-    if settings.ENV == "prod" and settings.DEBUG:
-        errors.append(
-            "ENV=prod but DEBUG=true (production must not have debug enabled)"
-        )
-
-    # DEBUG should be false in staging/prod
+    # DEBUG must be false in staging/prod
     if settings.ENV in ["staging", "prod"] and settings.DEBUG:
-        warnings.append(
-            f"DEBUG=true in {settings.ENV} environment (should be false)"
-        )
+        errors.append(f"DEBUG=true in {settings.ENV} environment (must be false)")
 
-    # API_RELOAD should be false in staging/prod
+    # API_RELOAD must be false in staging/prod
     if settings.ENV in ["staging", "prod"] and settings.API_RELOAD:
-        warnings.append(
-            f"API_RELOAD=true in {settings.ENV} environment (should be false)"
-        )
+        errors.append(f"API_RELOAD=true in {settings.ENV} environment (must be false)")
 
     # =========================================================================
     # CHECK 2: Timeout relationships
@@ -111,16 +104,18 @@ def validate_config() -> bool:
                 "Set MOCK_EXTERNAL_APIS=true for testing or provide a valid key."
             )
 
-        # Check for placeholder keys in production
+        # Check for placeholder keys in staging/prod (must be real keys)
         if settings.ENV in ["staging", "prod"]:
             if settings.PERPLEXITY_API_KEY == "your_perplexity_key_here":
-                warnings.append(
-                    "PERPLEXITY_API_KEY using placeholder in production environment"
+                errors.append(
+                    f"PERPLEXITY_API_KEY using placeholder in {settings.ENV} environment "
+                    "(must provide valid key)"
                 )
 
             if settings.LANGSMITH_API_KEY == "your_langsmith_key_here":
-                warnings.append(
-                    "LANGSMITH_API_KEY using placeholder - monitoring will not work"
+                errors.append(
+                    f"LANGSMITH_API_KEY using placeholder in {settings.ENV} environment "
+                    "(monitoring will not work)"
                 )
 
     # =========================================================================
@@ -135,8 +130,10 @@ def validate_config() -> bool:
             "Must be a valid OpenAI model name."
         )
 
-    # Warn if not using dated release format
-    if settings.GPT_MODEL_NAME.startswith("gpt-5") and not any(char.isdigit() and "-" in settings.GPT_MODEL_NAME[-10:] for char in settings.GPT_MODEL_NAME[-10:]):
+    # Warn if not using dated release format (YYYY-MM-DD suffix)
+    if settings.GPT_MODEL_NAME.startswith("gpt-5") and not re.search(
+        r"\d{4}-\d{2}-\d{2}$", settings.GPT_MODEL_NAME
+    ):
         warnings.append(
             f"GPT_MODEL_NAME='{settings.GPT_MODEL_NAME}' should use dated release format. "
             "Example: gpt-5.1-2025-11-13 (check OpenAI docs for latest releases)"
@@ -152,7 +149,7 @@ def validate_config() -> bool:
         # SECRET_KEY must be set and strong
         if not settings.SECRET_KEY:
             errors.append("SECRET_KEY not set in production environment")
-        elif settings.SECRET_KEY == "your_secret_key_here":
+        elif settings.SECRET_KEY == "your_secret_key_here":  # nosec B105 - placeholder check, not usage
             errors.append("SECRET_KEY using placeholder in production environment")
         elif len(settings.SECRET_KEY) < 32:
             errors.append(
@@ -163,7 +160,7 @@ def validate_config() -> bool:
         # JWT_SECRET must be set and strong
         if not settings.JWT_SECRET:
             errors.append("JWT_SECRET not set in production environment")
-        elif settings.JWT_SECRET == "your_jwt_secret_here":
+        elif settings.JWT_SECRET == "your_jwt_secret_here":  # nosec B105 - placeholder check, not usage
             errors.append("JWT_SECRET using placeholder in production environment")
         elif len(settings.JWT_SECRET) < 32:
             errors.append(
@@ -212,15 +209,11 @@ def validate_config() -> bool:
 
     # Port must be valid
     if not (1 <= settings.API_PORT <= 65535):
-        errors.append(
-            f"API_PORT ({settings.API_PORT}) out of valid range (1-65535)"
-        )
+        errors.append(f"API_PORT ({settings.API_PORT}) out of valid range (1-65535)")
 
     # Max tokens must be positive
     if settings.GPT_MAX_TOKENS <= 0:
-        errors.append(
-            f"GPT_MAX_TOKENS ({settings.GPT_MAX_TOKENS}) must be positive"
-        )
+        errors.append(f"GPT_MAX_TOKENS ({settings.GPT_MAX_TOKENS}) must be positive")
 
     # Temperature validation removed - deprecated for GPT-5+ models
     # GPT-5+ models use reasoning_effort parameter instead of temperature
@@ -240,8 +233,7 @@ def validate_config() -> bool:
     # Cleanup days must be positive
     if settings.CHECKPOINT_CLEANUP_DAYS < 1:
         errors.append(
-            f"CHECKPOINT_CLEANUP_DAYS ({settings.CHECKPOINT_CLEANUP_DAYS}) "
-            "must be at least 1"
+            f"CHECKPOINT_CLEANUP_DAYS ({settings.CHECKPOINT_CLEANUP_DAYS}) " "must be at least 1"
         )
 
     # =========================================================================
@@ -257,9 +249,7 @@ def validate_config() -> bool:
     # Production should not allow localhost
     if settings.ENV == "prod":
         if any("localhost" in origin or "127.0.0.1" in origin for origin in cors_origins):
-            warnings.append(
-                "CORS_ORIGINS includes localhost in production environment"
-            )
+            warnings.append("CORS_ORIGINS includes localhost in production environment")
 
     # =========================================================================
     # CHECK 8: Feature flag consistency
@@ -268,15 +258,11 @@ def validate_config() -> bool:
 
     # HITL should be enabled in production
     if settings.ENV == "prod" and not settings.ENABLE_HITL:
-        warnings.append(
-            "ENABLE_HITL=false in production - human-in-the-loop disabled"
-        )
+        warnings.append("ENABLE_HITL=false in production - human-in-the-loop disabled")
 
     # Cost tracking should be enabled
     if not settings.ENABLE_COST_TRACKING:
-        warnings.append(
-            "ENABLE_COST_TRACKING=false - won't track API costs"
-        )
+        warnings.append("ENABLE_COST_TRACKING=false - won't track API costs")
 
     # =========================================================================
     # CHECK 9: Rate limiting
@@ -285,9 +271,7 @@ def validate_config() -> bool:
 
     # Rate limits should be set
     if settings.RATE_LIMIT_REQUESTS < 1:
-        warnings.append(
-            f"RATE_LIMIT_REQUESTS ({settings.RATE_LIMIT_REQUESTS}) is zero or negative"
-        )
+        warnings.append(f"RATE_LIMIT_REQUESTS ({settings.RATE_LIMIT_REQUESTS}) is zero or negative")
 
     if settings.RATE_LIMIT_PERIOD < 60:
         warnings.append(
@@ -333,7 +317,7 @@ def validate_config() -> bool:
     return len(errors) == 0
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     try:
         success = validate_config()
@@ -341,7 +325,6 @@ def main():
     except Exception as e:
         print(f"\n❌ VALIDATION ERROR: {e}")
         print("   Configuration validation encountered an unexpected error")
-        import traceback
         traceback.print_exc()
         sys.exit(1)
 

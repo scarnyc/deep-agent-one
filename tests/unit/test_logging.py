@@ -1,13 +1,13 @@
 """Unit tests for structured logging."""
+
 import logging
-import json
+
 import pytest
-from io import StringIO
 
 from backend.deep_agent.core.logging import (
-    setup_logging,
-    get_logger,
     LogLevel,
+    get_logger,
+    setup_logging,
 )
 
 

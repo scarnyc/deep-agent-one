@@ -1,4 +1,5 @@
 """Structured logging configuration using structlog."""
+
 import logging
 import sys
 from enum import Enum
@@ -85,14 +86,18 @@ def setup_logging(
 
     # Add format-specific processors
     if log_format == "json":
-        processors.extend([
-            structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer(default=safe_fallback_handler),
-        ])
+        processors.extend(
+            [
+                structlog.processors.format_exc_info,
+                structlog.processors.JSONRenderer(default=safe_fallback_handler),
+            ]
+        )
     else:  # standard format
-        processors.extend([
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ])
+        processors.extend(
+            [
+                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+            ]
+        )
 
     # Configure structlog
     structlog.configure(

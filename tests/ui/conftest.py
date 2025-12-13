@@ -4,12 +4,12 @@ Playwright configuration and fixtures for UI tests.
 Provides shared fixtures for browser automation testing including
 browser configuration, context management, and base URL configuration.
 """
+
 import os
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
-from playwright.sync_api import Page, BrowserContext, Browser, Playwright
-
+from playwright.sync_api import BrowserContext, Page
 
 # Configuration constants
 BASE_URL = os.getenv("PLAYWRIGHT_BASE_URL", "http://localhost:3000")
@@ -182,14 +182,9 @@ def pytest_configure(config):
     Allows filtering tests by category using pytest markers.
     """
     config.addinivalue_line(
-        "markers",
-        "ui: Playwright UI tests (slow, require frontend/backend running)"
+        "markers", "ui: Playwright UI tests (slow, require frontend/backend running)"
     )
+    config.addinivalue_line("markers", "ui_slow: Very slow UI tests (>30 seconds)")
     config.addinivalue_line(
-        "markers",
-        "ui_slow: Very slow UI tests (>30 seconds)"
-    )
-    config.addinivalue_line(
-        "markers",
-        "ui_visual: Visual regression tests (require baseline screenshots)"
+        "markers", "ui_visual: Visual regression tests (require baseline screenshots)"
     )

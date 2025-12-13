@@ -1,4 +1,5 @@
 """Integration tests for FastAPI app initialization and middleware."""
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -12,6 +13,7 @@ def client() -> TestClient:
     fresh app instance for each test.
     """
     from backend.deep_agent.main import app
+
     return TestClient(app)
 
 
@@ -50,8 +52,10 @@ class TestCORSMiddleware:
         # Assert: CORS headers should be present
         # Note: May be None if health endpoint doesn't exist yet
         if response.status_code == 200:
-            assert "access-control-allow-origin" in response.headers or \
-                   "Access-Control-Allow-Origin" in response.headers
+            assert (
+                "access-control-allow-origin" in response.headers
+                or "Access-Control-Allow-Origin" in response.headers
+            )
 
     def test_cors_allows_configured_origins(self, client: TestClient) -> None:
         """Test that CORS allows origins from settings."""
@@ -80,8 +84,9 @@ class TestRateLimiting:
 
         # Assert: Check if slowapi limiter is in app state
         # slowapi stores limiter in app.state.limiter (set in main.py line 114)
-        assert hasattr(app.state, "limiter") or \
-               any("limiter" in str(mw).lower() for mw in app.user_middleware)
+        assert hasattr(app.state, "limiter") or any(
+            "limiter" in str(mw).lower() for mw in app.user_middleware
+        )
 
     def test_rate_limiting_allows_normal_requests(self, client: TestClient) -> None:
         """Test that normal request volumes are allowed."""
@@ -133,17 +138,17 @@ class TestStructuredLogging:
         # Act
         response = client.get("/health")
 
+        # Assert: Request should complete successfully
+        assert response.status_code == 200
+
         # Assert: Check for request ID header (may vary by middleware implementation)
         # Common header names: X-Request-ID, Request-ID
         has_request_id = (
-            "x-request-id" in response.headers or
-            "X-Request-ID" in response.headers or
-            "request-id" in response.headers
+            "x-request-id" in response.headers
+            or "X-Request-ID" in response.headers
+            or "request-id" in response.headers
         )
-
-        # Note: May be False if not implemented yet
-        # This test documents expected behavior
-        assert has_request_id or response.status_code == 200  # Soft assertion
+        assert has_request_id, "Request ID header not found in response"
 
 
 class TestGlobalExceptionHandler:
@@ -160,14 +165,12 @@ class TestGlobalExceptionHandler:
         assert isinstance(data, dict)
         assert "detail" in data
 
-    def test_500_returns_json_error(self, client: TestClient) -> None:
-        """Test that 500 errors return structured JSON responses."""
-        # Note: This will be testable after error endpoint is added
-        # For now, just verify app doesn't crash on unknown errors
+    def test_exception_handlers_registered(self, client: TestClient) -> None:
+        """Test that exception handlers are registered for error handling."""
         from backend.deep_agent.main import app
 
         # Assert: App has exception handlers registered
-        assert len(app.exception_handlers) >= 0  # May be 0 if not implemented yet
+        assert len(app.exception_handlers) > 0, "No exception handlers registered"
 
 
 class TestAPIVersioning:

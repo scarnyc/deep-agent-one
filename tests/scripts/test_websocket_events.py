@@ -3,8 +3,10 @@
 
 import asyncio
 import json
-import websockets
 import uuid
+
+import websockets
+
 
 async def test_web_search_events():
     """Send a multi-turn conversation to trigger web search."""
@@ -24,7 +26,7 @@ async def test_web_search_events():
             "type": "chat",
             "message": "what's the latest trends in quantum?",
             "thread_id": thread_id,
-            "request_id": str(uuid.uuid4())
+            "request_id": str(uuid.uuid4()),
         }
 
         print(f"📤 Sending: {message1['message']}")
@@ -60,7 +62,7 @@ async def test_web_search_events():
             "type": "chat",
             "message": "Please use the web_search tool to find current information about quantum computing trends. Actually call the tool.",
             "thread_id": thread_id,  # SAME THREAD
-            "request_id": str(uuid.uuid4())
+            "request_id": str(uuid.uuid4()),
         }
 
         print(f"📤 Sending: {message2['message']}\n")
@@ -128,6 +130,7 @@ async def test_web_search_events():
 
         print("=" * 80)
 
+
 if __name__ == "__main__":
     print("=" * 80)
     print("WebSocket Event Streaming Test")
@@ -141,4 +144,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()

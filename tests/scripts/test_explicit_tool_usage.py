@@ -44,10 +44,10 @@ async def test_explicit_tool_usage():
             message = {
                 "type": "chat",
                 "message": "Search the web for the latest quantum computing breakthroughs in 2024 and 2025. Please use web search to find recent news and research.",
-                "thread_id": thread_id
+                "thread_id": thread_id,
             }
 
-            print(f"📤 Sending explicit tool request")
+            print("📤 Sending explicit tool request")
             await websocket.send(json.dumps(message))
 
             # Track events
@@ -65,40 +65,40 @@ async def test_explicit_tool_usage():
                     event = json.loads(response)
                     events_received.append(event)
 
-                    event_type = event.get('event', 'unknown')
+                    event_type = event.get("event", "unknown")
 
                     # Track tool execution
-                    if event_type in ['on_tool_start', 'on_tool_call_start']:
+                    if event_type in ["on_tool_start", "on_tool_call_start"]:
                         tool_calls_started += 1
-                        tool_name = event.get('name', event.get('data', {}).get('name', 'unknown'))
+                        tool_name = event.get("name", event.get("data", {}).get("name", "unknown"))
                         print(f"  🔧 Tool #{tool_calls_started} started: {tool_name}")
 
-                    elif event_type in ['on_tool_end', 'on_tool_call_end']:
+                    elif event_type in ["on_tool_end", "on_tool_call_end"]:
                         tool_calls_completed += 1
                         print(f"  ✅ Tool #{tool_calls_completed} completed")
 
                     # Track errors
-                    elif event_type == 'on_error':
+                    elif event_type == "on_error":
                         error_events.append(event)
                         print(f"\n  ❌ ERROR: {event.get('data', {})}\n")
 
                     # Track chain completion (only for main LangGraph chain, not middleware)
-                    elif event_type == 'on_chain_end':
-                        event_name = event.get('name', '')
-                        if event_name == 'LangGraph':
-                            print(f"\n  🏁 LangGraph chain complete")
+                    elif event_type == "on_chain_end":
+                        event_name = event.get("name", "")
+                        if event_name == "LangGraph":
+                            print("\n  🏁 LangGraph chain complete")
                             complete = True
                         else:
                             # Middleware chain ended, continue waiting for main chain
                             pass
 
                     # Show streaming response
-                    elif event_type == 'on_chat_model_stream':
-                        chunk = event.get('data', {}).get('chunk', {}).get('content', '')
+                    elif event_type == "on_chat_model_stream":
+                        chunk = event.get("data", {}).get("chunk", {}).get("content", "")
                         if chunk:
-                            print(chunk, end='', flush=True)
+                            print(chunk, end="", flush=True)
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     elapsed = time.time() - start_time
                     print(f"\n⏱️  Timeout after {elapsed:.1f}s")
                     break
@@ -133,9 +133,9 @@ async def test_explicit_tool_usage():
                 success = False
 
             # Check 2: No cancellation errors
-            cancelled = [e for e in error_events if 'cancel' in str(e).lower()]
+            cancelled = [e for e in error_events if "cancel" in str(e).lower()]
             if len(cancelled) == 0:
-                print(f"✅ PASS: No cancellation errors")
+                print("✅ PASS: No cancellation errors")
             else:
                 print(f"❌ FAIL: {len(cancelled)} cancellation errors")
                 success = False
@@ -144,13 +144,15 @@ async def test_explicit_tool_usage():
             if tool_calls_started > 0:
                 print(f"✅ PASS: Tools used ({tool_calls_started} tool calls)")
             else:
-                print(f"⚠️  WARN: No tools used (agent gave direct response)")
+                print("⚠️  WARN: No tools used (agent gave direct response)")
 
             # Check 4: Tools completed
             if tool_calls_completed == tool_calls_started:
-                print(f"✅ PASS: All tools completed")
+                print("✅ PASS: All tools completed")
             elif tool_calls_started > 0:
-                print(f"⚠️  WARN: Some tools didn't complete ({tool_calls_completed}/{tool_calls_started})")
+                print(
+                    f"⚠️  WARN: Some tools didn't complete ({tool_calls_completed}/{tool_calls_started})"
+                )
 
             print("\n" + "=" * 80)
 
@@ -167,6 +169,7 @@ async def test_explicit_tool_usage():
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
