@@ -49,17 +49,13 @@ def validate_config() -> bool:
     # =========================================================================
     print("✓ Checking environment consistency...")
 
-    # ENV must not be prod with DEBUG enabled
-    if settings.ENV == "prod" and settings.DEBUG:
-        errors.append("ENV=prod but DEBUG=true (production must not have debug enabled)")
-
-    # DEBUG should be false in staging/prod
+    # DEBUG must be false in staging/prod
     if settings.ENV in ["staging", "prod"] and settings.DEBUG:
-        warnings.append(f"DEBUG=true in {settings.ENV} environment (should be false)")
+        errors.append(f"DEBUG=true in {settings.ENV} environment (must be false)")
 
-    # API_RELOAD should be false in staging/prod
+    # API_RELOAD must be false in staging/prod
     if settings.ENV in ["staging", "prod"] and settings.API_RELOAD:
-        warnings.append(f"API_RELOAD=true in {settings.ENV} environment (should be false)")
+        errors.append(f"API_RELOAD=true in {settings.ENV} environment (must be false)")
 
     # =========================================================================
     # CHECK 2: Timeout relationships
