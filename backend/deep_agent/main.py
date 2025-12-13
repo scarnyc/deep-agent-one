@@ -574,6 +574,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
                 # Process chat message
                 if message.type == "chat":
+                    # Initialize variables for error handler access
+                    event_count = 0
+                    trace_id = None
+
                     try:
                         logger.info(
                             "Starting WebSocket streaming",
@@ -600,8 +604,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             }
                         )
 
-                        event_count = 0
-                        trace_id = None
                         # Stream agent responses using injected service
                         async for event in service.stream(
                             message=message.message,
@@ -683,20 +685,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
                     except asyncio.CancelledError:
                         # Client disconnected or task cancelled
-                        # Get trace_id if available
-                        captured_trace_id = trace_id if "trace_id" in locals() else None
-                        captured_event_count = event_count if "event_count" in locals() else 0
-
                         logger.info(
                             "WebSocket streaming cancelled (client disconnect or timeout)",
                             connection_id=connection_id,
                             request_id=request_id,
                             thread_id=message.thread_id,
-                            trace_id=captured_trace_id,
-                            langsmith_url=generate_langsmith_url(captured_trace_id)
-                            if captured_trace_id
-                            else None,
-                            events_sent=captured_event_count,
+                            trace_id=trace_id,
+                            langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
+                            events_sent=event_count,
                             reason="client_disconnect_or_task_cancelled",
                         )
                         # Do NOT send error to client (connection likely closed)
@@ -708,19 +704,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         # Use centralized sanitization (security)
                         sanitization = sanitize_error_with_metadata(str(e), e)
 
-                        # Get trace_id if available
-                        captured_trace_id = trace_id if "trace_id" in locals() else None
-
-                        logger.error(
+                        logger.exception(
                             "WebSocket agent execution failed",
                             connection_id=connection_id,
                             request_id=request_id,
                             thread_id=message.thread_id,
-                            trace_id=captured_trace_id,
-                            langsmith_url=generate_langsmith_url(captured_trace_id)
-                            if captured_trace_id
-                            else None,
-                            error=sanitization.message,
+                            trace_id=trace_id,
+                            langsmith_url=generate_langsmith_url(trace_id) if trace_id else None,
                             sanitized=sanitization.was_sanitized,
                             original_error_type=sanitization.original_error_type,
                         )
@@ -734,7 +724,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                 },
                                 "metadata": {
                                     "thread_id": message.thread_id,
-                                    "trace_id": captured_trace_id,
+                                    "trace_id": trace_id,
                                     "connection_id": connection_id,
                                 },
                             }
