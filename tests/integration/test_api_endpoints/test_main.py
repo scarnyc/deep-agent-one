@@ -138,6 +138,9 @@ class TestStructuredLogging:
         # Act
         response = client.get("/health")
 
+        # Assert: Request should complete successfully
+        assert response.status_code == 200
+
         # Assert: Check for request ID header (may vary by middleware implementation)
         # Common header names: X-Request-ID, Request-ID
         has_request_id = (
@@ -145,10 +148,7 @@ class TestStructuredLogging:
             or "X-Request-ID" in response.headers
             or "request-id" in response.headers
         )
-
-        # Note: May be False if not implemented yet
-        # This test documents expected behavior
-        assert has_request_id or response.status_code == 200  # Soft assertion
+        assert has_request_id, "Request ID header not found in response"
 
 
 class TestGlobalExceptionHandler:
@@ -165,14 +165,12 @@ class TestGlobalExceptionHandler:
         assert isinstance(data, dict)
         assert "detail" in data
 
-    def test_500_returns_json_error(self, client: TestClient) -> None:
-        """Test that 500 errors return structured JSON responses."""
-        # Note: This will be testable after error endpoint is added
-        # For now, just verify app doesn't crash on unknown errors
+    def test_exception_handlers_registered(self, client: TestClient) -> None:
+        """Test that exception handlers are registered for error handling."""
         from backend.deep_agent.main import app
 
         # Assert: App has exception handlers registered
-        assert len(app.exception_handlers) >= 0  # May be 0 if not implemented yet
+        assert len(app.exception_handlers) > 0, "No exception handlers registered"
 
 
 class TestAPIVersioning:
