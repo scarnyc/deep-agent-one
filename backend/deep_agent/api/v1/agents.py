@@ -141,7 +141,7 @@ async def get_agent_status(request: Request, thread_id: str) -> AgentRunInfo:
             if "state" in locals():
                 run_id = state["config"]["configurable"].get("checkpoint_id")
         except Exception:
-            pass
+            pass  # nosec B110 - best-effort run_id extraction for error logging
 
         logger.error(
             "Failed to get agent status",

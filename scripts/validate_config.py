@@ -146,7 +146,7 @@ def validate_config() -> bool:
         # SECRET_KEY must be set and strong
         if not settings.SECRET_KEY:
             errors.append("SECRET_KEY not set in production environment")
-        elif settings.SECRET_KEY == "your_secret_key_here":
+        elif settings.SECRET_KEY == "your_secret_key_here":  # nosec B105 - placeholder check, not usage
             errors.append("SECRET_KEY using placeholder in production environment")
         elif len(settings.SECRET_KEY) < 32:
             errors.append(
@@ -157,7 +157,7 @@ def validate_config() -> bool:
         # JWT_SECRET must be set and strong
         if not settings.JWT_SECRET:
             errors.append("JWT_SECRET not set in production environment")
-        elif settings.JWT_SECRET == "your_jwt_secret_here":
+        elif settings.JWT_SECRET == "your_jwt_secret_here":  # nosec B105 - placeholder check, not usage
             errors.append("JWT_SECRET using placeholder in production environment")
         elif len(settings.JWT_SECRET) < 32:
             errors.append(
@@ -314,7 +314,7 @@ def validate_config() -> bool:
     return len(errors) == 0
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     try:
         success = validate_config()

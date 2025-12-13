@@ -61,7 +61,7 @@ class WebSocketTestClient:
     def __init__(self, url: str = "ws://localhost:8000/api/v1/ws"):
         self.url = url
         self.event_counts: dict[str, int] = {}
-        self.token_buffer = ""
+        self.token_buffer = ""  # nosec B105 - empty string buffer, not a password
         self.start_time: float = 0
         self.first_token_time: float = 0
         self.event_log: list[dict[str, Any]] = []
@@ -281,7 +281,7 @@ class WebSocketTestClient:
             )
 
 
-async def main():
+async def main() -> None:
     """Main entry point."""
     print(f"{Colors.BOLD}WebSocket Streaming Manual Test{Colors.ENDC}")
     print("Testing astream_events() implementation with live server\n")

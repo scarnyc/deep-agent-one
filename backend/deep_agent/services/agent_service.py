@@ -231,8 +231,7 @@ class AgentService:
                 if run_tree:
                     trace_id = str(run_tree.trace_id)
             except Exception:
-                # Don't fail if trace_id capture fails
-                pass
+                pass  # nosec B110 - best-effort LangSmith trace_id capture
 
             logger.info(
                 "Agent invocation completed",
@@ -255,7 +254,7 @@ class AgentService:
                 if run_tree:
                     trace_id = str(run_tree.trace_id)
             except Exception:
-                pass
+                pass  # nosec B110 - best-effort trace_id capture in error path
 
             logger.error(
                 "Agent invocation failed",
@@ -412,8 +411,7 @@ class AgentService:
                                             if run_tree:
                                                 trace_id = str(run_tree.trace_id)
                                         except Exception:
-                                            # Don't fail if trace_id capture fails
-                                            pass
+                                            pass  # nosec B110 - best-effort trace_id for streaming
 
                                     # Track OpenAI API call timing
                                     if event_type == "on_chat_model_start":
@@ -733,7 +731,7 @@ class AgentService:
             # Do NOT re-raise - cancellation is expected behavior
             return
 
-        except Exception as e:
+        except Exception as e:  # noqa: B025 - outer exception handler, inner at 723 handles yield failures
             logger.error(
                 "Agent streaming failed",
                 thread_id=thread_id,
