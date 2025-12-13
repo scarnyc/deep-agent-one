@@ -104,13 +104,19 @@ def validate_config() -> bool:
                 "Set MOCK_EXTERNAL_APIS=true for testing or provide a valid key."
             )
 
-        # Check for placeholder keys in production
+        # Check for placeholder keys in staging/prod (must be real keys)
         if settings.ENV in ["staging", "prod"]:
             if settings.PERPLEXITY_API_KEY == "your_perplexity_key_here":
-                warnings.append("PERPLEXITY_API_KEY using placeholder in production environment")
+                errors.append(
+                    f"PERPLEXITY_API_KEY using placeholder in {settings.ENV} environment "
+                    "(must provide valid key)"
+                )
 
             if settings.LANGSMITH_API_KEY == "your_langsmith_key_here":
-                warnings.append("LANGSMITH_API_KEY using placeholder - monitoring will not work")
+                errors.append(
+                    f"LANGSMITH_API_KEY using placeholder in {settings.ENV} environment "
+                    "(monitoring will not work)"
+                )
 
     # =========================================================================
     # CHECK 3.5: GPT Model Configuration
