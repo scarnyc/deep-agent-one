@@ -118,7 +118,7 @@ class GPTConfig(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "model_name": "gpt-5",
+                "model_name": "gpt-5.1-2025-11-13",
                 "reasoning_effort": "medium",
                 "verbosity": "medium",
                 "max_tokens": 4096,

@@ -319,7 +319,7 @@ class ChatResponse(BaseModel):
                 ],
                 "thread_id": "user-123",
                 "status": "success",
-                "metadata": {"tokens": 100, "model": "gpt-5"},
+                "metadata": {"tokens": 100, "model": "gpt-5.1-2025-11-13"},
             }
         }
     }
