@@ -964,96 +964,6 @@ git commit -m "feat(phase-0): implement Web Search Tool using Perplexity MCP cli
 
 ---
 
-## Prompt Optimization Workflow (context-engineering-expert)
-
-**IMPORTANT:** When you identify opportunities to optimize prompts (agent instructions, system prompts, user-facing messages), use the **context-engineering-expert** agent.
-
-### Triggering Conditions
-
-Use this agent when:
-- User explicitly requests prompt optimization or improvement
-- User mentions issues with agent behavior, inconsistent responses, or poor output quality
-- User wants to implement A/B testing for different prompt versions
-- User needs to reduce token usage while maintaining quality
-- Creating new agents and wants optimal system prompts from the start
-- User mentions Opik, prompt engineering, or context optimization
-- After receiving feedback that an agent's responses are unclear or off-target
-
-### Proactive Usage Examples
-
-<example>
-Context: User has just created a new agent and completed its initial implementation.
-user: "I've finished implementing the code-reviewer agent. Here's the system prompt I wrote: [prompt content]"
-assistant: "Let me use the context-engineering-expert agent to optimize this system prompt before you deploy it."
-<commentary>
-Since the user has created a new agent, proactively use the context-engineering-expert to optimize the prompt following GPT-5.1 best practices and Opik recommendations, even though the user didn't explicitly request optimization.
-</commentary>
-</example>
-
-<example>
-Context: User reports inconsistent agent behavior.
-user: "The research-assistant agent sometimes gives great summaries but other times it's too verbose or misses key points."
-assistant: "I'm going to use the context-engineering-expert agent to analyze and optimize the research-assistant's system prompt. This should help ensure more consistent, high-quality outputs."
-<commentary>
-Inconsistent behavior is a clear signal for prompt optimization. Use the context-engineering-expert to diagnose issues and improve the prompt structure.
-</commentary>
-</example>
-
-<example>
-Context: User is experiencing high token costs.
-user: "Our API costs are higher than expected. The agents seem to be using a lot of tokens."
-assistant: "Let me use the context-engineering-expert agent to analyze your agents' prompts and optimize them for token efficiency while maintaining output quality."
-<commentary>
-High token usage often indicates verbose or inefficient prompts. Proactively use the context-engineering-expert to optimize for cost without sacrificing quality.
-</commentary>
-</example>
-
-### Workflow
-
-1. **Identify optimization opportunity:**
-   ```bash
-   # Examples:
-   # - Agent responses too verbose
-   # - Missing citations in web search results
-   # - Unclear instructions causing confusion
-   # - High token costs
-   # - New agent prompt needs review
-   ```
-
-2. **Invoke context-engineering-expert:**
-   ```bash
-   # The agent will:
-   # 1. Analyze current prompt against GPT-5.1 best practices
-   # 2. Create evaluation dataset
-   # 3. Run Opik optimizer (MetaPrompt, Evolutionary, etc.)
-   # 4. Validate improvements with A/B testing
-   # 5. Present quantitative results (accuracy, latency, cost)
-   ```
-
-3. **Review and apply recommendations:**
-   - Review before/after prompt comparison
-   - Verify performance metrics show improvement
-   - Check statistical significance (p-values)
-   - Apply optimized prompt to codebase
-
-### Tools Available
-
-- **analyze_prompt** - GPT-5.1 best practices analysis
-- **optimize_prompt** - Opik-powered optimization
-- **evaluate_prompt** - Metrics (accuracy, latency, cost)
-- **create_evaluation_dataset** - Generate test cases
-- **ab_test_prompts** - Statistical A/B testing
-
-### Example Use Cases
-
-- Optimize `prompts.py` system prompt for better accuracy/verbosity balance
-- Improve web search result formatting with citation requirements
-- Reduce token usage while maintaining response quality
-- Create task-specific prompt variations (code gen vs. chat vs. research)
-- Add parallel tool call limits to prevent timeouts
-
----
-
 ## Success Validation Checklist
 
 After each phase, validate:
@@ -1170,25 +1080,6 @@ git commit -m "feat(phase-X): <description>"
 
 # After security scan
 git commit -m "security(phase-X): address TheAuditor findings"
-```
-
-### Prompt Optimization
-```bash
-# Analyze prompt against GPT-5.1 best practices
-# (via context-engineering-expert agent)
-analyze_prompt(prompt, task_type="general")
-
-# Optimize prompt with Opik
-optimize_prompt(prompt, dataset, optimizer_type="meta")
-
-# Evaluate prompt performance
-evaluate_prompt(prompt, dataset, metrics=["accuracy", "latency", "cost"])
-
-# A/B test two prompts
-ab_test_prompts(prompt_a, prompt_b, dataset)
-
-# Create evaluation dataset
-create_evaluation_dataset(task_description, num_examples=20)
 ```
 
 ### Startup Scripts

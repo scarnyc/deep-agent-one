@@ -1,5 +1,5 @@
 """
-Prompt Optimization Tools for context-engineering-expert agent.
+Prompt Optimization Tools.
 
 Provides 5 core tools for analyzing, optimizing, and validating prompts:
 1. analyze_prompt - GPT-5 best practices analysis

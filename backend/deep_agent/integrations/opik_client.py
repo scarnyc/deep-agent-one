@@ -63,7 +63,7 @@ class OptimizerAlgorithm(str, Enum):
     PARAMETER = "parameter"  # LLM parameter tuning
 
 
-# Algorithm selection guide for context-engineering-expert
+# Algorithm selection guide for prompt optimization
 ALGORITHM_SELECTION_GUIDE = """
 ## Opik Optimization Algorithm Selection Guide
 
@@ -126,8 +126,6 @@ class OpikClient:
     algorithm selection, and both sync/async optimization workflows.
 
     This client is designed for Phase 1 prompt optimization and A/B testing.
-    It integrates with the context-engineering-expert agent for automated
-    prompt improvement workflows.
 
     Attributes:
         client: Opik API client instance
