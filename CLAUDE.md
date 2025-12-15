@@ -1017,6 +1017,18 @@ After each phase, validate:
 - **Playwright MCP:** https://github.com/modelcontextprotocol/servers/tree/main/src/playwright
 - **pytest documentation:** https://docs.pytest.org/
 
+### Prompt Optimization (Opik)
+**Repository:** https://github.com/comet-ml/opik
+
+Available tools for prompt engineering (invoke directly via main agent):
+- `analyze_prompt` - Analyze prompt effectiveness and identify improvements
+- `optimize_prompt` - Apply optimization algorithms (Hierarchical, Bayesian, Evolutionary, MetaPrompt, GEPA, Parameter)
+- `evaluate_prompt` - Score prompts against evaluation criteria
+- `create_evaluation_dataset` - Generate test datasets for prompt evaluation
+- `ab_test_prompts` - Compare prompt variants with statistical analysis
+
+**Usage:** Ask the main agent directly for prompt optimization tasks (e.g., "Optimize this system prompt for clarity and effectiveness").
+
 ---
 
 ## Quick Reference: Essential Commands
