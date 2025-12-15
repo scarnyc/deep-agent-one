@@ -38,7 +38,7 @@ class AgentServiceInitializationError(RuntimeError):
 # Cache service instance to prevent creating expensive service per connection
 # Each AgentService initialization creates LangGraph agents, checkpointers, etc.
 _agent_service_instance: AgentService | None = None
-_agent_service_lock = threading.Lock()
+_agent_service_lock: threading.Lock = threading.Lock()
 _agent_service_version: int = 0
 # Monotonic creation counter for debugging concurrent access patterns.
 # Incremented on each successful AgentService() creation and NOT reset
