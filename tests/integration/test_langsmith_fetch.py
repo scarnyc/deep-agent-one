@@ -173,16 +173,133 @@ class TestLangSmithFetchEnvironmentConfiguration:
         )
 
 
-class TestLangSmithFetchWithMockedAPI:
-    """Test langsmith-fetch behavior with mocked API responses."""
+class TestFetchTracesEdgeCases:
+    """Test edge cases and input validation for fetch-traces.sh."""
 
-    @pytest.mark.asyncio
-    async def test_fetch_traces_with_mock_response(self) -> None:
-        """Test trace fetching logic with mocked API response."""
-        # This test documents the expected behavior without making real API calls
-        # The actual CLI tool handles the API communication
+    @pytest.fixture
+    def script_path(self) -> Path:
+        """Return path to fetch-traces.sh script."""
+        return Path(__file__).parent.parent.parent / "scripts" / "fetch-traces.sh"
 
-        mock_trace_response: dict[str, Any] = {
+    def test_rejects_non_numeric_minutes(self, script_path: Path) -> None:
+        """Test that script rejects non-numeric MINUTES parameter."""
+        result = subprocess.run(
+            [str(script_path), "last-n-minutes", "abc"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LANGSMITH_API_KEY": "test-key"},  # pragma: allowlist secret
+        )
+
+        assert result.returncode != 0, "Script should reject non-numeric MINUTES"
+        assert (
+            "positive integer" in result.stderr.lower()
+        ), f"Error should mention 'positive integer'. Got: {result.stderr}"
+
+    def test_rejects_negative_minutes(self, script_path: Path) -> None:
+        """Test that script rejects negative MINUTES parameter."""
+        result = subprocess.run(
+            [str(script_path), "last-n-minutes", "-5"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LANGSMITH_API_KEY": "test-key"},  # pragma: allowlist secret
+        )
+
+        assert result.returncode != 0, "Script should reject negative MINUTES"
+
+    def test_rejects_zero_minutes(self, script_path: Path) -> None:
+        """Test that script rejects zero MINUTES parameter."""
+        result = subprocess.run(
+            [str(script_path), "last-n-minutes", "0"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LANGSMITH_API_KEY": "test-key"},  # pragma: allowlist secret
+        )
+
+        assert result.returncode != 0, "Script should reject zero MINUTES"
+
+    def test_rejects_non_numeric_limit(self, script_path: Path) -> None:
+        """Test that script rejects non-numeric LIMIT parameter."""
+        result = subprocess.run(
+            [str(script_path), "export", "./test-dir", "invalid"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LANGSMITH_API_KEY": "test-key"},  # pragma: allowlist secret
+        )
+
+        assert result.returncode != 0, "Script should reject non-numeric LIMIT"
+        assert (
+            "positive integer" in result.stderr.lower()
+        ), f"Error should mention 'positive integer'. Got: {result.stderr}"
+
+    def test_rejects_path_traversal(self, script_path: Path) -> None:
+        """Test that script rejects paths with directory traversal."""
+        result = subprocess.run(
+            [str(script_path), "export", "../../../etc/passwd", "10"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LANGSMITH_API_KEY": "test-key"},  # pragma: allowlist secret
+        )
+
+        assert result.returncode != 0, "Script should reject path traversal"
+        assert ".." in result.stderr, f"Error should mention '..'. Got: {result.stderr}"
+
+    def test_rejects_hidden_path_traversal(self, script_path: Path) -> None:
+        """Test that script rejects hidden path traversal patterns."""
+        result = subprocess.run(
+            [str(script_path), "export", "./safe/../../../etc", "10"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LANGSMITH_API_KEY": "test-key"},  # pragma: allowlist secret
+        )
+
+        assert result.returncode != 0, "Script should reject hidden path traversal"
+
+    def test_accepts_valid_minutes(self, script_path: Path) -> None:
+        """Test that script accepts valid positive MINUTES."""
+        # This will fail at the langsmith-fetch call (no real API),
+        # but should pass validation
+        result = subprocess.run(
+            [str(script_path), "last-n-minutes", "30"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LANGSMITH_API_KEY": "test-key"},  # pragma: allowlist secret
+        )
+
+        # Should not fail on validation (may fail on actual API call)
+        assert (
+            "positive integer" not in result.stderr.lower()
+        ), "Valid MINUTES should pass validation"
+
+    def test_accepts_large_limit(self, script_path: Path) -> None:
+        """Test that script accepts large but valid LIMIT values."""
+        # This will fail at the langsmith-fetch call (no real API),
+        # but should pass validation
+        result = subprocess.run(
+            [str(script_path), "export", "./test-export", "10000"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LANGSMITH_API_KEY": "test-key"},  # pragma: allowlist secret
+        )
+
+        # Should not fail on validation (may fail on actual API call)
+        assert "positive integer" not in result.stderr.lower(), "Large LIMIT should pass validation"
+
+
+class TestLangSmithFetchResponseStructure:
+    """Document expected LangSmith API response structures for reference."""
+
+    def test_trace_response_structure(self) -> None:
+        """Document expected trace response structure from LangSmith API."""
+        # This test documents the expected structure without making real API calls
+        expected_trace_structure: dict[str, Any] = {
             "runs": [
                 {
                     "id": "test-run-id-123",
@@ -199,28 +316,21 @@ class TestLangSmithFetchWithMockedAPI:
             "cursors": {"next": None},
         }
 
-        # Verify expected response structure
-        assert "runs" in mock_trace_response
-        assert len(mock_trace_response["runs"]) > 0
-        assert "id" in mock_trace_response["runs"][0]
-        assert "status" in mock_trace_response["runs"][0]
+        # Verify expected response structure for documentation
+        assert "runs" in expected_trace_structure
+        assert isinstance(expected_trace_structure["runs"], list)
+        assert "id" in expected_trace_structure["runs"][0]
+        assert "status" in expected_trace_structure["runs"][0]
 
-    @pytest.mark.asyncio
-    async def test_fetch_threads_export_structure(self) -> None:
-        """Test expected structure of exported threads for evaluation datasets."""
-        # This test documents the expected export structure
-        mock_thread_export: dict[str, Any] = {
+    def test_thread_export_structure(self) -> None:
+        """Document expected thread export structure for evaluation datasets."""
+        expected_thread_structure: dict[str, Any] = {
             "thread_id": "thread-123",
             "runs": [
                 {
                     "id": "run-1",
                     "inputs": {"user_message": "Hello"},
                     "outputs": {"assistant_message": "Hi there!"},
-                },
-                {
-                    "id": "run-2",
-                    "inputs": {"user_message": "What's the weather?"},
-                    "outputs": {"assistant_message": "I don't have access to weather data."},
                 },
             ],
             "metadata": {
@@ -229,8 +339,8 @@ class TestLangSmithFetchWithMockedAPI:
             },
         }
 
-        # Verify expected export structure
-        assert "thread_id" in mock_thread_export
-        assert "runs" in mock_thread_export
-        assert isinstance(mock_thread_export["runs"], list)
-        assert "metadata" in mock_thread_export
+        # Verify expected export structure for documentation
+        assert "thread_id" in expected_thread_structure
+        assert "runs" in expected_thread_structure
+        assert isinstance(expected_thread_structure["runs"], list)
+        assert "metadata" in expected_thread_structure

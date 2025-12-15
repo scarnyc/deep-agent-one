@@ -66,6 +66,9 @@ fi
 # Default project
 PROJECT="${LANGSMITH_PROJECT:-deep-agent-one}"
 
+# Default timeout for langsmith-fetch commands (seconds)
+FETCH_TIMEOUT="${LANGSMITH_FETCH_TIMEOUT:-60}"
+
 # Function to show help
 show_help() {
     echo "LangSmith Trace Fetcher"
@@ -81,6 +84,7 @@ show_help() {
     echo "Environment:"
     echo "  LANGSMITH_API_KEY         Required: Your LangSmith API key"
     echo "  LANGSMITH_PROJECT         Optional: Project name (default: deep-agent-one)"
+    echo "  LANGSMITH_FETCH_TIMEOUT   Optional: Command timeout in seconds (default: 60)"
     echo ""
     echo "Examples:"
     echo "  ./scripts/fetch-traces.sh recent"
@@ -116,14 +120,24 @@ COMMAND="${1:-recent}"
 case "$COMMAND" in
     recent)
         echo -e "${GREEN}Fetching most recent trace...${NC}"
-        langsmith-fetch traces --project "$PROJECT" --format json --limit 1
+        if ! timeout "$FETCH_TIMEOUT" langsmith-fetch traces --project "$PROJECT" --format json --limit 1; then
+            if [ $? -eq 124 ]; then
+                echo -e "${RED}Error: Command timed out after ${FETCH_TIMEOUT}s${NC}" >&2
+                exit 1
+            fi
+        fi
         ;;
 
     last-n-minutes)
         MINUTES="${2:-30}"
         validate_positive_int "$MINUTES" "MINUTES"
         echo -e "${GREEN}Fetching traces from last $MINUTES minutes...${NC}"
-        langsmith-fetch traces --project "$PROJECT" --format json --last-n-minutes "$MINUTES"
+        if ! timeout "$FETCH_TIMEOUT" langsmith-fetch traces --project "$PROJECT" --format json --last-n-minutes "$MINUTES"; then
+            if [ $? -eq 124 ]; then
+                echo -e "${RED}Error: Command timed out after ${FETCH_TIMEOUT}s${NC}" >&2
+                exit 1
+            fi
+        fi
         ;;
 
     export)
@@ -133,7 +147,12 @@ case "$COMMAND" in
         validate_positive_int "$LIMIT" "LIMIT"
         echo -e "${GREEN}Exporting $LIMIT threads to $DIR...${NC}"
         mkdir -p "$DIR"
-        langsmith-fetch threads "$DIR" --project "$PROJECT" --limit "$LIMIT"
+        if ! timeout "$FETCH_TIMEOUT" langsmith-fetch threads "$DIR" --project "$PROJECT" --limit "$LIMIT"; then
+            if [ $? -eq 124 ]; then
+                echo -e "${RED}Error: Command timed out after ${FETCH_TIMEOUT}s${NC}" >&2
+                exit 1
+            fi
+        fi
         echo -e "${GREEN}Export complete: $DIR${NC}"
         ;;
 
