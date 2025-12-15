@@ -39,8 +39,10 @@ class AgentServiceInitializationError(RuntimeError):
 # Each AgentService initialization creates LangGraph agents, checkpointers, etc.
 _agent_service_instance: AgentService | None = None
 _agent_service_lock = threading.Lock()
-# Version counter for debugging concurrent access patterns
 _agent_service_version: int = 0
+# Monotonic creation counter for debugging concurrent access patterns.
+# Incremented on each successful AgentService() creation and NOT reset
+# by reset_agent_service().
 
 
 def get_agent_service() -> AgentService:
@@ -90,7 +92,11 @@ def get_agent_service() -> AgentService:
                         "AgentService instance created successfully",
                         version=_agent_service_version,
                     )
-                except Exception as e:
+                # Intentionally catch all exceptions to wrap them in a domain-specific
+                # initialization error for FastAPI consumers. AgentService init can fail
+                # for many reasons (config, network, dependencies) that we want to handle
+                # uniformly at the API layer.
+                except Exception as e:  # noqa: BLE001
                     logger.error(
                         "Failed to initialize AgentService",
                         error=str(e),
@@ -150,10 +156,11 @@ AgentServiceDep = Annotated[AgentService, Depends(get_agent_service)]
 
 
 def get_agent_service_version() -> int:
-    """Get the current AgentService instance version (thread-safe read).
+    """Get the current AgentService creation count (thread-safe read).
 
-    Returns the number of times AgentService has been created. Useful for
-    debugging and testing concurrent access patterns.
+    Returns the number of times an AgentService instance has been successfully
+    created in this process. The counter is monotonic and is NOT reset by
+    :func:`reset_agent_service`. Useful for debugging concurrent access patterns.
 
     Thread Safety:
         Acquires the lock to ensure consistent read of shared mutable state,
@@ -161,18 +168,19 @@ def get_agent_service_version() -> int:
         protected by the same lock.
 
     Returns:
-        int: Current version number (0 if never created, increments on each creation)
+        int: Current creation count (0 if never created).
     """
     with _agent_service_lock:
         return _agent_service_version
 
 
 # Explicit public API for IDE autocomplete and import hygiene
+# Note: _agent_service_lock is intentionally NOT in __all__ as it's a private
+# implementation detail. Tests can still access it via direct import.
 __all__ = [
     "AgentServiceInitializationError",
     "get_agent_service",
     "AgentServiceDep",
     "reset_agent_service",
     "get_agent_service_version",
-    "_agent_service_lock",  # Exported for testing thread safety
 ]
