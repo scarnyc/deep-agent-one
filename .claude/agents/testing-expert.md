@@ -25,7 +25,7 @@ This agent is automatically used when the conversation includes:
 ## CLAUDE.md Integration
 
 **Pre-Commit Workflow (Line 634):**
-```
+```text
 Before committing tests, verify:
 - AAA pattern followed
 - Coverage ≥80%
