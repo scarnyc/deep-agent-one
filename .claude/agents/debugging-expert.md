@@ -5,6 +5,16 @@ tools: Read, Edit, Grep, Glob, Bash
 model: opus
 ---
 
+## Available Tools
+
+| Tool | Purpose |
+|------|---------|
+| Read | Read files to examine code |
+| Edit | Apply fixes to source files |
+| Grep | Search for patterns in codebase |
+| Glob | Find files by name patterns |
+| Bash | Run commands including **LangSmith CLI Fetch** for trace analysis |
+
 # Debugging Expert Agent
 
 Expert debugger for Deep Agent One. **Auto-invoked when bugs or issues are identified.**
@@ -186,6 +196,53 @@ curl -v https://api.example.com/endpoint
 # Enable LangSmith tracing for full visibility
 ```
 
+### LangSmith Trace Debugging (Agent Analysis)
+
+Use the LangSmith CLI Fetch tool to retrieve and analyze agent traces directly in terminal.
+
+**Fetch Recent Traces:**
+```bash
+# Fetch most recent trace (best for debugging current issue)
+./scripts/fetch-traces.sh recent
+
+# Fetch traces from last N minutes (for intermittent issues)
+./scripts/fetch-traces.sh last-n-minutes 30
+
+# Export threads for deeper analysis
+./scripts/fetch-traces.sh export ./trace-data 50
+```
+
+**Analyze Trace Output:**
+```bash
+# Extract error information from trace
+./scripts/fetch-traces.sh recent | jq '.runs[0].error'
+
+# Get execution timeline
+./scripts/fetch-traces.sh recent | jq '.runs[] | {name, start_time, end_time}'
+
+# Find tool call failures
+./scripts/fetch-traces.sh recent | jq '.runs[] | select(.error != null) | {name, error}'
+
+# Check input/output for specific run
+./scripts/fetch-traces.sh recent | jq '.runs[] | select(.name == "tool_name") | {inputs, outputs}'
+```
+
+**Direct CLI Usage (Advanced):**
+```bash
+# Query specific project
+langsmith-fetch traces --project deep-agent-one --format json --limit 5
+
+# Export threads for evaluation dataset creation
+langsmith-fetch threads ./my-data --project deep-agent-one --limit 100
+```
+
+**When to Use LangSmith Traces:**
+- Agent stuck in infinite loop → Check state transitions and conditional edges
+- Wrong tool being called → Analyze decision points and routing logic
+- Unexpected agent output → Trace data flow through tool chain
+- Performance issues → Identify slow steps in execution timeline
+- Building regression tests → Export threads to create test fixtures
+
 ---
 
 ## Required Output Format
@@ -256,7 +313,8 @@ curl -v https://api.example.com/endpoint
 | Behavior | Wrong output | Logic error, state bug | Add logging at decision points |
 | Performance | Slow, timeout | N+1 queries, memory leak | Profile the operation |
 | Integration | API failure | Auth, network, timeout | Check connectivity and auth |
-| Agent | Loop, hang | Missing END node, state bug | Enable LangSmith tracing |
+| Agent | Loop, hang | Missing END node, state bug | `./scripts/fetch-traces.sh recent` |
+| Trace | Agent decision errors | Routing logic, tool chain | `./scripts/fetch-traces.sh recent \| jq '.runs[0].error'` |
 
 ---
 
