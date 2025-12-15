@@ -10,7 +10,6 @@ Planned Sub-Agents (Phase 1+):
     - code-review-agent: Code quality analysis and security review
     - testing-agent: Test generation and validation
     - debugging-agent: Error diagnosis and resolution strategies
-    - context-engineering-agent: Prompt optimization and A/B testing
 
 Usage (Phase 1+):
     >>> from deep_agent.agents.sub_agents.research_agent import create_research_agent

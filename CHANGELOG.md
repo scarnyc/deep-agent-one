@@ -5,6 +5,21 @@ All notable changes to Deep Agent One will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+- **BREAKING:** `context-engineering-expert` sub-agent removed
+  - Prompt optimization is now handled by the main agent directly
+  - Opik tools (`analyze_prompt`, `optimize_prompt`, `evaluate_prompt`, `create_evaluation_dataset`, `ab_test_prompts`) remain available
+  - Migration: Use main agent for prompt engineering tasks; Opik tools can be invoked directly
+
+### Changed
+- Enhanced `code-review-expert` with systematic workflow, detailed review criteria, and code examples
+- Enhanced `debugging-expert` with hypothesis-driven debugging, category-specific techniques, and proactive invocation
+- Enhanced `testing-expert` with comprehensive test examples, mocking patterns, and fixtures guidance
+- All sub-agents now include `Edit` tool for implementing fixes directly
+- Removed GITHUB_ISSUES.md tracking from code-review-expert (LOW issues noted for future improvement instead)
+
 ## [0.2.0] - Phase 0 Public Release - 2025-11-29
 
 ### Changed

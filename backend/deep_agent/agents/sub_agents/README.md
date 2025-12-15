@@ -42,13 +42,6 @@ Specialized sub-agents for delegation from the main DeepAgent. Planned for Phase
 - Resolution strategy recommendations
 - Root cause identification
 
-#### Context Engineering Expert
-- Prompt optimization using Opik
-- A/B testing infrastructure
-- Prompt variant management
-- Token usage optimization
-- Evaluation dataset creation
-
 ## Architecture
 
 ### Sub-Agent Pattern
@@ -103,7 +96,6 @@ sub_agents/
 - [ ] Implement general-purpose sub-agent
 - [ ] Add code review sub-agent (integrate with TheAuditor)
 - [ ] Add testing sub-agent (pytest pattern validation)
-- [ ] Add context-engineering sub-agent (Opik integration)
 - [ ] Create sub-agent prompts
 - [ ] Add delegation logic
 - [ ] Test multi-agent workflows
@@ -166,7 +158,6 @@ async def create_code_review_agent(
 - **External**:
   - `langchain` - Core framework
   - `langgraph` - DeepAgents pattern
-  - `opik` - Prompt optimization (context-engineering-agent)
 
 ## Related Documentation
 - [Agents](../README.md)
@@ -182,8 +173,7 @@ async def create_code_review_agent(
 tests/unit/test_agents/test_sub_agents/
 ├── test_code_review_agent.py
 ├── test_testing_agent.py
-├── test_debugging_agent.py
-└── test_context_engineering_agent.py
+└── test_debugging_agent.py
 ```
 
 ### Integration Tests (Phase 1)
@@ -230,26 +220,6 @@ result = await main_agent.ainvoke({
     "messages": [{
         "role": "user",
         "content": "Review this code for security issues: [code]"
-    }]
-})
-```
-
-### Context Engineering Sub-Agent
-```python
-from deep_agent.agents.sub_agents import create_context_engineering_agent
-
-# Create specialized prompt optimization agent
-prompt_optimizer = await create_context_engineering_agent(llm)
-
-# Main agent delegates prompt optimization
-main_agent = await create_agent(
-    subagents=[prompt_optimizer]
-)
-
-result = await main_agent.ainvoke({
-    "messages": [{
-        "role": "user",
-        "content": "Optimize this system prompt for better accuracy: [prompt]"
     }]
 })
 ```
