@@ -44,7 +44,9 @@ NC='\033[0m' # No Color
 
 # Load environment variables from .env if it exists
 if [ -f ".env" ]; then
-    export $(grep -v '^#' .env | xargs)
+    set -a
+    source .env
+    set +a
 fi
 
 # Check for langsmith-fetch
@@ -87,15 +89,6 @@ show_help() {
     echo ""
     echo "Pipe to jq for filtering:"
     echo "  ./scripts/fetch-traces.sh recent | jq '.runs[0].error'"
-}
-
-# Function to get project UUID
-get_project_uuid() {
-    # Get project UUID from project name using langsmith-fetch
-    # This may need adjustment based on actual CLI behavior
-    echo -e "${YELLOW}Using project: $PROJECT${NC}" >&2
-    # For now, we'll pass the project name directly and let the CLI handle it
-    echo "$PROJECT"
 }
 
 # Main command handling
