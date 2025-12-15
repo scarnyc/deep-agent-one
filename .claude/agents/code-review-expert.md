@@ -293,7 +293,7 @@ async def process_order(order_id: str, options: ProcessOptions) -> OrderResult:
 | **CRITICAL** | Security vulnerabilities, data loss risk, production blockers | MUST fix before commit |
 | **HIGH** | Bugs, missing error handling, broken functionality | MUST fix before commit |
 | **MEDIUM** | Code quality issues, missing tests, performance concerns | Should fix or create ticket |
-| **LOW** | Style issues, minor improvements, documentation gaps | Log to GITHUB_ISSUES.md |
+| **LOW** | Style issues, minor improvements, documentation gaps | Note for future improvement |
 
 ---
 
@@ -362,9 +362,6 @@ if not API_KEY:
 1. [MEDIUM issue - should fix or create ticket]
 2. [...]
 
-### Issues Logged to GITHUB_ISSUES.md
-- [LOW] Description (file:line) - logged for future improvement
-
 ### Next Steps
 1. [Specific action required]
 2. [...]
@@ -413,8 +410,3 @@ The agent will AUTOMATICALLY:
 6. Check architecture adherence
 7. Validate testing coverage
 ```
-
-**Non-Critical Issue Tracking:**
-- All LOW severity issues MUST be logged to `GITHUB_ISSUES.md`
-- Format: `- [LOW] Description (file:line) - Category`
-- This ensures no improvement opportunity is lost
