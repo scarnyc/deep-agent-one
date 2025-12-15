@@ -229,9 +229,11 @@ npx playwright install
 npx playwright install-deps
 ```
 
-#### context7 MCP (Documentation Retrieval - Built-in)
+#### Context7 MCP (Documentation Retrieval)
 
-context7 is a built-in MCP server in Claude Code that provides up-to-date library documentation and code examples.
+Context7 provides up-to-date library documentation and code examples via the Upstash Context7 service.
+
+**Repository:** https://github.com/upstash/context7
 
 **Features:**
 - Resolve library names to Context7-compatible IDs
@@ -239,14 +241,27 @@ context7 is a built-in MCP server in Claude Code that provides up-to-date librar
 - Support for versioned documentation
 - Trust scores and snippet coverage metrics
 
-**Usage:**
-```python
-# Automatically used when you need library documentation
-# Example: "Show me how to create a FastAPI route with async"
-# Tools: mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+**Installation:**
+
+Already configured in `.mcp.json`:
+```json
+"context7": {
+  "command": "npx",
+  "args": ["-y", "@upstash/context7-mcp"],
+  "env": {}
+}
 ```
 
-**No installation required** - context7 is pre-configured in Claude Code and ready to use immediately.
+For higher rate limits, add API key from https://context7.com:
+```json
+"args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_KEY"]
+```
+
+**Usage:**
+```
+# Tools: mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+# Example: "Show me how to create a FastAPI route with async"
+```
 
 #### JIRA MCP (Ticket Management)
 
@@ -305,17 +320,175 @@ git commit -m "feat(phase-1): implement Redis caching [DEEP-45]"
 - "Auth failed": Verify API token at https://id.atlassian.com/manage-profile/security/api-tokens
 - "MCP not showing": Restart Claude Code and run `/mcp` to check status
 
+#### Hugging Face MCP (AI Models & Datasets)
+
+Access Hugging Face models, datasets, and Spaces directly from Claude Code.
+
+**Repository:** https://huggingface.co/mcp
+
+**Installation:**
+```bash
+claude mcp add hf-mcp-server -t http https://huggingface.co/mcp?login
+```
+
+**Note:** Uses OAuth authentication - you'll be prompted to log in to Hugging Face on first use.
+
+**Features:**
+- Search and explore Hugging Face models
+- Access dataset information
+- Query model cards and documentation
+- Interact with Hugging Face Spaces
+
+**Usage:**
+```
+# Search for models
+"Find the best text-to-image models on Hugging Face"
+
+# Get model details
+"Show me the model card for meta-llama/Llama-3.1-8B"
+```
+
+#### DeepWiki MCP (Repository Documentation)
+
+Cognition's DeepWiki provides AI-generated documentation and explanations for open source repositories.
+
+**Documentation:** https://docs.devin.ai/work-with-devin/deepwiki-mcp
+
+**Installation:**
+```bash
+claude mcp add -s user -t http deepwiki https://mcp.deepwiki.com/mcp
+```
+
+**Features:**
+- AI-generated documentation for GitHub repositories
+- Code explanations and architecture overviews
+- API documentation lookup
+- Understanding unfamiliar codebases quickly
+
+**Usage:**
+```
+# Get documentation for a repository
+"Explain the architecture of facebook/react"
+
+# Understand a specific part of a codebase
+"How does the routing work in expressjs/express?"
+```
+
+#### Stripe MCP (Payments & Billing)
+
+Stripe integration for payment processing, customer management, and billing operations.
+
+**Documentation:** https://docs.stripe.com/mcp?mcp-client=claudecode
+
+**Installation:**
+```bash
+claude mcp add --transport http stripe https://mcp.stripe.com/
+```
+
+**Features:**
+- Create and manage customers
+- Process payments and refunds
+- Manage subscriptions and invoices
+- Access product catalog
+- Handle payment methods
+
+**Building Autonomous Agents:**
+
+For agentic software, pass a Stripe API key as a bearer token to the MCP remote server. **Strongly recommended:** Use restricted API keys to limit access to required functionality.
+
+```bash
+curl https://mcp.stripe.com/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk_test_YOUR_RESTRICTED_KEY" \
+  -d '{
+      "jsonrpc": "2.0",
+      "method": "tools/call",
+      "params": {
+        "name": "create_customer",
+        "arguments": {"name": "Jenny Rosen", "email": "jenny.rosen@example.com"}
+      },
+      "id": 1
+  }'
+```
+
+**Security Recommendations:**
+- Enable human confirmation for all Stripe tools
+- Use restricted API keys (not full secret keys)
+- Exercise caution when using with other MCP servers to avoid prompt injection attacks
+- Review tool calls before execution in production environments
+
+**Usage:**
+```
+# Create a customer
+"Create a Stripe customer for john@example.com"
+
+# List recent payments
+"Show me the last 10 payments"
+
+# Create a subscription
+"Subscribe customer cus_xxx to the pro plan"
+```
+
+#### Markitdown (Document Conversion)
+
+Microsoft's tool for converting documents to Markdown format.
+
+**Repository:** https://github.com/microsoft/markitdown
+
+**Installation:**
+```bash
+git clone https://github.com/microsoft/markitdown.git
+cd markitdown
+pip install -e 'packages/markitdown[all]'
+```
+
+**Supported Formats:**
+- PDF, DOCX, PPTX, XLSX
+- HTML, XML
+- Images (with OCR)
+- Audio/Video (transcript extraction)
+- YouTube transcripts
+
+**Usage:**
+```bash
+markitdown document.pdf              # Output to stdout
+markitdown document.pdf -o output.md # Output to file
+cat file.pdf | markitdown            # From stdin
+```
+
 **MCP Configuration File:**
 The `.mcp.json` at project root configures MCP servers:
 ```json
 {
   "mcpServers": {
-    "playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] },
-    "perplexity": { "command": "npx", "args": ["-y", "perplexity-mcp"], "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" } },
-    "atlassian": { "command": "mcp-atlassian", "args": ["--transport", "stdio"], "env": { "JIRA_URL": "${JIRA_URL}", "JIRA_USERNAME": "${JIRA_USERNAME}", "JIRA_API_TOKEN": "${JIRA_API_TOKEN}" } }
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "env": { "PLAYWRIGHT_BROWSERS_PATH": "/home/runner/workspace/.cache/ms-playwright" }
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "env": {}
+    },
+    "perplexity": {
+      "command": "npx",
+      "args": ["-y", "perplexity-mcp"],
+      "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
+    },
+    "atlassian": {
+      "command": "mcp-atlassian",
+      "args": ["--transport", "stdio"],
+      "env": { "JIRA_URL": "${JIRA_URL}", "JIRA_USERNAME": "${JIRA_USERNAME}", "JIRA_API_TOKEN": "${JIRA_API_TOKEN}" }
+    }
   }
 }
 ```
+
+**User-level MCP servers** (in `~/.claude.json`):
+- `hf-mcp-server`: Hugging Face (HTTP transport with OAuth)
+- `deepwiki`: DeepWiki repository documentation (HTTP transport)
+- `stripe`: Stripe payments (HTTP transport)
 
 ### 5. Evaluation-Driven Development (EDD)
 

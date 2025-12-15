@@ -137,3 +137,6 @@ temp/
 tests/experiments/
 tests/scripts/*.json
 GITHUB_ISSUES.md.backup
+
+# Third-party tools (cloned repos)
+markitdown/
