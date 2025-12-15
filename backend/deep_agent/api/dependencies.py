@@ -142,15 +142,21 @@ AgentServiceDep = Annotated[AgentService, Depends(get_agent_service)]
 
 
 def get_agent_service_version() -> int:
-    """Get the current AgentService instance version.
+    """Get the current AgentService instance version (thread-safe read).
 
     Returns the number of times AgentService has been created. Useful for
     debugging and testing concurrent access patterns.
 
+    Thread Safety:
+        Acquires the lock to ensure consistent read of shared mutable state,
+        following the principle that all accesses to shared state should be
+        protected by the same lock.
+
     Returns:
         int: Current version number (0 if never created, increments on each creation)
     """
-    return _agent_service_version
+    with _agent_service_lock:
+        return _agent_service_version
 
 
 # Explicit public API for IDE autocomplete and import hygiene
