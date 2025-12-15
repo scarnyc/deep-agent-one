@@ -1,6 +1,6 @@
 ---
 name: debugging-expert
-description: "Use when: bug, error, crash, exception, failing, broken, not working, issue, defect, stack trace, unexpected behavior, performance problem. Auto-invoked when issues need triaging per CLAUDE.md line 506."
+description: "Use when: bug, error, crash, exception, failing, broken, not working, issue, defect, stack trace, unexpected behavior, performance problem. Use proactively when encountering any issues. Auto-invoked per CLAUDE.md line 506."
 tools: Read, Edit, Grep, Glob, Bash
 model: opus
 ---
