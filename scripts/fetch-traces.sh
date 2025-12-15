@@ -91,6 +91,25 @@ show_help() {
     echo "  ./scripts/fetch-traces.sh recent | jq '.runs[0].error'"
 }
 
+# Validation function for positive integers
+validate_positive_int() {
+    local value="$1"
+    local name="$2"
+    if ! [[ "$value" =~ ^[0-9]+$ ]] || [ "$value" -le 0 ]; then
+        echo -e "${RED}Error: $name must be a positive integer, got: $value${NC}" >&2
+        exit 1
+    fi
+}
+
+# Validation function for safe paths (reject path traversal)
+validate_safe_path() {
+    local path="$1"
+    if [[ "$path" == *".."* ]]; then
+        echo -e "${RED}Error: Path cannot contain '..': $path${NC}" >&2
+        exit 1
+    fi
+}
+
 # Main command handling
 COMMAND="${1:-recent}"
 
@@ -102,6 +121,7 @@ case "$COMMAND" in
 
     last-n-minutes)
         MINUTES="${2:-30}"
+        validate_positive_int "$MINUTES" "MINUTES"
         echo -e "${GREEN}Fetching traces from last $MINUTES minutes...${NC}"
         langsmith-fetch traces --project "$PROJECT" --format json --last-n-minutes "$MINUTES"
         ;;
@@ -109,6 +129,8 @@ case "$COMMAND" in
     export)
         DIR="${2:-.}"
         LIMIT="${3:-50}"
+        validate_safe_path "$DIR"
+        validate_positive_int "$LIMIT" "LIMIT"
         echo -e "${GREEN}Exporting $LIMIT threads to $DIR...${NC}"
         mkdir -p "$DIR"
         langsmith-fetch threads "$DIR" --project "$PROJECT" --limit "$LIMIT"
