@@ -119,6 +119,14 @@ def reset_agent_service() -> None:
         The lock prevents race conditions where multiple threads might
         attempt to reset simultaneously.
 
+    Note:
+        The version counter (_agent_service_version) is NOT reset by this
+        function. It tracks total instance creations across the process
+        lifetime for debugging purposes:
+            Create → version = 1
+            Reset  → version stays 1 (instance cleared, counter unchanged)
+            Create → version = 2
+
     Example:
         >>> from deep_agent.api.dependencies import reset_agent_service
         >>> from deep_agent.config.settings import clear_settings_cache
