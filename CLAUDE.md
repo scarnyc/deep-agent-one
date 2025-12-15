@@ -1137,6 +1137,25 @@ aud full
 cat .pf/readthis/*
 ```
 
+### LangSmith Fetch (Trace Debugging)
+```bash
+# Fetch most recent trace
+./scripts/fetch-traces.sh recent
+
+# Fetch traces from last 30 minutes
+./scripts/fetch-traces.sh last-n-minutes 30
+
+# Export threads for evaluation datasets
+./scripts/fetch-traces.sh export ./trace-data 50
+
+# Pipe to jq for filtering
+./scripts/fetch-traces.sh recent | jq '.runs[0].error'
+
+# Direct CLI usage
+langsmith-fetch traces --project deep-agent-one --format json
+langsmith-fetch threads ./my-data --limit 100
+```
+
 ### Testing & Reporting
 ```bash
 # All tests with coverage
