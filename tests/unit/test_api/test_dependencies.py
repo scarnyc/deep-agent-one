@@ -357,14 +357,21 @@ class TestLockExists:
 
 
 class TestVersionCounter:
-    """Tests for version counter functionality."""
+    """Tests for version counter functionality.
 
-    def test_version_starts_at_zero(self):
-        """Test that version is 0 before any instance is created."""
-        # After reset in fixture, we need to also reset the version
-        # The version persists across resets to track total creations
-        initial_version = get_agent_service_version()
-        assert isinstance(initial_version, int)
+    The version counter is a monotonic lifetime counter that tracks the total
+    number of AgentService instances created across the process lifetime.
+    It is NOT reset by reset_agent_service() - this is intentional for debugging
+    concurrent access patterns across multiple reset cycles.
+    """
+
+    def test_version_is_non_negative_integer(self):
+        """Test that version is a non-negative integer (lifetime counter)."""
+        # The version persists across resets to track total lifetime creations.
+        # It may be > 0 if other tests created instances before this test runs.
+        version = get_agent_service_version()
+        assert isinstance(version, int)
+        assert version >= 0
 
     def test_version_increments_on_creation(self):
         """Test that version increments when a new instance is created."""
