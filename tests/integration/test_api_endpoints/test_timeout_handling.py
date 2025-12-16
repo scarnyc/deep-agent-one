@@ -212,7 +212,7 @@ class TestTimeoutHierarchy:
         Verifies that diagnostic logging provides clear timeout configuration.
         """
         # Arrange & Act
-        _app = create_app()  # noqa: F841
+        _app = create_app()
 
         # Assert - check logs for timeout hierarchy
         assert "Timeout configuration summary" in caplog.text
