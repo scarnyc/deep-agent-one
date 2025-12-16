@@ -143,7 +143,7 @@ async def async_import_google_genai(timeout_seconds: float = 30.0) -> Any:
             "Gemini import timed out",
             timeout_seconds=timeout_seconds,
         )
-        raise RuntimeError(f"Gemini initialization timed out after {timeout_seconds}s")
+        raise RuntimeError(f"Gemini initialization timed out after {timeout_seconds}s") from None
 
 
 async def async_import_openai(timeout_seconds: float = 15.0) -> tuple[Any, Any]:
@@ -173,7 +173,7 @@ async def async_import_openai(timeout_seconds: float = 15.0) -> tuple[Any, Any]:
         return result
     except TimeoutError:
         logger.error("OpenAI import timed out", timeout_seconds=timeout_seconds)
-        raise RuntimeError(f"OpenAI initialization timed out after {timeout_seconds}s")
+        raise RuntimeError(f"OpenAI initialization timed out after {timeout_seconds}s") from None
 
 
 async def prewarm_llm_imports() -> None:

@@ -13,8 +13,8 @@ from typing import Any
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from backend.deep_agent.config.settings import get_settings
-from tests.scripts.mock_tool_events import TraceEventGenerator
+from backend.deep_agent.config.settings import get_settings  # noqa: E402
+from tests.scripts.mock_tool_events import TraceEventGenerator  # noqa: E402
 
 
 def filter_events(

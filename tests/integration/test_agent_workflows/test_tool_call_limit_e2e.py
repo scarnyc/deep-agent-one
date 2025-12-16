@@ -170,7 +170,7 @@ class TestAgentServiceWithRecursionLimit:
             test_settings.MAX_TOOL_CALLS_PER_INVOCATION = max_calls
             mock_agent = Mock(spec=CompiledStateGraph)
 
-            async def mock_astream_events_raises(*args, **kwargs):
+            async def mock_astream_events_raises(*args, expected_limit=expected_limit, **kwargs):
                 """Mock async generator that raises GraphRecursionError."""
                 raise GraphRecursionError(f"Recursion limit {expected_limit} reached")
                 yield  # Make it an async generator (unreachable but needed for syntax)

@@ -16,7 +16,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from deep_agent.integrations.mcp_clients.perplexity import PerplexityClient
+from deep_agent.integrations.mcp_clients.perplexity import PerplexityClient  # noqa: E402
 
 
 async def test_perplexity_mcp():

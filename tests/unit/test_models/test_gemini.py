@@ -46,7 +46,7 @@ class TestThinkingLevelToBudget:
 
     def test_budget_values_are_positive(self) -> None:
         """Test all budget values are positive integers."""
-        for level, budget in THINKING_LEVEL_TO_BUDGET.items():
+        for _level, budget in THINKING_LEVEL_TO_BUDGET.items():
             assert isinstance(budget, int)
             assert budget > 0
 

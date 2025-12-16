@@ -63,11 +63,11 @@ class TestTimeoutMiddleware:
         - Should return 504 Gateway Timeout after 30s
         """
         # Arrange
-        app = create_app()
-        client = TestClient(app)
+        _app = create_app()
+        client = TestClient(_app)
 
         # Create a slow endpoint for testing
-        @app.get("/test/slow")
+        @_app.get("/test/slow")
         async def slow_endpoint():
             """Slow endpoint for timeout testing."""
             await asyncio.sleep(35)
@@ -212,7 +212,7 @@ class TestTimeoutHierarchy:
         Verifies that diagnostic logging provides clear timeout configuration.
         """
         # Arrange & Act
-        app = create_app()
+        _app = create_app()
 
         # Assert - check logs for timeout hierarchy
         assert "Timeout configuration summary" in caplog.text

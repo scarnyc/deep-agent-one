@@ -269,7 +269,7 @@ class TestCleanupOperations:
     async def test_cleanup_old_checkpoints_custom_days(self, checkpointer_manager):
         """Test cleanup with custom days parameter."""
         # Arrange
-        checkpointer = await checkpointer_manager.create_checkpointer()
+        _checkpointer = await checkpointer_manager.create_checkpointer()
         custom_days = 7
 
         # Act

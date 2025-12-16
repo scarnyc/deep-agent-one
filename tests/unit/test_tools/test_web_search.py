@@ -91,7 +91,7 @@ class TestToolSignature:
 
         # Check tool args_schema
         assert "query" in web_search.args_schema.model_fields
-        assert web_search.args_schema.model_fields["query"].annotation == str
+        assert web_search.args_schema.model_fields["query"].annotation is str
 
     @pytest.mark.asyncio
     async def test_tool_signature_accepts_max_results_parameter(self) -> None:
@@ -101,7 +101,7 @@ class TestToolSignature:
         # Check tool args_schema
         assert "max_results" in web_search.args_schema.model_fields
         field = web_search.args_schema.model_fields["max_results"]
-        assert field.annotation == int
+        assert field.annotation is int
         assert field.default == 5
 
 

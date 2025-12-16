@@ -134,17 +134,17 @@ class TestHITLWorkflowBasic:
         thread_id = "hitl-test-thread-001"
 
         # Mock AgentService.get_state to return interrupted state
-        with patch("backend.deep_agent.api.v1.agents.AgentService") as mock_service_class:
+        with patch("deep_agent.api.v1.agents.AgentService") as mock_service_class:
             mock_service = AsyncMock()
             mock_service_class.return_value = mock_service
 
-            async def mock_get_state(**kwargs) -> dict[str, Any]:
+            async def mock_get_state(tid: str) -> dict[str, Any]:
                 return {
                     "values": {"messages": []},
                     "next": ["__interrupt__"],  # Interrupted state
                     "config": {
                         "configurable": {
-                            "thread_id": thread_id,
+                            "thread_id": tid,
                             "checkpoint_id": "checkpoint-123",
                         }
                     },
@@ -183,13 +183,15 @@ class TestHITLWorkflowBasic:
         """
         # Arrange
         thread_id = "hitl-test-thread-002"
+        run_id = "run-002"
         approval_data = {
-            "action": "approve",
-            "message": "Approved by user",
+            "run_id": run_id,
+            "thread_id": thread_id,
+            "action": "accept",
         }
 
         # Mock AgentService
-        with patch("backend.deep_agent.api.v1.agents.AgentService") as mock_service_class:
+        with patch("deep_agent.api.v1.agents.AgentService") as mock_service_class:
             mock_service = AsyncMock()
             mock_service_class.return_value = mock_service
 
@@ -203,53 +205,41 @@ class TestHITLWorkflowBasic:
             assert response.status_code == 200
 
             data = response.json()
-            assert "status" in data
-            assert data["status"] in ["success", "approved", "continued"]
+            assert data["success"] is True
+            assert data["thread_id"] == thread_id
+            assert data["run_id"] == run_id
 
             # Verify update_state was called
             mock_service.update_state.assert_called_once()
 
-    def test_reject_hitl_action(
+    def test_reject_action_not_supported(
         self,
         client: TestClient,
         mock_openai_client: MagicMock,
         mock_langsmith: MagicMock,
     ) -> None:
         """
-        Test rejecting a HITL action stops agent execution.
+        Test that 'reject' is not a valid HITL action.
 
-        Flow:
-        1. Agent is interrupted waiting for approval
-        2. Client sends rejection
-        3. Agent execution stops
-        4. Response confirms rejection processed
+        The API supports only: accept, respond, edit.
+        Reject is not a valid action and should return 422.
+
+        Note: To cancel/stop an agent, users should close the session
+        or not respond. There's no explicit "reject" action in the current API.
         """
         # Arrange
         thread_id = "hitl-test-thread-003"
         rejection_data = {
-            "action": "reject",
-            "message": "Rejected by user - too risky",
+            "run_id": "run-003",
+            "thread_id": thread_id,
+            "action": "reject",  # Invalid action
         }
 
-        # Mock AgentService
-        with patch("backend.deep_agent.api.v1.agents.AgentService") as mock_service_class:
-            mock_service = AsyncMock()
-            mock_service_class.return_value = mock_service
+        # Act - No mocking needed, validation fails before service call
+        response = client.post(f"/api/v1/agents/{thread_id}/approve", json=rejection_data)
 
-            # Mock update_state to process rejection
-            mock_service.update_state.return_value = None
-
-            # Act
-            response = client.post(f"/api/v1/agents/{thread_id}/approve", json=rejection_data)
-
-            # Assert
-            assert response.status_code == 200
-
-            data = response.json()
-            assert "status" in data
-
-            # Verify update_state was called
-            mock_service.update_state.assert_called_once()
+        # Assert - Should return 422 for invalid action
+        assert response.status_code == 422
 
     def test_hitl_workflow_with_custom_response(
         self,
@@ -267,13 +257,16 @@ class TestHITLWorkflowBasic:
         """
         # Arrange
         thread_id = "hitl-test-thread-004"
+        run_id = "run-004"
         custom_response_data = {
+            "run_id": run_id,
+            "thread_id": thread_id,
             "action": "respond",
-            "message": "Instead of deleting, please archive the files",
+            "response_text": "Instead of deleting, please archive the files",
         }
 
         # Mock AgentService
-        with patch("backend.deep_agent.api.v1.agents.AgentService") as mock_service_class:
+        with patch("deep_agent.api.v1.agents.AgentService") as mock_service_class:
             mock_service = AsyncMock()
             mock_service_class.return_value = mock_service
 
@@ -290,6 +283,15 @@ class TestHITLWorkflowBasic:
             mock_service.update_state.assert_called_once()
             call_args = mock_service.update_state.call_args
             # The custom message should be included in the call
+            assert call_args is not None
+            # Check kwargs or args contain the custom message
+            call_kwargs = call_args.kwargs if call_args.kwargs else {}
+            call_positional = call_args.args if call_args.args else ()
+            # Message should appear somewhere in the call arguments
+            all_args_str = str(call_kwargs) + str(call_positional)
+            assert (
+                "archive" in all_args_str or "respond" in all_args_str
+            ), f"Custom response message not found in update_state call: {call_args}"
 
 
 class TestHITLWorkflowComplex:
@@ -314,20 +316,20 @@ class TestHITLWorkflowComplex:
         # Arrange
         thread_id = "hitl-test-thread-005"
 
-        with patch("backend.deep_agent.api.v1.agents.AgentService") as mock_service_class:
+        with patch("deep_agent.api.v1.agents.AgentService") as mock_service_class:
             mock_service = AsyncMock()
             mock_service_class.return_value = mock_service
 
             # Track approval count
             approval_count = 0
 
-            async def mock_get_state(**kwargs) -> dict[str, Any]:
+            async def mock_get_state(tid: str) -> dict[str, Any]:
                 # First two calls show interrupted, third shows completed
                 if approval_count < 2:
                     return {
                         "values": {"messages": []},
                         "next": ["__interrupt__"],
-                        "config": {"configurable": {"thread_id": thread_id}},
+                        "config": {"configurable": {"thread_id": tid}},
                         "metadata": {},
                         "created_at": "2025-01-01T12:00:00",
                         "parent_config": None,
@@ -336,7 +338,7 @@ class TestHITLWorkflowComplex:
                     return {
                         "values": {"messages": []},
                         "next": [],  # Completed
-                        "config": {"configurable": {"thread_id": thread_id}},
+                        "config": {"configurable": {"thread_id": tid}},
                         "metadata": {},
                         "created_at": "2025-01-01T12:00:00",
                         "parent_config": None,
@@ -350,18 +352,24 @@ class TestHITLWorkflowComplex:
             mock_service.update_state.side_effect = mock_update_state
 
             # Act - First approval
+            run_id = "run-005"
             response1 = client.post(
                 f"/api/v1/agents/{thread_id}/approve",
-                json={"action": "approve", "message": "First approval"},
+                json={"run_id": run_id, "thread_id": thread_id, "action": "accept"},
             )
 
             # Act - Check status (should still be interrupted)
             status_response = client.get(f"/api/v1/agents/{thread_id}")
+            assert status_response.status_code == 200
+            status_data = status_response.json()
+            assert status_data["thread_id"] == thread_id
+            # After first approval, state depends on mock - verify response is valid
+            assert "status" in status_data or "thread_id" in status_data
 
             # Act - Second approval
             response2 = client.post(
                 f"/api/v1/agents/{thread_id}/approve",
-                json={"action": "approve", "message": "Second approval"},
+                json={"run_id": run_id, "thread_id": thread_id, "action": "accept"},
             )
 
             # Assert
@@ -384,16 +392,16 @@ class TestHITLWorkflowComplex:
         # Arrange
         thread_id = "hitl-test-thread-006"
 
-        with patch("backend.deep_agent.api.v1.agents.AgentService") as mock_service_class:
+        with patch("deep_agent.api.v1.agents.AgentService") as mock_service_class:
             mock_service = AsyncMock()
             mock_service_class.return_value = mock_service
 
             # Mock state that's been waiting for a long time
-            async def mock_get_state(**kwargs) -> dict[str, Any]:
+            async def mock_get_state(tid: str) -> dict[str, Any]:
                 return {
                     "values": {"messages": []},
                     "next": ["__interrupt__"],
-                    "config": {"configurable": {"thread_id": thread_id}},
+                    "config": {"configurable": {"thread_id": tid}},
                     "metadata": {
                         "interrupt_timestamp": "2025-01-01T12:00:00",
                     },
@@ -410,6 +418,20 @@ class TestHITLWorkflowComplex:
             assert response.status_code == 200
             data = response.json()
             # Should indicate interrupted/waiting state
+            assert data["thread_id"] == thread_id
+            # Verify the response structure indicates agent state
+            assert "status" in data or "thread_id" in data
+            # Note: When next=["__interrupt__"], API returns "running" because
+            # there are still nodes to execute. The interrupt is handled internally.
+            # Valid statuses include "running" (active/interrupted) or explicit wait states.
+            if "status" in data:
+                assert data["status"] in [
+                    "running",  # API returns this for non-empty "next" (including interrupts)
+                    "interrupted",
+                    "waiting",
+                    "pending_approval",
+                    "paused",
+                ]
 
 
 class TestHITLWorkflowValidation:
@@ -424,9 +446,13 @@ class TestHITLWorkflowValidation:
         """Test approving non-existent thread returns 404."""
         # Arrange
         thread_id = "non-existent-thread"
-        approval_data = {"action": "approve", "message": "Approve"}
+        approval_data = {
+            "run_id": "run-nonexistent",
+            "thread_id": thread_id,
+            "action": "accept",
+        }
 
-        with patch("backend.deep_agent.api.v1.agents.AgentService") as mock_service_class:
+        with patch("deep_agent.api.v1.agents.AgentService") as mock_service_class:
             mock_service = AsyncMock()
             mock_service_class.return_value = mock_service
 
@@ -452,17 +478,17 @@ class TestHITLWorkflowValidation:
         # Arrange
         thread_id = "hitl-test-thread-007"
         invalid_data = {
-            "action": "invalid_action",  # Invalid action type
-            "message": "Test",
+            "run_id": "run-007",
+            "thread_id": thread_id,
+            "action": "invalid_action",  # Invalid action type - must be accept/respond/edit
         }
 
         # Act
         response = client.post(f"/api/v1/agents/{thread_id}/approve", json=invalid_data)
 
         # Assert
-        # Should validate action field
-        # May return 422 (validation error) or 400 (bad request)
-        assert response.status_code in [400, 422]
+        # Should validate action field - must be one of HITLAction enum values
+        assert response.status_code == 422
 
     def test_approve_missing_required_fields_returns_422(
         self,
@@ -474,15 +500,25 @@ class TestHITLWorkflowValidation:
         # Arrange
         thread_id = "hitl-test-thread-008"
         incomplete_data = {
-            # Missing "action" field
-            "message": "Test",
+            # Missing required fields: run_id, thread_id, action
+            "response_text": "Test",  # This is optional
         }
 
         # Act
         response = client.post(f"/api/v1/agents/{thread_id}/approve", json=incomplete_data)
 
-        # Assert
+        # Assert - Should return 422 for missing run_id, thread_id, action
         assert response.status_code == 422
+        error_data = response.json()
+        # Response structure may vary - check for either "detail" or "error"
+        assert "detail" in error_data or "error" in error_data
+        # The app's validation error response indicates missing fields
+        # Detail can be a string or list depending on error handler
+        error_str = str(error_data).lower()
+        # Just verify we got a validation-related error
+        assert (
+            "validation" in error_str or "required" in error_str or "missing" in error_str
+        ), f"Expected validation error, got: {error_data}"
 
 
 class TestHITLStatePermistence:
@@ -506,7 +542,7 @@ class TestHITLStatePermistence:
         # Arrange
         thread_id = "hitl-test-thread-009"
 
-        with patch("backend.deep_agent.api.v1.agents.AgentService") as mock_service_class:
+        with patch("deep_agent.api.v1.agents.AgentService") as mock_service_class:
             mock_service = AsyncMock()
             mock_service_class.return_value = mock_service
 
@@ -520,7 +556,7 @@ class TestHITLStatePermistence:
                 "parent_config": None,
             }
 
-            async def mock_get_state(**kwargs) -> dict[str, Any]:
+            async def mock_get_state(tid: str) -> dict[str, Any]:
                 return interrupted_state
 
             mock_service.get_state.side_effect = mock_get_state
