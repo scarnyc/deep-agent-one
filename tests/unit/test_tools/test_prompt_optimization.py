@@ -36,7 +36,7 @@ class TestAnalyzePrompt:
         assert "clarity_score" in result
         assert "verbosity_score" in result
         assert "structure_score" in result
-        assert isinstance(result["clarity_score"], (int, float))
+        assert isinstance(result["clarity_score"], int | float)
         assert 0 <= result["clarity_score"] <= 100
 
     def test_analyze_prompt_detects_contradictions(self):
@@ -196,7 +196,7 @@ class TestOptimizePrompt:
         mock_get_client.return_value = mock_opik_client
 
         # Act & Assert
-        with pytest.raises(Exception):  # Should propagate the ValueError
+        with pytest.raises(ValueError):  # Should propagate the ValueError
             optimize_prompt(
                 prompt=prompt,
                 dataset=dataset,

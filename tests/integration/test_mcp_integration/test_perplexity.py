@@ -537,7 +537,7 @@ class TestPerplexityMCPServerConfiguration:
             with patch("backend.deep_agent.integrations.mcp_clients.perplexity.ClientSession"):
                 try:
                     await client.search("test query", max_results=1)
-                except:
+                except Exception:
                     pass  # We only care about capturing the server params
 
         # Assert the correct command is used

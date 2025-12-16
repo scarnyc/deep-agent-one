@@ -288,7 +288,7 @@ class TestHITLWorkflowBasic:
 
             # Verify custom message was passed to update_state
             mock_service.update_state.assert_called_once()
-            call_args = mock_service.update_state.call_args
+            _call_args = mock_service.update_state.call_args
             # The custom message should be included in the call
 
 
@@ -356,7 +356,7 @@ class TestHITLWorkflowComplex:
             )
 
             # Act - Check status (should still be interrupted)
-            status_response = client.get(f"/api/v1/agents/{thread_id}")
+            _status_response = client.get(f"/api/v1/agents/{thread_id}")
 
             # Act - Second approval
             response2 = client.post(
@@ -408,7 +408,7 @@ class TestHITLWorkflowComplex:
 
             # Assert - Should return status showing still waiting
             assert response.status_code == 200
-            data = response.json()
+            _data = response.json()
             # Should indicate interrupted/waiting state
 
 

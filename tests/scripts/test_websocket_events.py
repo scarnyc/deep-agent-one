@@ -50,7 +50,7 @@ async def test_web_search_events():
                 elif event_type == "on_error":
                     print(f"\n❌ Error in turn 1: {event}")
                     break
-            except:
+            except Exception:
                 pass
 
         # ===== TURN 2: Explicit tool request =====
@@ -107,8 +107,8 @@ async def test_web_search_events():
 
                 except json.JSONDecodeError:
                     print(f"⚠️  Failed to parse message: {raw_message[:100]}")
-                except Exception as e:
-                    print(f"⚠️  Error processing message: {e}")
+                except Exception as exc:
+                    print(f"⚠️  Error processing message: {exc}")
 
         except websockets.exceptions.ConnectionClosed:
             print("\n🔌 WebSocket connection closed")

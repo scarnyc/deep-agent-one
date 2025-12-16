@@ -179,7 +179,7 @@ def extract_issue_content(lines, issue_num):
     content = []
     found = False
 
-    for i, line in enumerate(lines):
+    for _, line in enumerate(lines):
         if found:
             # Stop at next issue or end of file
             if line.startswith("## Issue ") and f"Issue {issue_num}:" not in line:

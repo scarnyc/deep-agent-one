@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 import aiosqlite
 
 from deep_agent.config.settings import Settings, get_settings
+from deep_agent.core.logging import get_logger
 
 # Type checking imports (not executed at runtime)
 if TYPE_CHECKING:
@@ -19,8 +20,6 @@ def _lazy_import_checkpointer():
 
     return AsyncSqliteSaver
 
-
-from deep_agent.core.logging import get_logger
 
 logger = get_logger(__name__)
 

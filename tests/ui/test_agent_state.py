@@ -7,6 +7,8 @@ tool calls, HITL state, and agent status.
 Following TDD: These tests are written BEFORE implementing the store.
 """
 
+import re
+
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -130,8 +132,6 @@ class TestAgentStateManagement:
         tool_call = page.locator('[data-testid="tool-call"]').first
 
         # Assert: Tool call is visible with name and status
-        import re
-
         expect(tool_call).to_be_visible(timeout=10000)
         expect(tool_call).to_have_attribute("data-tool-name", re.compile(r"web_search|search"))
         expect(tool_call).to_have_attribute("data-status", re.compile(r"pending|running|completed"))
