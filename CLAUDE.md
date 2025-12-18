@@ -425,7 +425,6 @@ The `.mcp.json` at project root configures MCP servers (plugins provide playwrig
 
 | Plugin | Purpose | Commands |
 |--------|---------|----------|
-| **hookify** | Create hooks from conversation | `/hookify`, `/hookify:configure`, `/hookify:list` |
 | **ralph-wiggum** | Iterative loop technique | `/ralph-wiggum:ralph-loop PROMPT` |
 | **serena** | Semantic coding tools | Symbol-level editing, find references |
 
@@ -503,6 +502,58 @@ Run BEFORE committing significant code:
 - Use pytest for regression, integration, and E2E tests
 - Mock external API calls during testing
 - Use Playwright plugin for UI testing
+
+#### Testing Philosophy: Integration-First
+
+Deep Agent One follows an **integration-first** testing approach:
+
+| Test Type | Percentage | Purpose |
+|-----------|------------|---------|
+| Integration | 70% | Verify component interactions |
+| E2E | 25% | Validate complete workflows |
+| UI | 5% | Test user interface |
+
+**When to Write Unit Tests (ONLY):**
+- Pure functions with complex logic
+- Algorithm implementations
+- Utility functions with no I/O
+
+**When NOT to Write Unit Tests:**
+- Enum values or constants
+- Pydantic model validation (use integration)
+- API endpoint behavior (use integration)
+- Service layer code (use integration)
+- Simple getters/setters
+
+#### Feature Validation Workflow
+
+**CRITICAL: Before approving any commit, testing-expert MUST perform feature validation.**
+
+The testing-expert agent automatically:
+1. **Detects Feature Context:** Analyzes `git diff --cached` to identify changed components
+2. **Extracts JIRA Requirements:** Fetches ticket details via atlassian MCP if branch contains ticket ID
+3. **Generates Validation Tests:** Creates tests in `tests/validation/test_feature_{ticket}_{timestamp}.py`
+4. **Runs Validation Tests:** Executes tests to verify feature meets requirements
+5. **Generates Enhanced Report:** Includes feature validation results in the standard report
+
+**Generated Validation Test Structure:**
+```python
+class TestFeatureValidation_{feature_name}:
+    def test_feature_happy_path(self):  # Primary use case
+    def test_feature_edge_cases(self):  # Edge case handling
+    def test_feature_error_handling(self):  # Error conditions
+    def test_feature_integration(self):  # Component integration
+```
+
+#### Coverage Targets
+
+| Metric | Target |
+|--------|--------|
+| **Overall Coverage** | ≥70% |
+| **Critical Modules** | ≥85% |
+| **New Code** | ≥90% |
+
+**Critical Modules:** agents/, services/, api/
 
 ### 7. Continuous Integration & Constant Commits
 

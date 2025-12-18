@@ -78,37 +78,56 @@ pytest -n 4     # Use 4 workers
 
 ## Testing Strategy
 
-### Test Pyramid
+### Test Pyramid: Integration-First Approach
 
-- **Unit Tests (70%)**: Fast, isolated, extensive coverage
-  - Test individual functions, classes, and methods
-  - Mock all external dependencies
-  - Execution time: <100ms per test
-  - Coverage target: 90%+
+Deep Agent One follows an **integration-first** testing philosophy. We prioritize testing real component interactions over isolated unit tests.
 
-- **Integration Tests (20%)**: Component interactions, mocked external services
-  - Test interactions between internal components
-  - Mock external APIs (OpenAI, Perplexity, LangSmith)
+**Why Integration-First?**
+- Tests validate actual system behavior, not mocked assumptions
+- Catches bugs at component boundaries where most issues occur
+- Tests survive refactoring (don't depend on implementation details)
+- Higher confidence in production readiness
+
+**Test Distribution:**
+
+- **Integration Tests (70%)**: Component interactions, mocked external services only
+  - Test real interactions between internal components
+  - Mock only external APIs (OpenAI, Perplexity, LangSmith)
   - Execution time: <1s per test
-  - Coverage target: 85%+
+  - Coverage target: 70%+
+  - Location: `tests/integration/`
 
-- **E2E Tests (8%)**: Complete workflows, minimal mocking
+- **E2E Tests (25%)**: Complete workflows, minimal mocking
   - Test complete user journeys end-to-end
   - Mock only external API calls (to avoid costs)
   - Execution time: <5s per test
-  - Coverage target: Critical paths only
+  - Coverage target: Critical paths
+  - Location: `tests/e2e/`
 
-- **UI Tests (2%)**: Critical user paths, Playwright automation
+- **UI Tests (5%)**: Critical user paths, Playwright automation
   - Test UI interactions and visual components
   - Focus on critical workflows (chat, HITL, tool transparency)
   - Execution time: <10s per test
   - Coverage target: Happy paths + critical errors
+  - Location: `tests/ui/`
+
+**When to Write Unit Tests (Rarely):**
+- Pure functions with complex algorithmic logic
+- Algorithm implementations (no I/O)
+- Utility functions with no side effects
+
+**What NOT to Unit Test:**
+- Enum values or constants
+- Pydantic model validation (use integration)
+- API endpoint behavior (use integration)
+- Service layer code (use integration)
+- Simple getters/setters
 
 ### Coverage Requirements
 
-- **Minimum**: 80% overall coverage
-- **Critical modules**: 90%+ coverage (agents, tools, API endpoints)
-- **New code**: 100% coverage required (enforced in CI/CD)
+- **Minimum**: 70% overall coverage
+- **Critical modules**: 85%+ coverage (agents, services, api)
+- **New code**: 90% coverage required
 
 ## Test Markers
 
