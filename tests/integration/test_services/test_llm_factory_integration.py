@@ -70,9 +70,8 @@ class TestGPTLLMIntegration:
         assert llm.client.timeout.read == 120.0
         assert llm.client.timeout.connect == 10.0
 
-    def test_create_gpt_validates_api_key_format(self) -> None:
-        """Test that API key format validation logs warning for invalid format."""
-        # Valid format (sk- prefix)
+    def test_create_gpt_with_empty_api_key_raises_error(self) -> None:
+        """Test that empty API key raises ValueError."""
         with pytest.raises(ValueError, match="API key is required"):
             create_gpt_llm(api_key="")
 
