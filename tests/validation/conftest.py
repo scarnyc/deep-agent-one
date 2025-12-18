@@ -42,7 +42,7 @@ def mock_settings(test_env, tmp_path, monkeypatch):
     monkeypatch.setenv("LANGSMITH_API_KEY", "lsv2_test_key")  # pragma: allowlist secret
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/test.db")
 
-    return Settings()
+    return Settings()  # type: ignore[call-arg]
 
 
 # =============================================================================
@@ -97,7 +97,7 @@ def mock_agent():
 
 
 @pytest.fixture
-def mock_agent_service(mock_settings, mock_agent, mock_langsmith):
+def mock_agent_service(mock_settings, mock_agent):
     """Mock AgentService for validation tests."""
     from backend.deep_agent.services.agent_service import AgentService
 

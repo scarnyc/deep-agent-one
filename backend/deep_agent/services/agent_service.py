@@ -27,12 +27,15 @@ from deep_agent.core.logging import generate_langsmith_url, get_logger
 logger = get_logger(__name__)
 
 
-def _get_current_run_tree():
+def _get_current_run_tree() -> Any:
     """
     Lazy import of get_current_run_tree to avoid blocking at module load time.
 
     The langsmith import can block when LANGSMITH_TRACING_V2=true,
     so we defer the import until it's actually needed.
+
+    Returns:
+        The current LangSmith run tree or None if unavailable.
     """
     try:
         from langsmith import get_current_run_tree
@@ -222,7 +225,7 @@ class AgentService:
                             attempt=attempt.retry_state.attempt_number,
                         )
 
-                    result = await agent.ainvoke(input_data, config)
+                    result: dict[str, Any] = await agent.ainvoke(input_data, config)
 
             # Capture trace_id from LangSmith for debugging
             trace_id = None
@@ -357,14 +360,14 @@ class AgentService:
 
         try:
             # Wrap streaming in timeout to prevent infinite hangs
-            async with asyncio.timeout(timeout_seconds):
+            async with asyncio.timeout(timeout_seconds):  # type: ignore[attr-defined]
                 # Create event queue for multiplexing agent events + heartbeats
                 event_queue: asyncio.Queue[tuple[str, dict[str, Any] | None]] = asyncio.Queue(
                     maxsize=100
                 )
                 shutdown_event = asyncio.Event()
 
-                async def agent_task():
+                async def agent_task() -> None:
                     """Stream agent events and queue them."""
                     nonlocal \
                         last_event_time, \
@@ -502,7 +505,7 @@ class AgentService:
                         # Signal completion
                         await event_queue.put(("done", None))
 
-                async def heartbeat_task():
+                async def heartbeat_task() -> None:
                     """Send heartbeat events during long periods of silence."""
                     nonlocal heartbeat_count
 
@@ -558,7 +561,9 @@ class AgentService:
                                 break
 
                             # Yield event (either agent event or heartbeat)
-                            yield event_data
+                            # Note: event_data is None only for "done" event, which breaks above
+                            if event_data is not None:
+                                yield event_data
 
                         except TimeoutError:
                             # Queue timeout, continue waiting
