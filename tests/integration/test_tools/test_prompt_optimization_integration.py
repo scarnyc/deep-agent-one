@@ -157,10 +157,15 @@ class TestPromptOptimization:
             # Verify result matches expected algorithm
             assert result["algorithm"] == algo
 
-            # Verify optimize_prompt was called (actual parameter passing verified)
+            # Verify optimize_prompt was called with the correct algorithm parameter
             assert (
                 mock_opik_client.optimize_prompt.called
             ), f"optimize_prompt was not called for algorithm: {algo}"
+            call_args = mock_opik_client.optimize_prompt.call_args
+            # Verify the algorithm parameter was actually passed correctly
+            # (optimizer_type is mapped to 'algorithm' when calling Opik client)
+            passed_algo = call_args.kwargs.get("algorithm")
+            assert passed_algo == algo, f"Expected algorithm={algo}, but got {passed_algo}"
 
     @patch("deep_agent.tools.prompt_optimization.get_opik_client")
     def test_optimize_prompt_raises_error_for_invalid_algorithm(self, mock_get_client) -> None:
