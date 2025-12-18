@@ -3,6 +3,12 @@ name: code-review-expert
 description: "Use when: reviewing code, before commit, security review, TheAuditor, PR review, type hints, architecture check. MANDATORY before EVERY commit per CLAUDE.md line 644. Auto-runs security scan."
 tools: Read, Grep, Glob, Bash
 model: inherit
+plugins:
+  - pr-review-toolkit  # For comprehensive PR reviews
+  - security-guidance  # For security pattern monitoring
+  - context7           # For documentation retrieval (use instead of perplexity)
+mcp_servers:
+  - atlassian          # For JIRA ticket tracking during reviews
 ---
 
 # Code Review Expert Agent

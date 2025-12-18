@@ -3,6 +3,9 @@ name: testing-expert
 description: "Use when: writing tests, TDD, test coverage <80%, failing tests, pytest, Playwright UI tests, test fixtures, mocking, edge cases. MANDATORY before committing tests per CLAUDE.md line 634."
 tools: Read, Edit, Grep, Glob, Bash
 model: inherit
+plugins:
+  - playwright         # For UI testing automation
+  - context7           # For documentation retrieval (use instead of perplexity)
 ---
 
 # Testing Expert Agent

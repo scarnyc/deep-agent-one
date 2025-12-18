@@ -1,17 +1,5 @@
 {
   "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"],
-      "env": {
-        "PLAYWRIGHT_BROWSERS_PATH": "/home/runner/workspace/.cache/ms-playwright"
-      }
-    },
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"],
-      "env": {}
-    },
     "perplexity": {
       "command": "npx",
       "args": ["-y", "perplexity-mcp"],
@@ -29,6 +17,10 @@
         "JIRA_USERNAME": "${JIRA_USERNAME}",
         "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
       }
+    },
+    "markitdown": {
+      "command": "/home/runner/workspace/.pythonlibs/bin/markitdown-mcp",
+      "args": []
     }
   }
 }

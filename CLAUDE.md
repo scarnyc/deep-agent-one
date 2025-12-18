@@ -42,8 +42,8 @@ pnpm --version  # If not installed: npm install -g pnpm
 
 # If not installed, install Node.js 18+ from https://nodejs.org/
 
-# Install Playwright MCP server (for UI testing)
-npm install -g @modelcontextprotocol/server-playwright
+# Playwright plugin provides browser automation (install browsers only)
+# Plugin installed via: /plugin install playwright
 
 # Install Playwright browsers and system dependencies
 npx playwright install
@@ -214,24 +214,42 @@ cd ~/deep-agent-one
 - Create CI/CD hook to run `aud full` automatically
 - Block merges if critical security issues found
 
-### 4. MCP Server Configuration
+### 4. MCP Servers & Claude Code Plugins
 
-**Install and configure Model Context Protocol servers:**
+Claude Code uses two extension mechanisms:
+- **MCP Servers** (in `.mcp.json`): External tool providers for APIs and services
+- **Plugins** (via `/plugin`): Extend Claude Code with agents, skills, commands, and hooks
 
-#### Playwright MCP (UI Testing - REQUIRED for Phase 0)
+**Architecture (Consolidated):**
+- Playwright → **Plugin** provides MCP + agents
+- Context7 → **Plugin** provides MCP + integration
+- Perplexity → **MCP Server** (no plugin equivalent)
+- Atlassian → **MCP Server** (full JIRA API)
+
+**Managing Plugins:**
+```bash
+/plugin list              # List installed plugins
+/plugin install <name>    # Install a plugin
+/plugin uninstall <name>  # Remove a plugin
+```
+
+---
+
+#### MCP Servers (in .mcp.json)
+
+#### Playwright (UI Testing - via Plugin)
+
+**Note:** Provided by the `playwright` plugin. No separate MCP server entry needed.
 
 ```bash
-# Install Playwright MCP server globally
-npm install -g @modelcontextprotocol/server-playwright
-
-# Install Playwright browsers
+# Install browsers (still required)
 npx playwright install
 npx playwright install-deps
 ```
 
-#### Context7 MCP (Documentation Retrieval)
+#### Context7 (Documentation Retrieval - via Plugin)
 
-Context7 provides up-to-date library documentation and code examples via the Upstash Context7 service.
+**Note:** Provided by the `context7` plugin. No separate MCP server entry needed.
 
 **Repository:** https://github.com/upstash/context7
 
@@ -241,25 +259,9 @@ Context7 provides up-to-date library documentation and code examples via the Ups
 - Support for versioned documentation
 - Trust scores and snippet coverage metrics
 
-**Installation:**
-
-Already configured in `.mcp.json`:
-```json
-"context7": {
-  "command": "npx",
-  "args": ["-y", "@upstash/context7-mcp"],
-  "env": {}
-}
-```
-
-For higher rate limits, add API key from https://context7.com:
-```json
-"args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_KEY"]
-```
-
 **Usage:**
 ```
-# Tools: mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+# Tools: mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__get-library-docs
 # Example: "Show me how to create a FastAPI route with async"
 ```
 
@@ -320,126 +322,19 @@ git commit -m "feat(phase-1): implement Redis caching [DEEP-45]"
 - "Auth failed": Verify API token at https://id.atlassian.com/manage-profile/security/api-tokens
 - "MCP not showing": Restart Claude Code and run `/mcp` to check status
 
-#### Hugging Face MCP (AI Models & Datasets)
+#### Markitdown MCP (Document Conversion)
 
-Access Hugging Face models, datasets, and Spaces directly from Claude Code.
-
-**Repository:** https://huggingface.co/mcp
-
-**Installation:**
-```bash
-claude mcp add hf-mcp-server -t http https://huggingface.co/mcp?login
-```
-
-**Note:** Uses OAuth authentication - you'll be prompted to log in to Hugging Face on first use.
-
-**Features:**
-- Search and explore Hugging Face models
-- Access dataset information
-- Query model cards and documentation
-- Interact with Hugging Face Spaces
-
-**Usage:**
-```
-# Search for models
-"Find the best text-to-image models on Hugging Face"
-
-# Get model details
-"Show me the model card for meta-llama/Llama-3.1-8B"
-```
-
-#### DeepWiki MCP (Repository Documentation)
-
-Cognition's DeepWiki provides AI-generated documentation and explanations for open source repositories.
-
-**Documentation:** https://docs.devin.ai/work-with-devin/deepwiki-mcp
-
-**Installation:**
-```bash
-claude mcp add -s user -t http deepwiki https://mcp.deepwiki.com/mcp
-```
-
-**Features:**
-- AI-generated documentation for GitHub repositories
-- Code explanations and architecture overviews
-- API documentation lookup
-- Understanding unfamiliar codebases quickly
-
-**Usage:**
-```
-# Get documentation for a repository
-"Explain the architecture of facebook/react"
-
-# Understand a specific part of a codebase
-"How does the routing work in expressjs/express?"
-```
-
-#### Stripe MCP (Payments & Billing)
-
-Stripe integration for payment processing, customer management, and billing operations.
-
-**Documentation:** https://docs.stripe.com/mcp?mcp-client=claudecode
-
-**Installation:**
-```bash
-claude mcp add --transport http stripe https://mcp.stripe.com/
-```
-
-**Features:**
-- Create and manage customers
-- Process payments and refunds
-- Manage subscriptions and invoices
-- Access product catalog
-- Handle payment methods
-
-**Building Autonomous Agents:**
-
-For agentic software, pass a Stripe API key as a bearer token to the MCP remote server. **Strongly recommended:** Use restricted API keys to limit access to required functionality.
-
-```bash
-curl https://mcp.stripe.com/ \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk_test_YOUR_RESTRICTED_KEY" \
-  -d '{
-      "jsonrpc": "2.0",
-      "method": "tools/call",
-      "params": {
-        "name": "create_customer",
-        "arguments": {"name": "Jenny Rosen", "email": "jenny.rosen@example.com"}
-      },
-      "id": 1
-  }'
-```
-
-**Security Recommendations:**
-- Enable human confirmation for all Stripe tools
-- Use restricted API keys (not full secret keys)
-- Exercise caution when using with other MCP servers to avoid prompt injection attacks
-- Review tool calls before execution in production environments
-
-**Usage:**
-```
-# Create a customer
-"Create a Stripe customer for john@example.com"
-
-# List recent payments
-"Show me the last 10 payments"
-
-# Create a subscription
-"Subscribe customer cus_xxx to the pro plan"
-```
-
-#### Markitdown (Document Conversion)
-
-Microsoft's tool for converting documents to Markdown format.
+Microsoft's tool for converting documents to Markdown format, available as both CLI and MCP server.
 
 **Repository:** https://github.com/microsoft/markitdown
 
-**Installation:**
+**Installation (already installed):**
 ```bash
-git clone https://github.com/microsoft/markitdown.git
-cd markitdown
-pip install -e 'packages/markitdown[all]'
+# CLI tool
+pip install -e 'markitdown/packages/markitdown[all]'
+
+# MCP server (for Claude Code integration)
+pip install -e 'markitdown/packages/markitdown-mcp'
 ```
 
 **Supported Formats:**
@@ -449,46 +344,142 @@ pip install -e 'packages/markitdown[all]'
 - Audio/Video (transcript extraction)
 - YouTube transcripts
 
-**Usage:**
+**CLI Usage:**
 ```bash
 markitdown document.pdf              # Output to stdout
 markitdown document.pdf -o output.md # Output to file
 cat file.pdf | markitdown            # From stdin
 ```
 
+**MCP Server Usage:**
+```
+# Claude Code can directly convert documents via MCP
+"Convert this PDF to markdown: /path/to/document.pdf"
+"Extract text from this Word document"
+```
+
 **MCP Configuration File:**
-The `.mcp.json` at project root configures MCP servers:
+The `.mcp.json` at project root configures MCP servers (plugins provide playwright/context7):
 ```json
 {
   "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"],
-      "env": { "PLAYWRIGHT_BROWSERS_PATH": "/home/runner/workspace/.cache/ms-playwright" }
-    },
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"],
-      "env": {}
-    },
     "perplexity": {
       "command": "npx",
       "args": ["-y", "perplexity-mcp"],
       "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
     },
     "atlassian": {
-      "command": "mcp-atlassian",
+      "command": "/path/to/.pythonlibs/bin/mcp-atlassian",
       "args": ["--transport", "stdio"],
       "env": { "JIRA_URL": "${JIRA_URL}", "JIRA_USERNAME": "${JIRA_USERNAME}", "JIRA_API_TOKEN": "${JIRA_API_TOKEN}" }
+    },
+    "markitdown": {
+      "command": "/path/to/.pythonlibs/bin/markitdown-mcp",
+      "args": []
     }
   }
 }
 ```
 
-**User-level MCP servers** (in `~/.claude.json`):
-- `hf-mcp-server`: Hugging Face (HTTP transport with OAuth)
-- `deepwiki`: DeepWiki repository documentation (HTTP transport)
-- `stripe`: Stripe payments (HTTP transport)
+---
+
+#### Claude Code Plugins (Installed)
+
+**Priority Plugins:**
+
+| Plugin | Purpose | Commands/Skills |
+|--------|---------|-----------------|
+| **frontend-design** | Production-grade UI with bold design choices | Skill: `frontend-design:frontend-design` |
+| **pr-review-toolkit** | Comprehensive PR review agents | `/pr-review-toolkit:review-pr [aspects]` |
+| **security-guidance** | Security pattern monitoring hooks | Auto-runs on tool use |
+
+**Development Workflow:**
+
+| Plugin | Purpose | Commands |
+|--------|---------|----------|
+| **commit-commands** | Git commit automation | `/commit`, `/commit-push-pr`, `/clean_gone` |
+| **code-review** | Code review automation | `/code-review:code-review` |
+| **feature-dev** | Guided feature development | `/feature-dev:feature-dev [desc]` |
+| **agent-sdk-dev** | Claude Agent SDK apps | `/agent-sdk-dev:new-sdk-app [name]` |
+
+**Integration Plugins:**
+
+| Plugin | Purpose | Notes |
+|--------|---------|-------|
+| **context7** | Documentation retrieval | Provides MCP server |
+| **playwright** | Browser automation | Provides MCP server |
+| **firebase** | Firebase integration | Project management |
+
+**Utility Plugins:**
+
+| Plugin | Purpose | Commands |
+|--------|---------|----------|
+| **hookify** | Create hooks from conversation | `/hookify`, `/hookify:configure`, `/hookify:list` |
+| **ralph-wiggum** | Iterative loop technique | `/ralph-wiggum:ralph-loop PROMPT` |
+| **serena** | Semantic coding tools | Symbol-level editing, find references |
+
+**Document Skills** (from `anthropic-agent-skills` marketplace):
+
+| Skill | Purpose | Usage |
+|-------|---------|-------|
+| **pdf** | PDF manipulation: extract text/tables, create, merge/split, handle forms | "Use the PDF skill to extract form fields from file.pdf" |
+| **docx** | Word documents: create, edit, tracked changes, comments, formatting | "Use the docx skill to create a report from this data" |
+| **xlsx** | Excel spreadsheets: formulas, formatting, data analysis, visualization | "Use the xlsx skill to analyze this spreadsheet" |
+| **pptx** | PowerPoint: create, edit, layouts, templates, charts, slides | "Use the pptx skill to create a presentation" |
+
+**Note:** These are official Anthropic skills from [anthropics/skills](https://github.com/anthropics/skills) that power Claude's document capabilities. Invoke by mentioning the skill name in your request.
+
+**Output Style Plugins:**
+- **explanatory-output-style** - Educational insights with `★ Insight` blocks
+- **learning-output-style** - Interactive learning with user code contributions
+
+---
+
+#### Pre-Commit Quality Gates (Two Layers)
+
+The project uses TWO complementary quality gate systems:
+
+**Layer 1: Automated Git Hooks** (via `.pre-commit-config.yaml`)
+Runs automatically on every `git commit`:
+- Ruff (linting + formatting)
+- mypy (type checking)
+- bandit (security scanning)
+- detect-secrets (credential detection)
+- File validators (trailing whitespace, YAML/JSON syntax)
+
+**Layer 2: Claude Code Agents** (manual, before significant changes)
+Run BEFORE committing significant code:
+- `code-review-expert`: Security + architecture + code quality
+- `testing-expert`: Test coverage + AAA pattern verification
+
+**When to Use Each:**
+| Change Type | Layer 1 (Auto) | Layer 2 (Manual) |
+|-------------|----------------|------------------|
+| Small fixes, typos | ✅ Sufficient | Optional |
+| New features | ✅ Auto | ✅ MANDATORY |
+| Security-sensitive code | ✅ Auto | ✅ MANDATORY |
+| Refactoring | ✅ Auto | ✅ Recommended |
+| Test additions | ✅ Auto | ✅ MANDATORY |
+
+---
+
+#### Agent Recommendations
+
+| Scenario | Agent | Type | Invocation |
+|----------|-------|------|------------|
+| Before commit (code) | code-review-expert | Custom | Task tool with subagent_type |
+| Before commit (tests) | testing-expert | Custom | Task tool with subagent_type |
+| Bug investigation | debugging-expert | Custom | Task tool with subagent_type |
+| Codebase exploration | Explore | Built-in | Task tool with subagent_type='Explore' |
+| Implementation planning | Plan | Built-in | Task tool with subagent_type='Plan' |
+| PR review | pr-review-toolkit agents | Plugin | `/pr-review-toolkit:review-pr` |
+| Feature architecture | feature-dev:code-architect | Plugin | `/feature-dev:feature-dev` |
+
+**Custom Agents** are defined in `.claude/agents/` and provide specialized prompts and tool restrictions.
+
+**Built-in Agents** (Explore, Plan) are provided by Claude Code for general-purpose tasks.
+
+**Plugin Agents** are provided by installed plugins and invoked via slash commands.
 
 ### 5. Evaluation-Driven Development (EDD)
 
@@ -500,7 +491,7 @@ The `.mcp.json` at project root configures MCP servers:
 
 - Use pytest for regression, integration, and E2E tests
 - Mock external API calls during testing
-- Use Playwright MCP server for UI testing
+- Use Playwright plugin for UI testing
 
 ### 7. Continuous Integration & Constant Commits
 
@@ -510,7 +501,7 @@ The `.mcp.json` at project root configures MCP servers:
 - **MANDATORY: Run testing-expert and code-review-expert agents before EVERY commit**
 - Run tests on every commit
 - Automated testing pipeline via GitHub Actions
-- Use Playwright MCP server for UI regression testing
+- Use Playwright plugin for UI regression testing
 
 ---
 
@@ -1226,7 +1217,7 @@ Build incrementally, commit constantly, test thoroughly, scan for security issue
 - **Periodic maintenance:** Review CLAUDE.md regularly to remove stale context (keep < 40k chars)
 - **Pre-commit workflow:** Run code-review-expert and testing-expert agents before EVERY commit
 - **Issue tracking:** Both agents must log non-critical issues in JIRA for future work
-- **Code Doc Context:** Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
+- **Code Doc Context:** Always use Context7 for code generation, setup, configuration, or library/API documentation. **NEVER use Perplexity** - that MCP server is for the Deep Agent One product, not for Claude Code development. Use Context7 MCP tools to resolve library id and get library docs automatically without explicit requests.
 - **Debugging workflow:** Run debugging-expert agent when a bug or issue is identified
 - **Fix validation:** After making code changes, ALWAYS validate the fix comprehensively before asking the user to manually test in browser. Validation steps:
   1. Analyze the fix to understand what it does and why it solves the issue

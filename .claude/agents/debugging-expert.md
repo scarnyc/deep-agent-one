@@ -3,6 +3,11 @@ name: debugging-expert
 description: "Use when: bug, error, crash, exception, failing, broken, not working, issue, defect, stack trace, unexpected behavior, performance problem. Use proactively when encountering any issues. Auto-invoked per CLAUDE.md line 506."
 tools: Read, Edit, Grep, Glob, Bash
 model: opus
+plugins:
+  - serena             # For semantic code analysis and symbol navigation
+  - context7           # For documentation retrieval (use instead of perplexity)
+mcp_servers:
+  - atlassian          # For JIRA ticket tracking during debugging
 ---
 
 ## Available Tools
