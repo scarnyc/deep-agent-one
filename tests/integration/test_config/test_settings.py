@@ -200,9 +200,7 @@ class TestSettingsIntegration:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
         # pragma: allowlist secret
-        monkeypatch.setenv(
-            "DATABASE_URL", "postgresql://user:pass@localhost:5432/testdb"
-        )
+        monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/testdb")
 
         settings = Settings()
 
