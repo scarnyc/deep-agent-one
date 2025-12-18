@@ -40,6 +40,10 @@ localPort = 8001
 externalPort = 8001
 
 [[ports]]
+localPort = 63878
+externalPort = 3002
+
+[[ports]]
 localPort = 64313
 externalPort = 3001
 
@@ -47,7 +51,6 @@ externalPort = 3001
 PYTHON_LD_LIBRARY_PATH = "/nix/store/*-python3-*/lib"
 PYTHONBIN = "/home/runner/${REPL_SLUG}/.pythonlibs/bin/python3.11"
 POETRY_CACHE_DIR = "/home/runner/${REPL_SLUG}/.cache/pypoetry"
-ENV = "dev"
 API_HOST = "0.0.0.0"
 
 [agent]

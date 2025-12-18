@@ -322,6 +322,17 @@ git commit -m "feat(phase-1): implement Redis caching [DEEP-45]"
 - "Auth failed": Verify API token at https://id.atlassian.com/manage-profile/security/api-tokens
 - "MCP not showing": Restart Claude Code and run `/mcp` to check status
 
+**Replit Secrets (Required for Replit environments):**
+
+Before using JIRA MCP on Replit, verify these secrets are configured in Replit Secrets (Tools → Secrets):
+- `JIRA_URL` - e.g., `https://your-site.atlassian.net`
+- `JIRA_USERNAME` - Your Atlassian email address
+- `JIRA_API_TOKEN` - Generate at https://id.atlassian.com/manage-profile/security/api-tokens
+
+Verify with: `printenv | grep -i jira`
+
+If the curl to JIRA fails with "URL rejected: No host part", check that the secrets are properly set.
+
 #### Markitdown MCP (Document Conversion)
 
 Microsoft's tool for converting documents to Markdown format, available as both CLI and MCP server.
