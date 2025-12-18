@@ -241,5 +241,14 @@ class TestWebSearchLogging:
             with patch("backend.deep_agent.tools.web_search.logger") as mock_logger:
                 await web_search.ainvoke({"query": "test query"})
 
-                # Verify logger was called (info, debug, or error)
-                assert mock_logger.info.called or mock_logger.debug.called
+                # Verify specific logging behavior for observability
+                assert mock_logger.info.called, "Expected info log calls during search operation"
+
+                # Verify key log events were recorded
+                info_calls = [str(call) for call in mock_logger.info.call_args_list]
+                assert any(
+                    "invoked" in call for call in info_calls
+                ), "Expected 'Web search tool invoked' log entry"
+                assert any(
+                    "completed" in call or "successfully" in call for call in info_calls
+                ), "Expected 'Search completed successfully' log entry"
