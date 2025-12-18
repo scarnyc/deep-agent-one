@@ -26,7 +26,7 @@ def temp_db_dir():
 
 
 @pytest.fixture
-def mock_settings(temp_db_dir) -> None:
+def mock_settings(temp_db_dir) -> Mock:
     """Fixture providing mocked Settings with temp database path."""
     settings = Mock(spec=Settings)
     settings.CHECKPOINT_DB_PATH = str(temp_db_dir / "checkpoints.db")
