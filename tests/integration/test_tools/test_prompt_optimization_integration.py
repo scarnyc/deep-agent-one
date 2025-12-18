@@ -44,10 +44,10 @@ class TestPromptAnalysis:
         tool_violations = [v for v in violations if "tool_usage" in v.lower()]
         assert len(tool_violations) > 0
 
-    def test_analyze_prompt_scores_xml_structure_higher(self) -> None:
-        """Test that XML-style structure improves structure score."""
-        prompt_without_xml = "You are a helpful assistant. Do task A. Do task B."
-        prompt_with_xml = """
+    def test_analyze_prompt_scores_structured_headers_higher(self) -> None:
+        """Test that structured markdown headers improve structure score."""
+        prompt_unstructured = "You are a helpful assistant. Do task A. Do task B."
+        prompt_with_headers = """
         ## Instructions
         You are a helpful assistant.
         ## Task
@@ -56,11 +56,11 @@ class TestPromptAnalysis:
         Do task B
         """
 
-        result_without = analyze_prompt(prompt_without_xml, "general")
-        result_with = analyze_prompt(prompt_with_xml, "general")
+        result_unstructured = analyze_prompt(prompt_unstructured, "general")
+        result_structured = analyze_prompt(prompt_with_headers, "general")
 
-        # XML structure should score higher
-        assert result_with["structure_score"] >= result_without["structure_score"]
+        # Structured headers should score higher
+        assert result_structured["structure_score"] >= result_unstructured["structure_score"]
 
     def test_analyze_prompt_detects_verbosity_mismatch_for_task_type(self) -> None:
         """Test that verbosity analysis is context-aware based on task type."""
