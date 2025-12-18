@@ -9,18 +9,6 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from backend.deep_agent.config.settings import Settings
-
-
-@pytest.fixture
-def mock_settings() -> Settings:
-    """Fixture providing mocked Settings for tool tests."""
-    settings = Mock(spec=Settings)
-    settings.PERPLEXITY_API_KEY = "test-api-key-12345"  # pragma: allowlist secret
-    settings.MCP_PERPLEXITY_TIMEOUT = 30
-    settings.ENV = "local"
-    return settings
-
 
 @pytest.fixture
 def mock_search_results() -> dict[str, Any]:
@@ -67,7 +55,6 @@ class TestWebSearchExecution:
     @pytest.mark.asyncio
     async def test_search_executes_and_formats_results(
         self,
-        mock_settings: Settings,
         mock_search_results: dict[str, Any],
         mock_formatted_results: str,
     ) -> None:
@@ -93,7 +80,6 @@ class TestWebSearchExecution:
     @pytest.mark.asyncio
     async def test_search_passes_custom_max_results_parameter(
         self,
-        mock_settings: Settings,
         mock_search_results: dict[str, Any],
         mock_formatted_results: str,
     ) -> None:
@@ -115,7 +101,6 @@ class TestWebSearchExecution:
     @pytest.mark.asyncio
     async def test_search_handles_complex_query(
         self,
-        mock_settings: Settings,
         mock_search_results: dict[str, Any],
     ) -> None:
         """Test search with complex multi-word query."""
@@ -241,7 +226,6 @@ class TestWebSearchLogging:
     @pytest.mark.asyncio
     async def test_search_logs_operations(
         self,
-        mock_settings: Settings,
         mock_search_results: dict[str, Any],
     ) -> None:
         """Test that search operations are logged for observability."""
