@@ -149,6 +149,10 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+markers = [
+    "integration: Integration tests that may require external services",
+    "slow: Tests that take a long time to run",
+]
 
 [tool.coverage.run]
 source = ["backend/deep_agent"]
