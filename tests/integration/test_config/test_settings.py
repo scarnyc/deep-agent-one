@@ -46,7 +46,7 @@ class TestSettingsIntegration:
         monkeypatch.setenv("API_HOST", "127.0.0.1")
         monkeypatch.setenv("API_PORT", "8000")
 
-        settings = Settings()
+        settings = Settings()  # type: ignore[call-arg]
 
         assert settings.ENV == "local"
         assert settings.DEBUG is True
@@ -84,7 +84,7 @@ class TestSettingsIntegration:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
         with pytest.raises(ValidationError) as exc_info:
-            Settings()
+            Settings()  # type: ignore[call-arg]
 
         assert "OPENAI_API_KEY" in str(exc_info.value)
 
@@ -104,7 +104,7 @@ class TestSettingsIntegration:
         monkeypatch.setenv("ENV", "prod")
         monkeypatch.setenv("DEBUG", "false")
 
-        settings = Settings()
+        settings = Settings()  # type: ignore[call-arg]
 
         # Check defaults
         assert settings.ENV == "prod"
@@ -129,7 +129,7 @@ class TestSettingsIntegration:
         monkeypatch.setenv("GPT_DEFAULT_REASONING_EFFORT", "invalid")
 
         with pytest.raises(ValidationError):
-            Settings()
+            Settings()  # type: ignore[call-arg]
 
     def test_settings_cors_origins_parsing(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
@@ -145,11 +145,48 @@ class TestSettingsIntegration:
         monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
         monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000")
 
-        settings = Settings()
+        settings = Settings()  # type: ignore[call-arg]
 
         # Check expected values are present (environment may add more)
         assert "http://localhost:3000" in settings.cors_origins_list
         assert "http://localhost:8000" in settings.cors_origins_list
+
+    def test_cors_origins_exact_list_in_controlled_environment(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        Test that CORS origins list exactly matches input when environment is controlled.
+
+        Scenario:
+            Set CORS_ORIGINS with specific values in non-Replit environment
+
+        Expected:
+            cors_origins_list returns exactly the specified origins (catches regressions)
+
+        Note:
+            This complements the looser test above by validating exact behavior
+            when we control all environment variables.
+        """
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
+        monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000")
+        # Ensure non-Replit environment for predictable behavior
+        # (must clear all Replit detection variables)
+        monkeypatch.delenv("REPL_ID", raising=False)
+        monkeypatch.delenv("REPL_SLUG", raising=False)
+        monkeypatch.delenv("REPLIT_DEV_DOMAIN", raising=False)
+        monkeypatch.delenv("REPLIT_DOMAINS", raising=False)
+
+        # Create settings with explicit non-Replit state
+        settings = Settings(  # type: ignore[call-arg]
+            REPLIT_DEV_DOMAIN=None, REPL_SLUG=None, REPLIT_DOMAINS=None
+        )
+
+        # Strict equality check for controlled environment
+        expected_origins = ["http://localhost:3000", "http://localhost:8000"]
+        assert (
+            settings.cors_origins_list == expected_origins
+        ), f"Expected exactly {expected_origins}, got {settings.cors_origins_list}"
 
     def test_get_settings_singleton(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
@@ -183,7 +220,7 @@ class TestSettingsIntegration:
         monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
         monkeypatch.setenv("LOG_LEVEL", "info")
 
-        settings = Settings()
+        settings = Settings()  # type: ignore[call-arg]
 
         assert settings.LOG_LEVEL == "INFO"
 
@@ -199,14 +236,16 @@ class TestSettingsIntegration:
         """
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
-        # pragma: allowlist secret
-        monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/testdb")
+        monkeypatch.setenv(
+            "DATABASE_URL",
+            "postgresql://user:pass@localhost:5432/testdb",  # pragma: allowlist secret
+        )
 
-        settings = Settings()
+        settings = Settings()  # type: ignore[call-arg]
 
-        assert (
-            settings.DATABASE_URL == "postgresql://user:pass@localhost:5432/testdb"
-        )  # pragma: allowlist secret
+        assert settings.DATABASE_URL == (
+            "postgresql://user:pass@localhost:5432/testdb"  # pragma: allowlist secret
+        )
 
     def test_settings_feature_flags(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
@@ -224,7 +263,7 @@ class TestSettingsIntegration:
         monkeypatch.setenv("ENABLE_SUB_AGENTS", "false")
         monkeypatch.setenv("ENABLE_MEMORY_SYSTEM", "true")
 
-        settings = Settings()
+        settings = Settings()  # type: ignore[call-arg]
 
         assert settings.ENABLE_HITL is True
         assert settings.ENABLE_SUB_AGENTS is False

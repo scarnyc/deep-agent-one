@@ -512,7 +512,7 @@ def get_settings() -> Settings:
         For testing with custom values, instantiate Settings() directly
         instead of using this cached function.
     """
-    return Settings()
+    return Settings()  # type: ignore[call-arg]
 
 
 def clear_settings_cache() -> None:
