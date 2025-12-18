@@ -34,10 +34,12 @@ def mock_settings(test_env, tmp_path, monkeypatch):
     """
     from backend.deep_agent.config.settings import Settings
 
-    # Set required environment variables
-    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
-    monkeypatch.setenv("PERPLEXITY_API_KEY", "test-perplexity-key")
-    monkeypatch.setenv("LANGSMITH_API_KEY", "lsv2_test_key")
+    # MOCK CREDENTIALS - These are fake test values, NOT real API keys.
+    # They satisfy Pydantic validation but are never used for actual API calls.
+    # Real API keys should ONLY be stored in .env (which is gitignored).
+    monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")  # pragma: allowlist secret
+    monkeypatch.setenv("PERPLEXITY_API_KEY", "test-perplexity-key")  # pragma: allowlist secret
+    monkeypatch.setenv("LANGSMITH_API_KEY", "lsv2_test_key")  # pragma: allowlist secret
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/test.db")
 
     return Settings()
