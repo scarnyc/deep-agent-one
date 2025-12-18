@@ -144,9 +144,12 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-check_untyped_defs = false
+# Check types in untyped test functions (catches actual bugs)
+# but don't require full annotations on every test (pragmatic for large codebase)
+# New tests SHOULD include type annotations; use "# type: ignore" for specific exemptions
+disallow_untyped_defs = false  # Don't require return type on every test function
+disallow_incomplete_defs = false  # Allow partial annotations
+check_untyped_defs = true  # IMPORTANT: Check types even in untyped functions
 
 [tool.pytest.ini_options]
 minversion = "8.0"
