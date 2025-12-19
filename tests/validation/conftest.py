@@ -177,7 +177,7 @@ def sample_chat_request(sample_chat_message, sample_thread_id) -> dict[str, Any]
 
 
 @pytest.fixture(autouse=True)
-def cleanup_validation_artifacts(tmp_path) -> Generator[None, None, None]:
+def cleanup_validation_artifacts() -> Generator[None, None, None]:
     """
     Auto-cleanup fixture for validation test artifacts.
 
