@@ -818,8 +818,27 @@ JIRA Smart Commits automatically link commits to issues and can trigger workflow
 **Note:** Transition names are case-sensitive and must match your JIRA workflow exactly. Query your project's workflow for valid transition names.
 
 **Requirements:**
-- Smart Commits must be enabled in JIRA (Admin → DVCS accounts)
+- Smart Commits must be enabled in JIRA (Admin → DVCS accounts → Enable Smart Commits)
 - Repository must be connected via DVCS or GitHub/Bitbucket app link
+- **Git committer email must exactly match a JIRA user email** (most common failure cause)
+
+**Verify email matching:**
+```bash
+# Check your Git email
+git config user.email
+
+# Must match your JIRA account email exactly (case-insensitive)
+```
+
+**Troubleshooting Smart Commits:**
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Commands ignored silently | Email mismatch | Verify `git config user.email` matches JIRA email |
+| `#resolve` doesn't work | Wrong transition name | Check project workflow for exact transition names |
+| No JIRA link created | Smart Commits disabled | Admin → DVCS accounts → Enable Smart Commits |
+| Partial processing | Push timing | Commands process on push, not local commit |
+
+**Note:** JIRA sends failure notifications to the committer email, but in rare cases failures are silent. Test with a dummy ticket before team rollout.
 
 **Limitations:**
 - Smart Commits only process the first 100 lines of a commit message
