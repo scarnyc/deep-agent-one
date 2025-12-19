@@ -827,8 +827,18 @@ JIRA Smart Commits automatically link commits to issues and can trigger workflow
 - Commands are processed once when pushed to remote (not on local commit)
 - Time format: `#time 1w 2d 4h 30m` (weeks, days, hours, minutes)
 
+**Migration from Old Format:**
+The previous `Resolves: DA1-XXX` format (GitHub/GitLab convention) is now **deprecated**. JIRA does not recognize this syntax for Smart Commits automation.
+
+| Old Format (deprecated) | New Format (required) |
+|------------------------|----------------------|
+| `Resolves: DA1-123` | `#resolve` (with `DA1-123` in subject) |
+| Body-only issue reference | Issue key in subject line |
+
+**For active branches:** Update commit messages to use the new format. No CI/CD workflows depend on the old format.
+
 **Commit Template for JIRA-linked work:**
-```
+```bash
 fix(scope): DA1-XXX brief description
 
 Detailed explanation of the change.
