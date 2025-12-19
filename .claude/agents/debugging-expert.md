@@ -6,8 +6,8 @@ model: opus
 plugins:
   - serena             # For semantic code analysis and symbol navigation
   - context7           # For documentation retrieval (use instead of perplexity)
-mcp_servers:
-  - atlassian          # For JIRA ticket tracking during debugging
+mcpServers:
+  - jira               # For JIRA ticket tracking during debugging
 ---
 
 ## Available Tools

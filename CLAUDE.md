@@ -224,7 +224,7 @@ Claude Code uses two extension mechanisms:
 - Playwright → **Plugin** provides MCP + agents
 - Context7 → **Plugin** provides MCP + integration
 - Perplexity → **MCP Server** (no plugin equivalent)
-- Atlassian → **MCP Server** (full JIRA API)
+- JIRA → **MCP Server** (jira-mcp-server for ticket management)
 
 **Managing Plugins:**
 ```bash
@@ -267,26 +267,29 @@ npx playwright install-deps
 
 #### JIRA MCP (Ticket Management)
 
-JIRA integration for seamless ticket management during development.
+JIRA integration for seamless ticket management during development using the portable jira-mcp-server.
+
+**Repository:** https://github.com/scarnyc/jira-mcp-server
 
 **Prerequisites:**
 - Python 3.10+ with pip
 - Atlassian Cloud account with JIRA access
+- JIRA API token (not your password)
 
 **Setup:**
 
-1. Install the mcp-atlassian package:
+1. Install the jira-mcp-server package:
 ```bash
-pip install mcp-atlassian
+pip install git+https://github.com/scarnyc/jira-mcp-server
 ```
 
 2. Generate an API token at https://id.atlassian.com/manage-profile/security/api-tokens
 
-3. Set environment variables (add to `.env` or `~/.bashrc`):
+3. Configure environment variables in Replit Secrets (Tools → Secrets):
 ```bash
-export JIRA_URL="https://YOUR-SITE.atlassian.net"
-export JIRA_USERNAME="your-email@example.com"
-export JIRA_API_TOKEN="your-api-token-here"
+JIRA_URL=https://YOUR-SITE.atlassian.net
+JIRA_USERNAME=your-email@example.com
+JIRA_API_TOKEN=your-api-token-here
 ```
 
 4. The MCP server is configured in `.mcp.json` and will auto-start with Claude Code.
@@ -297,41 +300,59 @@ export JIRA_API_TOKEN="your-api-token-here"
 
 | Operation | Example |
 |-----------|---------|
-| Read ticket | "What's the status of DEEP-123?" |
+| Read ticket | "What's the status of DA1-123?" |
 | Create issue | "Create a bug: Login timeout on slow connections" |
-| Update status | "Move DEEP-123 to In Progress" |
-| Add comment | "Add comment to DEEP-123: Started implementation" |
-| Search issues | "Show all unresolved bugs in DEEP project" |
-| List sprint | "What's in the current sprint?" |
-| List todo | "What's in todo on my jira board?" |
+| Update status | "Move DA1-123 to In Progress" |
+| Add comment | "Add comment to DA1-123: Started implementation" |
+| Search issues | "Show all unresolved bugs in DA1 project" |
+| List projects | "List all JIRA projects" |
+| List sprints | "What's in the current sprint?" |
 
 **Development Workflow:**
 ```bash
 # Start working on a ticket
-> Read DEEP-45 and summarize what needs to be done
+> Read DA1-45 and summarize what needs to be done
 
 # Update after implementation
-> Add comment to DEEP-45: Implemented caching, PR ready for review
+> Add comment to DA1-45: Implemented caching, PR ready for review
 
 # Reference tickets in commits
-git commit -m "feat(phase-1): implement Redis caching [DEEP-45]"
+git commit -m "feat(phase-1): implement Redis caching [DA1-45]
+
+Resolves: DA1-45"
 ```
 
+**Optional Configuration:**
+
+Add these to Replit Secrets for advanced control:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `JIRA_READ_ONLY` | Prevent write operations | `false` |
+| `JIRA_ENABLED_TOOLS` | Limit available tools (comma-separated) | (all tools) |
+| `JIRA_LOG_LEVEL` | Logging verbosity | `INFO` |
+| `JIRA_TIMEOUT` | Request timeout (seconds) | `30` |
+| `JIRA_VERIFY_SSL` | SSL certificate verification | `true` |
+
 **Troubleshooting:**
-- "mcp-atlassian not found": Run `pip install mcp-atlassian`
+- "jira-mcp not found": Run `pip install git+https://github.com/scarnyc/jira-mcp-server`
 - "Auth failed": Verify API token at https://id.atlassian.com/manage-profile/security/api-tokens
 - "MCP not showing": Restart Claude Code and run `/mcp` to check status
+- "Connection timeout": Increase `JIRA_TIMEOUT` in Replit Secrets
 
-**Replit Secrets (Required for Replit environments):**
+**Replit Secrets (Required):**
 
-Before using JIRA MCP on Replit, verify these secrets are configured in Replit Secrets (Tools → Secrets):
-- `JIRA_URL` - e.g., `https://your-site.atlassian.net`
+Verify these secrets are configured in Replit Secrets (Tools → Secrets):
+- `JIRA_URL` - e.g., `https://your-domain.atlassian.net`
 - `JIRA_USERNAME` - Your Atlassian email address
 - `JIRA_API_TOKEN` - Generate at https://id.atlassian.com/manage-profile/security/api-tokens
 
-Verify with: `printenv | grep -i jira`
+Verify configuration:
+```bash
+printenv | grep -i jira
+```
 
-If the curl to JIRA fails with "URL rejected: No host part", check that the secrets are properly set.
+If authentication fails, regenerate your API token and update the secret.
 
 #### Markitdown MCP (Document Conversion)
 
@@ -379,8 +400,8 @@ The `.mcp.json` at project root configures MCP servers (plugins provide playwrig
       "args": ["-y", "perplexity-mcp"],
       "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
     },
-    "atlassian": {
-      "command": "/path/to/.pythonlibs/bin/mcp-atlassian",
+    "jira": {
+      "command": "jira-mcp",
       "args": ["--transport", "stdio"],
       "env": { "JIRA_URL": "${JIRA_URL}", "JIRA_USERNAME": "${JIRA_USERNAME}", "JIRA_API_TOKEN": "${JIRA_API_TOKEN}" }
     },
@@ -531,7 +552,7 @@ Deep Agent One follows an **integration-first** testing approach:
 
 The testing-expert agent automatically:
 1. **Detects Feature Context:** Analyzes `git diff --cached` to identify changed components
-2. **Extracts JIRA Requirements:** Fetches ticket details via atlassian MCP if branch contains ticket ID
+2. **Extracts JIRA Requirements:** Fetches ticket details via JIRA MCP if branch contains ticket ID
 3. **Generates Validation Tests:** Creates tests in `tests/validation/test_feature_{ticket}_{timestamp}.py`
 4. **Runs Validation Tests:** Executes tests to verify feature meets requirements
 5. **Generates Enhanced Report:** Includes feature validation results in the standard report
@@ -987,8 +1008,9 @@ git worktree remove ../deep-agent-feature-b
 # - LOW: Could add more detailed docstring examples (logged to JIRA)
 
 # 5. Track all non-critical issues in JIRA
-# PLACEHOLDER for JIRA MCP command
-# (Document LOW priority items from both reviews)
+# Use JIRA MCP to create tickets for non-critical issues:
+> Create issue in DA1: "Technical debt: Add detailed docstring examples to Web Search Tool"
+# Type: Technical Debt, Priority: Low, Labels: code-quality
 
 # 6. NOW commit (only after approval)
 git add tests/integration/test_tools/test_web_search.py

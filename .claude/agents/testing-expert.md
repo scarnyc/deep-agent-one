@@ -7,7 +7,7 @@ plugins:
   - playwright         # For UI testing automation
   - context7           # For documentation retrieval
 mcpServers:
-  - atlassian          # For JIRA ticket requirements
+  - jira               # For JIRA ticket requirements
 ---
 
 # Testing Expert Agent
@@ -67,7 +67,7 @@ git branch --show-current
 If branch contains a JIRA ticket (e.g., `DA1-123`):
 
 ```bash
-# Use atlassian MCP to fetch ticket details
+# Use JIRA MCP to fetch ticket details
 # Look for:
 # - Acceptance criteria
 # - User story requirements

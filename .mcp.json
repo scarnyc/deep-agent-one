@@ -9,8 +9,8 @@
         "PERPLEXITY_MODEL": "sonar-deep-research"
       }
     },
-    "atlassian": {
-      "command": "/home/runner/workspace/.pythonlibs/bin/mcp-atlassian",
+    "jira": {
+      "command": "jira-mcp",
       "args": ["--transport", "stdio"],
       "env": {
         "JIRA_URL": "${JIRA_URL}",
