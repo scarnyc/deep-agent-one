@@ -29,6 +29,7 @@ import React, {
 } from 'react';
 import type { AGUIEvent, ConnectionStatus } from '@/types/ag-ui';
 import { validateAGUIEvent, shouldFilterEvent, getEventCategory } from '@/lib/eventValidator';
+import { getConfig, fetchConfig } from '@/lib/config';
 
 // Development logging (disabled in production)
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -116,8 +117,14 @@ export function WebSocketProvider({
   const CONNECTION_TIMEOUT = 30000; // 30s (allows for cold start)
 
   /**
-   * Get WebSocket URL from props or environment
-   * Handles Replit proxy environment where localhost:8000 isn't accessible from browser
+   * Get WebSocket URL from props or config
+   *
+   * Simplified: Uses centralized config from /api/v1/config/public endpoint.
+   * Config is fetched on mount and cached for subsequent calls.
+   *
+   * Priority:
+   * 1. Explicit URL prop (with security validation)
+   * 2. Config from backend (handles Replit, env vars, etc.)
    */
   const getWebSocketUrl = useCallback((): string => {
     // Priority 1: Use explicit URL prop if provided
@@ -141,50 +148,42 @@ export function WebSocketProvider({
       }
     }
 
-    // Priority 2: Use explicit WebSocket URL environment variable
-    if (process.env.NEXT_PUBLIC_WS_URL) {
-      return `${process.env.NEXT_PUBLIC_WS_URL}/api/v1/ws`;
+    // Priority 2: Use config from backend (fetched on mount via fetchConfig)
+    const config = getConfig();
+
+    // SSR guard
+    if (typeof window === 'undefined') {
+      return `ws://localhost:8000${config.websocket_path}`;
     }
 
-    // Priority 3: For browser environments, derive from current location
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const hostname = window.location.hostname;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const hostname = window.location.hostname;
 
-      // For Replit: Connect DIRECTLY to backend WebSocket endpoint on port 8000
-      // IMPORTANT: Next.js rewrites() only work for HTTP requests, NOT WebSocket upgrades
-      // Attempting to proxy WebSocket through Next.js causes "Cannot read properties of undefined (reading 'bind')" error
-      if (hostname.includes('.replit.dev') || hostname.includes('.repl.co')) {
-        // Priority 1: Use explicit API URL from environment
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (apiUrl && !apiUrl.includes('localhost')) {
-          const wsUrl = apiUrl.replace(/^http/, 'ws');
-          if (DEBUG) {
-            console.log('[WebSocketProvider] Replit: using NEXT_PUBLIC_API_URL', wsUrl);
-          }
-          return `${wsUrl}/api/v1/ws`;
-        }
-
-        // Priority 2: Construct WebSocket URL from current hostname + backend port 8000
-        // Replit exposes backend on port 8000 with exposeLocalhost=true
-        // Frontend runs on port 80 (external) / 5000 (internal), backend on 8000
-        const wsUrl = `${protocol}//${hostname}:8000`;
+    // Replit: Connect directly to backend on port 8000
+    if (config.is_replit) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (apiUrl && !apiUrl.includes('localhost')) {
+        const wsUrl = apiUrl.replace(/^http/, 'ws');
         if (DEBUG) {
-          console.log('[WebSocketProvider] Replit: connecting to backend on port 8000', wsUrl);
+          console.log('[WebSocketProvider] Replit: using config', wsUrl);
         }
-        return `${wsUrl}/api/v1/ws`;
+        return `${wsUrl}${config.websocket_path}`;
       }
-
-      // For local development: use same origin (Next.js may proxy, or direct)
-      // If running on port 5000, try same origin first
-      return `${protocol}//${window.location.host}/api/v1/ws`;
+      return `${protocol}//${hostname}:8000${config.websocket_path}`;
     }
 
-    // Priority 4: Fallback for SSR - use API URL
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const wsUrl = apiUrl.replace(/^http/, 'ws'); // Convert http(s):// to ws(s)://
-    return `${wsUrl}/api/v1/ws`;
+    // Standard: Use same origin
+    return `${protocol}//${window.location.host}${config.websocket_path}`;
   }, [url]);
+
+  // Fetch config on mount to populate cache for getWebSocketUrl
+  useEffect(() => {
+    fetchConfig().catch((err) => {
+      if (DEBUG) {
+        console.warn('[WebSocketProvider] Failed to fetch config:', err);
+      }
+    });
+  }, []);
 
   /**
    * Calculate reconnect delay with exponential backoff
