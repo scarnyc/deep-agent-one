@@ -11,7 +11,7 @@
     },
     "jira": {
       "command": "/home/runner/workspace/.pythonlibs/bin/jira-mcp",
-      "args": ["--transport", "stdio"],
+      "args": ["serve", "--transport", "stdio"],
       "env": {
         "JIRA_URL": "${JIRA_URL}",
         "JIRA_USERNAME": "${JIRA_USERNAME}",
