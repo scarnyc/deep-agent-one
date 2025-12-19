@@ -415,6 +415,218 @@ The `.mcp.json` at project root configures MCP servers (plugins provide playwrig
 
 ---
 
+#### MCP Configuration Best Practices (Replit Environment)
+
+**CRITICAL: Always use absolute paths in .mcp.json command fields**
+
+Replit's subprocess execution does NOT inherit the parent shell's PATH environment variable. This causes MCP servers to fail with "command not found" errors even when executables are accessible in your terminal.
+
+**Why This Matters:**
+- Claude Code spawns MCP servers as subprocesses
+- Subprocesses in Replit have minimal PATH (typically just `/usr/bin:/bin`)
+- Executables installed via pip to `.pythonlibs/bin` are NOT in subprocess PATH
+- Relative commands like `"jira-mcp"` will fail, even if `which jira-mcp` works in terminal
+
+**Correct Pattern (Absolute Path):**
+```json
+{
+  "mcpServers": {
+    "jira": {
+      "command": "/home/runner/workspace/.pythonlibs/bin/jira-mcp",
+      "args": ["--transport", "stdio"],
+      "env": {
+        "JIRA_URL": "${JIRA_URL}",
+        "JIRA_USERNAME": "${JIRA_USERNAME}",
+        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+**Incorrect Pattern (Will Fail):**
+```json
+{
+  "mcpServers": {
+    "jira": {
+      "command": "jira-mcp",  // ❌ FAILS: PATH not inherited by subprocess
+      "args": ["--transport", "stdio"]
+    }
+  }
+}
+```
+
+**Finding Absolute Paths:**
+
+```bash
+# Locate executable path
+which jira-mcp
+# Output: /home/runner/workspace/.pythonlibs/bin/jira-mcp
+
+# Use the output directly in .mcp.json
+```
+
+**Common Executable Locations in Replit:**
+- pip installed tools: `/home/runner/workspace/.pythonlibs/bin/`
+- npm global tools: `/home/runner/.npm-global/bin/`
+- System binaries: `/usr/bin/` or `/bin/`
+
+**Verification After Configuration:**
+
+```bash
+# Run the MCP health check script
+./scripts/mcp-health-check.sh
+
+# Expected output:
+# ✓ MCP server 'jira' configured with absolute path
+# ✓ Executable exists at /home/runner/workspace/.pythonlibs/bin/jira-mcp
+# ✓ Environment variables configured (3/3)
+```
+
+**Key Takeaways:**
+1. **ALWAYS use absolute paths** for `command` in `.mcp.json`
+2. **Use `which <command>`** to find executable paths
+3. **Run `mcp-health-check.sh`** after configuration changes
+4. **Do NOT assume PATH inheritance** in Replit subprocesses
+
+---
+
+#### Troubleshooting MCP Servers
+
+**Issue 1: "MCP server failed to start" or "jira-mcp not found"**
+
+**Root Cause:** Executable not found (PATH issue) or not installed.
+
+**Diagnosis:**
+```bash
+# Check if executable exists
+which jira-mcp
+
+# If returns nothing, install the package
+pip install git+https://github.com/scarnyc/jira-mcp-server
+
+# Verify installation
+which jira-mcp
+# Should output: /home/runner/workspace/.pythonlibs/bin/jira-mcp
+```
+
+**Fix:**
+1. Find absolute path: `which jira-mcp`
+2. Update `.mcp.json` with absolute path
+3. Run health check: `./scripts/mcp-health-check.sh`
+4. Restart Claude Code
+
+**Issue 2: MCP server starts but commands fail (Authentication)**
+
+**Root Cause:** Missing or invalid environment variables (API keys, credentials).
+
+**Diagnosis:**
+```bash
+# Verify environment variables are set
+printenv | grep -i jira
+
+# Expected output:
+# JIRA_URL=https://your-domain.atlassian.net
+# JIRA_USERNAME=your-email@example.com
+# JIRA_API_TOKEN=your-token-here
+```
+
+**Fix:**
+1. Configure secrets in Replit Secrets (Tools → Secrets)
+2. Verify `.mcp.json` references correct environment variables
+3. Regenerate API tokens if expired (see JIRA MCP section above)
+4. Restart Claude Code to reload environment
+
+**Issue 3: Changes to .mcp.json not taking effect**
+
+**Root Cause:** Claude Code caches MCP configuration on startup.
+
+**Fix:**
+```bash
+# 1. Completely exit Claude Code (Ctrl+D or type "exit")
+# 2. Restart Claude Code
+# 3. Verify configuration loaded:
+/mcp
+
+# Expected output:
+# Connected MCP servers:
+# - jira: 8 tools available
+# - perplexity: 3 tools available
+# - markitdown: 1 tool available
+```
+
+**Issue 4: Permission denied when starting MCP server**
+
+**Root Cause:** Executable lacks execute permissions.
+
+**Diagnosis:**
+```bash
+# Check permissions
+ls -la /home/runner/workspace/.pythonlibs/bin/jira-mcp
+
+# Should show: -rwxr-xr-x (executable flag set)
+```
+
+**Fix:**
+```bash
+# Add execute permission
+chmod +x /home/runner/workspace/.pythonlibs/bin/jira-mcp
+
+# Verify
+ls -la /home/runner/workspace/.pythonlibs/bin/jira-mcp
+```
+
+**Issue 5: MCP server crashes on startup**
+
+**Root Cause:** Invalid configuration or missing dependencies.
+
+**Diagnosis:**
+```bash
+# Run MCP server manually to see error output
+/home/runner/workspace/.pythonlibs/bin/jira-mcp --transport stdio
+
+# Common errors:
+# - "ModuleNotFoundError": Missing Python dependencies
+# - "Invalid configuration": Check environment variables
+# - "Connection timeout": Check JIRA_URL and network connectivity
+```
+
+**Fix:**
+1. Reinstall the MCP server package: `pip install --force-reinstall git+https://github.com/scarnyc/jira-mcp-server`
+2. Verify all dependencies installed: `pip list | grep jira`
+3. Check configuration: `./scripts/mcp-health-check.sh`
+4. Review error logs and fix specific issues
+
+**Quick Diagnostic Commands:**
+
+```bash
+# Full MCP health check (recommended first step)
+./scripts/mcp-health-check.sh
+
+# Check specific MCP server
+which jira-mcp && echo "✓ Executable found" || echo "✗ Not installed"
+
+# Verify environment variables
+printenv | grep -E "(JIRA|PERPLEXITY|MARKITDOWN)" | wc -l
+
+# Test MCP server manually (replace with your server)
+/home/runner/workspace/.pythonlibs/bin/jira-mcp --help
+
+# Check Claude Code MCP status
+# (inside Claude Code session)
+/mcp
+```
+
+**When to Ask for Help:**
+
+If after following all troubleshooting steps the issue persists:
+1. Run `./scripts/mcp-health-check.sh` and save output
+2. Check recent logs: `tail -50 logs/backend/*.log`
+3. Include error messages and diagnostic output when asking for help
+4. Mention which troubleshooting steps were already attempted
+
+---
+
 #### Claude Code Plugins (Installed)
 
 **Priority Plugins:**

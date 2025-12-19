@@ -49,6 +49,12 @@ echo -e "${GREEN}Backend log: ${BACKEND_LOG}${NC}"
 echo -e "${GREEN}Frontend log: ${FRONTEND_LOG}${NC}"
 echo ""
 
+# Check MCP server health
+if [ -f "scripts/check-mcp-servers.sh" ]; then
+    ./scripts/check-mcp-servers.sh || echo -e "${YELLOW}Warning: MCP health check detected issues (startup continuing)${NC}"
+    echo ""
+fi
+
 # Function to cleanup background processes on exit
 cleanup() {
     echo ""

@@ -31,6 +31,13 @@ if ! poetry run python -c "import uvicorn" 2>/dev/null; then
 fi
 echo "Dependencies OK"
 
+# Check MCP server health
+if [ -f "scripts/check-mcp-servers.sh" ]; then
+    echo ""
+    ./scripts/check-mcp-servers.sh || echo -e "\033[1;33mWarning: MCP health check detected issues (startup continuing)\033[0m"
+    echo ""
+fi
+
 # Clean up any existing processes on our ports
 echo "[1/3] Cleaning up existing processes..."
 pkill -f "uvicorn.*--port 8000" 2>/dev/null || true
