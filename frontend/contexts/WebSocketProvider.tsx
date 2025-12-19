@@ -164,16 +164,22 @@ export function WebSocketProvider({
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (apiUrl && !apiUrl.includes('localhost')) {
         const wsUrl = apiUrl.replace(/^http/, 'ws');
+        const fullWsUrl = `${wsUrl}${config.websocket_path}`;
+        console.log('[WebSocketProvider] Replit detected - connecting to:', fullWsUrl);
         if (DEBUG) {
           console.log('[WebSocketProvider] Replit: using config', wsUrl);
         }
-        return `${wsUrl}${config.websocket_path}`;
+        return fullWsUrl;
       }
-      return `${protocol}//${hostname}:8000${config.websocket_path}`;
+      const portUrl = `${protocol}//${hostname}:8000${config.websocket_path}`;
+      console.log('[WebSocketProvider] Replit detected - connecting to port 8000:', portUrl);
+      return portUrl;
     }
 
     // Standard: Use same origin
-    return `${protocol}//${window.location.host}${config.websocket_path}`;
+    const standardUrl = `${protocol}//${window.location.host}${config.websocket_path}`;
+    console.log('[WebSocketProvider] Standard mode - same origin connection:', standardUrl);
+    return standardUrl;
   }, [url]);
 
   // Fetch config on mount to populate cache for getWebSocketUrl

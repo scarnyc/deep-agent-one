@@ -26,6 +26,15 @@
 
 set -e
 
+# Detect and display environment
+if [ -f "./scripts/detect-environment.sh" ]; then
+  ./scripts/detect-environment.sh
+  echo ""
+fi
+
+echo "Starting services..."
+echo ""
+
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'

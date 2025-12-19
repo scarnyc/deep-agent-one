@@ -26,6 +26,56 @@
 import { logger } from '@/lib/logger';
 
 /**
+ * Detect if running in Replit and get the base domain
+ * @returns Replit domain or null if not in Replit
+ */
+export function detectReplitDomain(): string | null {
+  if (typeof window === 'undefined' || !window) return null;
+  if (!window.location || !window.location.hostname) return null;
+
+  const hostname = window.location.hostname;
+
+  // Check if hostname matches Replit pattern
+  // Pattern: *.replit.dev or *.repl.co
+  if (hostname.endsWith('.replit.dev') || hostname.endsWith('.repl.co')) {
+    return hostname;
+  }
+
+  return null;
+}
+
+/**
+ * Get the correct API URL for the current environment
+ * Automatically detects Replit vs local development.
+ *
+ * @returns API URL (with protocol)
+ */
+export function getApiUrl(): string {
+  // Check for explicit env var first
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    // If localhost, return as-is (local development)
+    if (process.env.NEXT_PUBLIC_API_URL.includes('localhost')) {
+      return process.env.NEXT_PUBLIC_API_URL;
+    }
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // SSR Guard: Can't detect Replit without window
+  if (typeof window === 'undefined' || !window) {
+    return 'http://localhost:8000';
+  }
+
+  // Auto-detect Replit
+  const replitDomain = detectReplitDomain();
+  if (replitDomain) {
+    return `https://${replitDomain}`;
+  }
+
+  // Fallback to localhost
+  return 'http://localhost:8000';
+}
+
+/**
  * Public configuration interface
  * Mirrors backend PublicConfigResponse schema
  */
@@ -91,7 +141,8 @@ let pendingFetch: Promise<PublicConfig> | null = null;
  */
 export async function fetchConfig(): Promise<PublicConfig> {
   // SSR Guard: Return default config during server-side rendering
-  if (typeof window === 'undefined') {
+  // Check multiple conditions to handle different test/runtime environments
+  if (typeof window === 'undefined' || !window || !window.location) {
     logger.debug('fetchConfig: SSR detected, returning default config');
     return DEFAULT_CONFIG;
   }
@@ -111,8 +162,15 @@ export async function fetchConfig(): Promise<PublicConfig> {
   // Start new fetch
   pendingFetch = (async () => {
     try {
-      // Construct API URL (use environment variable or default)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // Construct API URL (with Replit auto-detection)
+      let apiUrl: string;
+      if (process.env.NEXT_PUBLIC_API_URL) {
+        apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      } else {
+        // Auto-detect Replit domain
+        const replitDomain = detectReplitDomain();
+        apiUrl = replitDomain ? `https://${replitDomain}` : 'http://localhost:8000';
+      }
       const endpoint = `${apiUrl}/api/v1/config/public`;
 
       logger.debug('fetchConfig: fetching from', { endpoint });
