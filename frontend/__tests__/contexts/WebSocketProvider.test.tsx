@@ -19,7 +19,6 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import {
   WebSocketProvider,
-  WebSocketContext,
   useWebSocketContext,
 } from '@/contexts/WebSocketProvider';
 import type { AGUIEvent } from '@/types/ag-ui';
@@ -32,9 +31,9 @@ describe('WebSocketProvider', () => {
   // Mock WebSocket
   let mockWebSocket: jest.Mocked<WebSocket>;
   let webSocketInstances: WebSocket[] = [];
-  let onOpenCallback: (() => void) | null = null;
-  let onMessageCallback: ((event: MessageEvent) => void) | null = null;
-  let onErrorCallback: ((event: Event) => void) | null = null;
+  let _onOpenCallback: (() => void) | null = null;
+  let _onMessageCallback: ((event: MessageEvent) => void) | null = null;
+  let _onErrorCallback: ((event: Event) => void) | null = null;
   let onCloseCallback: ((event: CloseEvent) => void) | null = null;
 
   beforeAll(() => {
@@ -42,7 +41,7 @@ describe('WebSocketProvider', () => {
     global.WebSocket = jest.fn((url: string) => {
       const ws = {
         url,
-        readyState: WebSocket.CONNECTING,
+        readyState: WebSocket.CONNECTING as number,
         CONNECTING: 0,
         OPEN: 1,
         CLOSING: 2,
@@ -84,9 +83,9 @@ describe('WebSocketProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     webSocketInstances = [];
-    onOpenCallback = null;
-    onMessageCallback = null;
-    onErrorCallback = null;
+    _onOpenCallback = null;
+    _onMessageCallback = null;
+    _onErrorCallback = null;
     onCloseCallback = null;
 
     // Reset mock implementations
