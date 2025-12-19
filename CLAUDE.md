@@ -806,101 +806,25 @@ Use semantic commit messages:
 
 **JIRA Smart Commits (MANDATORY for ticket-linked work):**
 
-JIRA Smart Commits automatically link commits to issues and can trigger workflow transitions when issue keys are detected in commit messages.
+Use Smart Commits to trigger JIRA automation. Smart Commits coexist with repository-level conventions (`Resolves: DA1-XXX` still works for GitHub/GitLab linking but doesn't trigger JIRA automation).
 
-**Key Placement:**
-- Issue key (e.g., `DA1-123`) should appear in subject line for visibility
-- JIRA auto-links commits when issue key is detected anywhere in message
+**Quick Reference:**
+- Place issue key in subject line: `fix(api): DA1-123 description`
+- Commands: `#comment <text>`, `#resolve`, `#time 2h 30m`
+- Git email must match JIRA email exactly
 
-**Smart Commits Commands (each on its own line):**
-- `#comment <text>` - Add a comment to the JIRA issue
-- `#resolve` - Transition issue to resolved/done status
-- `#time <duration>` - Log work time (e.g., `#time 2h 30m`)
-- `#<transition>` - Trigger specific workflow transition (e.g., `#in-progress`, `#done`)
-
-**Note:** Transition names are case-sensitive and must match your JIRA workflow exactly. Query your project's workflow for valid transition names.
-
-**Requirements:**
-- Smart Commits must be enabled in JIRA (Admin → DVCS accounts → Enable Smart Commits)
-- Repository must be connected via DVCS or GitHub/Bitbucket app link
-- **Git committer email must exactly match a JIRA user email** (most common failure cause)
-
-**Verify email matching:**
-```bash
-# Check your Git email
-git config user.email
-
-# Must match your JIRA account email exactly (case-insensitive)
-```
-
-**Troubleshooting Smart Commits:**
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Commands ignored silently | Email mismatch | Verify `git config user.email` matches JIRA email |
-| `#resolve` doesn't work | Wrong transition name | Check project workflow for exact transition names |
-| No JIRA link created | Smart Commits disabled | Admin → DVCS accounts → Enable Smart Commits |
-| Partial processing | Push timing | Commands process on push, not local commit |
-
-**Note:** JIRA sends failure notifications to the committer email, but in rare cases failures are silent. Test with a dummy ticket before team rollout.
-
-**Limitations:**
-- Smart Commits only process the first 100 lines of a commit message
-- Each command must be on its own line (cannot combine on same line)
-- Blank lines between commands are allowed and recommended for readability
-- Commands are processed once when pushed to remote (not on local commit)
-- Time format: `#time 1w 2d 4h 30m` (weeks, days, hours, minutes)
-
-**Migration from Old Format:**
-The previous `Resolves: DA1-XXX` format (GitHub/GitLab convention) is now **deprecated**. JIRA does not recognize this syntax for Smart Commits automation.
-
-| Old Format (deprecated) | New Format (required) |
-|------------------------|----------------------|
-| `Resolves: DA1-123` | `#resolve` (with `DA1-123` in subject) |
-| Body-only issue reference | Issue key in subject line |
-
-**For active branches:** Update commit messages to use the new format. No CI/CD workflows depend on the old format.
-
-**Commit Template for JIRA-linked work:**
+**Commit Template:**
 ```bash
 fix(scope): DA1-XXX brief description
 
-Detailed explanation of the change.
-
-#comment Implemented the fix as described in the ticket.
+#comment Implemented the fix.
 #resolve
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 ```
 
-**Example Smart Commits:**
-```bash
-# Simple issue reference (auto-links to JIRA)
-git commit -m "feat(api): DA1-123 add user authentication endpoint"
-
-# With comment and resolve (using heredoc for multi-line - recommended)
-git commit -m "$(cat <<'EOF'
-fix(parser): DA1-456 handle null values
-
-Fixed null pointer exception in JSON parser.
-
-#comment Fixed null pointer in parser module
-#resolve
-EOF
-)"
-
-# With time logging
-git commit -m "$(cat <<'EOF'
-refactor(db): DA1-789 optimize query performance
-
-#time 2h 30m
-#comment Refactored slow queries
-EOF
-)"
-```
-
-**Note:** The heredoc format `$(cat <<'EOF' ... EOF)` is more portable and clearer for multi-line commit messages than embedding literal newlines in `-m` strings.
+**See [JIRA_SMART_COMMITS.md](./JIRA_SMART_COMMITS.md) for full documentation** (troubleshooting, examples, limitations).
 
 ### Branching Strategy
 
@@ -1043,63 +967,7 @@ git worktree remove ../deep-agent-feature-b
 
 6. **Only after approval: Make commit** following semantic commit convention
 
-**Example Pre-Commit Review Session:**
-
-```bash
-# 1. Write tests for new feature (Web Search Tool)
-# [Implement tests/integration/test_tools/test_web_search.py]
-
-# 2. Run testing-expert BEFORE committing tests
-# [Use Task tool with testing-expert subagent]
-# Result: CHANGES REQUESTED - Missing edge case tests for empty query
-# Action: Add missing tests, re-run testing-expert
-# Result: APPROVED (9/10) - Optional: Add performance test (logged to JIRA)
-
-# 3. Write implementation (Web Search Tool)
-# [Implement backend/deep_agent/tools/web_search.py]
-
-# 4. Run code-review-expert BEFORE committing implementation
-# [Use Task tool with code-review-expert subagent]
-# [Agent automatically runs: ./scripts/security_scan.sh]
-# [Agent reads reports from .pf/readthis/]
-# Result: APPROVED WITH MINOR RECOMMENDATIONS (8.5/10)
-# TheAuditor Scan: PASS (0 critical issues)
-# - ✓ No hardcoded secrets
-# - ✓ No SQL injection vulnerabilities
-# - ✓ Dependencies up to date
-# Manual Security Review:
-# - HIGH: None
-# - MEDIUM: None
-# - LOW: Could add more detailed docstring examples (logged to JIRA)
-
-# 5. Track all non-critical issues in JIRA
-# PLACEHOLDER for JIRA MCP command
-# (Document LOW priority items from both reviews)
-
-# 6. NOW commit (only after approval)
-git add tests/integration/test_tools/test_web_search.py
-git commit -m "test(phase-0): add Web Search Tool tests (12 tests, TDD)"
-
-git add backend/deep_agent/tools/web_search.py
-git commit -m "feat(phase-0): implement Web Search Tool using Perplexity MCP client"
-
-# 7. Continue with next task
-```
-
-**Key Differences from Post-Commit:**
-- ❌ NO fixup commits needed (code already reviewed)
-- ✅ Git history contains ONLY approved code
-- ✅ Faster progression (no going back after commit)
-- ✅ Automated security scanning on every commit
-- ✅ No security vulnerabilities slip through
-- ⚠️ Slightly slower initial workflow (10-15 min wait before commit)
-
-**Time Investment:** 10-15 minutes per feature for review + issue tracking + security scanning
-**Return:**
-- Clean git history with zero unreviewed code
-- Comprehensive issue tracking (functional + security)
-- No vulnerabilities in committed code
-- Automated + manual security analysis
+**Benefits:** Clean git history, no fixup commits, automated security scanning, comprehensive issue tracking. ~10-15 min per feature.
 
 ---
 
@@ -1254,101 +1122,13 @@ git commit -m "security(phase-X): address TheAuditor findings"
 
 ### Startup Scripts
 
-**ALWAYS: Use `start-all.sh` for development**
-
 ```bash
-# Start both backend and frontend with automatic logging
-./scripts/start-all.sh
-
-# Servers will start on:
-# - Backend:  http://127.0.0.1:8000
-# - Frontend: http://localhost:3000
-#
-# Ctrl+C stops both servers cleanly
+./scripts/start-all.sh     # Start both (Backend: :8000, Frontend: :3000)
+./scripts/start-backend.sh # Backend only
+./scripts/start-frontend.sh # Frontend only
 ```
 
-**Features:**
-- **Synchronized startup** - Backend starts first, frontend waits 3 seconds
-- **Automatic logging** - Console output + timestamped log files
-- **Clean shutdown** - Ctrl+C stops both servers gracefully
-- **Environment loading** - Automatically sources `.env` file
-- **Virtual environment** - Activates venv for Python dependencies
-
-**Logging Configuration:**
-
-All scripts use `2>&1 | tee` to simultaneously:
-- Display output to console (interactive development)
-- Save output to timestamped log files (debugging, auditing)
-
-Log files are organized by component:
-```
-logs/
-├── backend/
-│   ├── 2025-11-16-10-30-45.log
-│   └── 2025-11-16-14-22-18.log
-└── frontend/
-    ├── 2025-11-16-10-30-48.log
-    └── 2025-11-16-14-22-21.log
-```
-
-**Viewing Logs:**
-
-```bash
-# Watch live logs
-tail -f logs/backend/2025-11-16-*.log
-tail -f logs/frontend/2025-11-16-*.log
-
-# Search logs for errors
-grep -i error logs/backend/*.log
-grep -i "websocket" logs/backend/*.log
-
-# View most recent backend log
-tail -100 $(ls -t logs/backend/*.log | head -1)
-
-# Follow both logs simultaneously
-tail -f logs/backend/2025-11-16-*.log logs/frontend/2025-11-16-*.log
-```
-
-**Individual Scripts:**
-
-Use these when you need to start services separately:
-
-```bash
-# Backend only (when testing API directly)
-./scripts/start-backend.sh
-
-# Frontend only (when backend already running)
-./scripts/start-frontend.sh
-```
-
-**Common Scenarios:**
-
-```bash
-# Full development with logging
-./scripts/start-all.sh
-
-# Debug backend issues (backend only + follow logs)
-./scripts/start-backend.sh &
-tail -f logs/backend/$(ls -t logs/backend/*.log | head -1)
-
-# Test frontend changes (backend running separately)
-# Terminal 1:
-./scripts/start-backend.sh
-
-# Terminal 2:
-./scripts/start-frontend.sh
-
-# Review historical logs after crash
-ls -lt logs/backend/*.log | head -5  # Find recent logs
-cat logs/backend/2025-11-16-10-30-45.log | grep -i error
-```
-
-**Why `2>&1 | tee`?**
-
-This pattern redirects stderr to stdout (`2>&1`) then duplicates output to both console and file (`tee`):
-- **Console output** - See real-time feedback during development
-- **Log file** - Permanent record for debugging, auditing, security analysis
-- **No lost output** - Both streams (stdout/stderr) captured
+Logs saved to `logs/backend/` and `logs/frontend/` with timestamps.
 
 ---
 
