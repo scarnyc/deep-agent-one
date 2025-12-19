@@ -10,7 +10,7 @@
       }
     },
     "jira": {
-      "command": "jira-mcp",
+      "command": "/home/runner/workspace/.pythonlibs/bin/jira-mcp",
       "args": ["--transport", "stdio"],
       "env": {
         "JIRA_URL": "${JIRA_URL}",
