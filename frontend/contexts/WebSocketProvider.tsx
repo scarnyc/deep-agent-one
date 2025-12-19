@@ -390,18 +390,23 @@ export function WebSocketProvider({
     }
 
     try {
-      // DEBUG: Enhanced logging to understand what's being sent
-      console.log('[DEBUG WebSocketProvider] sendMessage called with:');
-      console.log('[DEBUG WebSocketProvider]   message type:', typeof message);
-      console.log('[DEBUG WebSocketProvider]   message value:', message);
-      console.log('[DEBUG WebSocketProvider]   arguments.length:', arguments.length);
-      if (arguments.length > 1) {
-        console.log('[DEBUG WebSocketProvider]   EXTRA ARGUMENTS:', Array.from(arguments).slice(1));
+      if (DEBUG) {
+        // DEBUG: Enhanced logging to understand what's being sent
+        console.log('[DEBUG WebSocketProvider] sendMessage called with:');
+        console.log('[DEBUG WebSocketProvider]   message type:', typeof message);
+        console.log('[DEBUG WebSocketProvider]   message value:', message);
+        console.log('[DEBUG WebSocketProvider]   arguments.length:', arguments.length);
+        if (arguments.length > 1) {
+          console.log('[DEBUG WebSocketProvider]   EXTRA ARGUMENTS:', Array.from(arguments).slice(1));
+        }
       }
 
       const jsonString = JSON.stringify(message);
-      console.log('[DEBUG WebSocketProvider]   JSON string to send:', jsonString);
-      console.log('[DEBUG WebSocketProvider]   WebSocket readyState:', wsRef.current.readyState);
+
+      if (DEBUG) {
+        console.log('[DEBUG WebSocketProvider]   JSON string to send:', jsonString);
+        console.log('[DEBUG WebSocketProvider]   WebSocket readyState:', wsRef.current.readyState);
+      }
 
       wsRef.current.send(jsonString);
 
