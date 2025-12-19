@@ -26,6 +26,15 @@
 
 set -e
 
+# Detect and display environment
+if [ -f "./scripts/detect-environment.sh" ]; then
+  ./scripts/detect-environment.sh
+  echo ""
+fi
+
+echo "Starting services..."
+echo ""
+
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -48,6 +57,12 @@ echo ""
 echo -e "${GREEN}Backend log: ${BACKEND_LOG}${NC}"
 echo -e "${GREEN}Frontend log: ${FRONTEND_LOG}${NC}"
 echo ""
+
+# Check MCP server health
+if [ -f "scripts/check-mcp-servers.sh" ]; then
+    ./scripts/check-mcp-servers.sh || echo -e "${YELLOW}Warning: MCP health check detected issues (startup continuing)${NC}"
+    echo ""
+fi
 
 # Function to cleanup background processes on exit
 cleanup() {

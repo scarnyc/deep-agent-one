@@ -16,7 +16,7 @@
 
 import { renderHook, act } from '@testing-library/react';
 import { useAgentState } from '../useAgentState';
-import type { AgentMessage, ToolCall, HITLRequest, AgentStep } from '@/types/agent';
+import type { ToolCall, HITLRequest, AgentStep } from '@/types/agent';
 
 // Mock crypto.randomUUID for consistent IDs in tests
 let uuidCounter = 0;
@@ -28,7 +28,7 @@ const mockISOString = mockDate.toISOString();
 
 // Store original implementations
 const originalCrypto = global.crypto;
-const originalDate = global.Date;
+const _originalDate = global.Date;
 
 describe('useAgentState', () => {
   beforeEach(() => {

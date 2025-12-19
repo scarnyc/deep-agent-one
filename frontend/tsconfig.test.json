@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noUncheckedIndexedAccess": false,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false
+  },
+  "include": [
+    "**/__tests__/**/*.ts",
+    "**/__tests__/**/*.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "jest.setup.js",
+    "jest.config.js"
+  ],
+  "exclude": ["node_modules", ".next"]
+}

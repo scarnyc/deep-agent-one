@@ -224,7 +224,7 @@ Claude Code uses two extension mechanisms:
 - Playwright → **Plugin** provides MCP + agents
 - Context7 → **Plugin** provides MCP + integration
 - Perplexity → **MCP Server** (no plugin equivalent)
-- Atlassian → **MCP Server** (full JIRA API)
+- JIRA → **MCP Server** (jira-mcp-server for ticket management)
 
 **Managing Plugins:**
 ```bash
@@ -267,26 +267,29 @@ npx playwright install-deps
 
 #### JIRA MCP (Ticket Management)
 
-JIRA integration for seamless ticket management during development.
+JIRA integration for seamless ticket management during development using the portable jira-mcp-server.
+
+**Repository:** https://github.com/scarnyc/jira-mcp-server
 
 **Prerequisites:**
 - Python 3.10+ with pip
 - Atlassian Cloud account with JIRA access
+- JIRA API token (not your password)
 
 **Setup:**
 
-1. Install the mcp-atlassian package:
+1. Install the jira-mcp-server package:
 ```bash
-pip install mcp-atlassian
+pip install git+https://github.com/scarnyc/jira-mcp-server
 ```
 
 2. Generate an API token at https://id.atlassian.com/manage-profile/security/api-tokens
 
-3. Set environment variables (add to `.env` or `~/.bashrc`):
+3. Configure environment variables in Replit Secrets (Tools → Secrets):
 ```bash
-export JIRA_URL="https://YOUR-SITE.atlassian.net"
-export JIRA_USERNAME="your-email@example.com"
-export JIRA_API_TOKEN="your-api-token-here"
+JIRA_URL=https://YOUR-SITE.atlassian.net
+JIRA_USERNAME=your-email@example.com
+JIRA_API_TOKEN=your-api-token-here
 ```
 
 4. The MCP server is configured in `.mcp.json` and will auto-start with Claude Code.
@@ -302,6 +305,7 @@ export JIRA_API_TOKEN="your-api-token-here"
 | Update status | "Move DA1-123 to In Progress" |
 | Add comment | "Add comment to DA1-123: Started implementation" |
 | Search issues | "Show all unresolved bugs in DA1 project" |
+| List projects | "List all JIRA projects" |
 | List sprint | "What's in the current sprint?" |
 | List todo | "What's in todo on my jira board?" |
 
@@ -313,9 +317,10 @@ export JIRA_API_TOKEN="your-api-token-here"
 # Update after implementation
 > Add comment to DA1-45: Implemented caching, PR ready for review
 
-# Reference tickets in commits (using JIRA Smart Commits)
-git commit -m "$(cat <<'EOF'
-feat(phase-1): DA1-45 implement Redis caching
+# Reference tickets in commits
+git commit -m "feat(phase-1): implement Redis caching [DA1-45]
+
+Resolves: DA1-45"
 
 #comment Implemented caching as requested
 #resolve
@@ -323,21 +328,37 @@ EOF
 )"
 ```
 
+**Optional Configuration:**
+
+Add these to Replit Secrets for advanced control:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `JIRA_READ_ONLY` | Prevent write operations | `false` |
+| `JIRA_ENABLED_TOOLS` | Limit available tools (comma-separated) | (all tools) |
+| `JIRA_LOG_LEVEL` | Logging verbosity | `INFO` |
+| `JIRA_TIMEOUT` | Request timeout (seconds) | `30` |
+| `JIRA_VERIFY_SSL` | SSL certificate verification | `true` |
+
 **Troubleshooting:**
-- "mcp-atlassian not found": Run `pip install mcp-atlassian`
+- "jira-mcp not found": Run `pip install git+https://github.com/scarnyc/jira-mcp-server`
 - "Auth failed": Verify API token at https://id.atlassian.com/manage-profile/security/api-tokens
 - "MCP not showing": Restart Claude Code and run `/mcp` to check status
+- "Connection timeout": Increase `JIRA_TIMEOUT` in Replit Secrets
 
-**Replit Secrets (Required for Replit environments):**
+**Replit Secrets (Required):**
 
-Before using JIRA MCP on Replit, verify these secrets are configured in Replit Secrets (Tools → Secrets):
-- `JIRA_URL` - e.g., `https://your-site.atlassian.net`
+Verify these secrets are configured in Replit Secrets (Tools → Secrets):
+- `JIRA_URL` - e.g., `https://your-domain.atlassian.net`
 - `JIRA_USERNAME` - Your Atlassian email address
 - `JIRA_API_TOKEN` - Generate at https://id.atlassian.com/manage-profile/security/api-tokens
 
-Verify with: `printenv | grep -i jira`
+Verify configuration:
+```bash
+printenv | grep -i jira
+```
 
-If the curl to JIRA fails with "URL rejected: No host part", check that the secrets are properly set.
+If authentication fails, regenerate your API token and update the secret.
 
 #### Markitdown MCP (Document Conversion)
 
@@ -385,8 +406,8 @@ The `.mcp.json` at project root configures MCP servers (plugins provide playwrig
       "args": ["-y", "perplexity-mcp"],
       "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
     },
-    "atlassian": {
-      "command": "/path/to/.pythonlibs/bin/mcp-atlassian",
+    "jira": {
+      "command": "jira-mcp",
       "args": ["--transport", "stdio"],
       "env": { "JIRA_URL": "${JIRA_URL}", "JIRA_USERNAME": "${JIRA_USERNAME}", "JIRA_API_TOKEN": "${JIRA_API_TOKEN}" }
     },
@@ -397,6 +418,218 @@ The `.mcp.json` at project root configures MCP servers (plugins provide playwrig
   }
 }
 ```
+
+---
+
+#### MCP Configuration Best Practices (Replit Environment)
+
+**CRITICAL: Always use absolute paths in .mcp.json command fields**
+
+Replit's subprocess execution does NOT inherit the parent shell's PATH environment variable. This causes MCP servers to fail with "command not found" errors even when executables are accessible in your terminal.
+
+**Why This Matters:**
+- Claude Code spawns MCP servers as subprocesses
+- Subprocesses in Replit have minimal PATH (typically just `/usr/bin:/bin`)
+- Executables installed via pip to `.pythonlibs/bin` are NOT in subprocess PATH
+- Relative commands like `"jira-mcp"` will fail, even if `which jira-mcp` works in terminal
+
+**Correct Pattern (Absolute Path):**
+```json
+{
+  "mcpServers": {
+    "jira": {
+      "command": "/home/runner/workspace/.pythonlibs/bin/jira-mcp",
+      "args": ["--transport", "stdio"],
+      "env": {
+        "JIRA_URL": "${JIRA_URL}",
+        "JIRA_USERNAME": "${JIRA_USERNAME}",
+        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+**Incorrect Pattern (Will Fail):**
+```json
+{
+  "mcpServers": {
+    "jira": {
+      "command": "jira-mcp",  // ❌ FAILS: PATH not inherited by subprocess
+      "args": ["--transport", "stdio"]
+    }
+  }
+}
+```
+
+**Finding Absolute Paths:**
+
+```bash
+# Locate executable path
+which jira-mcp
+# Output: /home/runner/workspace/.pythonlibs/bin/jira-mcp
+
+# Use the output directly in .mcp.json
+```
+
+**Common Executable Locations in Replit:**
+- pip installed tools: `/home/runner/workspace/.pythonlibs/bin/`
+- npm global tools: `/home/runner/.npm-global/bin/`
+- System binaries: `/usr/bin/` or `/bin/`
+
+**Verification After Configuration:**
+
+```bash
+# Run the MCP health check script
+./scripts/mcp-health-check.sh
+
+# Expected output:
+# ✓ MCP server 'jira' configured with absolute path
+# ✓ Executable exists at /home/runner/workspace/.pythonlibs/bin/jira-mcp
+# ✓ Environment variables configured (3/3)
+```
+
+**Key Takeaways:**
+1. **ALWAYS use absolute paths** for `command` in `.mcp.json`
+2. **Use `which <command>`** to find executable paths
+3. **Run `mcp-health-check.sh`** after configuration changes
+4. **Do NOT assume PATH inheritance** in Replit subprocesses
+
+---
+
+#### Troubleshooting MCP Servers
+
+**Issue 1: "MCP server failed to start" or "jira-mcp not found"**
+
+**Root Cause:** Executable not found (PATH issue) or not installed.
+
+**Diagnosis:**
+```bash
+# Check if executable exists
+which jira-mcp
+
+# If returns nothing, install the package
+pip install git+https://github.com/scarnyc/jira-mcp-server
+
+# Verify installation
+which jira-mcp
+# Should output: /home/runner/workspace/.pythonlibs/bin/jira-mcp
+```
+
+**Fix:**
+1. Find absolute path: `which jira-mcp`
+2. Update `.mcp.json` with absolute path
+3. Run health check: `./scripts/mcp-health-check.sh`
+4. Restart Claude Code
+
+**Issue 2: MCP server starts but commands fail (Authentication)**
+
+**Root Cause:** Missing or invalid environment variables (API keys, credentials).
+
+**Diagnosis:**
+```bash
+# Verify environment variables are set
+printenv | grep -i jira
+
+# Expected output:
+# JIRA_URL=https://your-domain.atlassian.net
+# JIRA_USERNAME=your-email@example.com
+# JIRA_API_TOKEN=your-token-here
+```
+
+**Fix:**
+1. Configure secrets in Replit Secrets (Tools → Secrets)
+2. Verify `.mcp.json` references correct environment variables
+3. Regenerate API tokens if expired (see JIRA MCP section above)
+4. Restart Claude Code to reload environment
+
+**Issue 3: Changes to .mcp.json not taking effect**
+
+**Root Cause:** Claude Code caches MCP configuration on startup.
+
+**Fix:**
+```bash
+# 1. Completely exit Claude Code (Ctrl+D or type "exit")
+# 2. Restart Claude Code
+# 3. Verify configuration loaded:
+/mcp
+
+# Expected output:
+# Connected MCP servers:
+# - jira: 8 tools available
+# - perplexity: 3 tools available
+# - markitdown: 1 tool available
+```
+
+**Issue 4: Permission denied when starting MCP server**
+
+**Root Cause:** Executable lacks execute permissions.
+
+**Diagnosis:**
+```bash
+# Check permissions
+ls -la /home/runner/workspace/.pythonlibs/bin/jira-mcp
+
+# Should show: -rwxr-xr-x (executable flag set)
+```
+
+**Fix:**
+```bash
+# Add execute permission
+chmod +x /home/runner/workspace/.pythonlibs/bin/jira-mcp
+
+# Verify
+ls -la /home/runner/workspace/.pythonlibs/bin/jira-mcp
+```
+
+**Issue 5: MCP server crashes on startup**
+
+**Root Cause:** Invalid configuration or missing dependencies.
+
+**Diagnosis:**
+```bash
+# Run MCP server manually to see error output
+/home/runner/workspace/.pythonlibs/bin/jira-mcp --transport stdio
+
+# Common errors:
+# - "ModuleNotFoundError": Missing Python dependencies
+# - "Invalid configuration": Check environment variables
+# - "Connection timeout": Check JIRA_URL and network connectivity
+```
+
+**Fix:**
+1. Reinstall the MCP server package: `pip install --force-reinstall git+https://github.com/scarnyc/jira-mcp-server`
+2. Verify all dependencies installed: `pip list | grep jira`
+3. Check configuration: `./scripts/mcp-health-check.sh`
+4. Review error logs and fix specific issues
+
+**Quick Diagnostic Commands:**
+
+```bash
+# Full MCP health check (recommended first step)
+./scripts/mcp-health-check.sh
+
+# Check specific MCP server
+which jira-mcp && echo "✓ Executable found" || echo "✗ Not installed"
+
+# Verify environment variables
+printenv | grep -E "(JIRA|PERPLEXITY|MARKITDOWN)" | wc -l
+
+# Test MCP server manually (replace with your server)
+/home/runner/workspace/.pythonlibs/bin/jira-mcp --help
+
+# Check Claude Code MCP status
+# (inside Claude Code session)
+/mcp
+```
+
+**When to Ask for Help:**
+
+If after following all troubleshooting steps the issue persists:
+1. Run `./scripts/mcp-health-check.sh` and save output
+2. Check recent logs: `tail -50 logs/backend/*.log`
+3. Include error messages and diagnostic output when asking for help
+4. Mention which troubleshooting steps were already attempted
 
 ---
 
@@ -537,7 +770,7 @@ Deep Agent One follows an **integration-first** testing approach:
 
 The testing-expert agent automatically:
 1. **Detects Feature Context:** Analyzes `git diff --cached` to identify changed components
-2. **Extracts JIRA Requirements:** Fetches ticket details via atlassian MCP if branch contains ticket ID
+2. **Extracts JIRA Requirements:** Fetches ticket details via JIRA MCP if branch contains ticket ID
 3. **Generates Validation Tests:** Creates tests in `tests/validation/test_feature_{ticket}_{timestamp}.py`
 4. **Runs Validation Tests:** Executes tests to verify feature meets requirements
 5. **Generates Enhanced Report:** Includes feature validation results in the standard report
@@ -967,6 +1200,64 @@ git worktree remove ../deep-agent-feature-b
 
 6. **Only after approval: Make commit** following semantic commit convention
 
+**Example Pre-Commit Review Session:**
+
+```bash
+# 1. Write tests for new feature (Web Search Tool)
+# [Implement tests/integration/test_tools/test_web_search.py]
+
+# 2. Run testing-expert BEFORE committing tests
+# [Use Task tool with testing-expert subagent]
+# Result: CHANGES REQUESTED - Missing edge case tests for empty query
+# Action: Add missing tests, re-run testing-expert
+# Result: APPROVED (9/10) - Optional: Add performance test (logged to JIRA)
+
+# 3. Write implementation (Web Search Tool)
+# [Implement backend/deep_agent/tools/web_search.py]
+
+# 4. Run code-review-expert BEFORE committing implementation
+# [Use Task tool with code-review-expert subagent]
+# [Agent automatically runs: ./scripts/security_scan.sh]
+# [Agent reads reports from .pf/readthis/]
+# Result: APPROVED WITH MINOR RECOMMENDATIONS (8.5/10)
+# TheAuditor Scan: PASS (0 critical issues)
+# - ✓ No hardcoded secrets
+# - ✓ No SQL injection vulnerabilities
+# - ✓ Dependencies up to date
+# Manual Security Review:
+# - HIGH: None
+# - MEDIUM: None
+# - LOW: Could add more detailed docstring examples (logged to JIRA)
+
+# 5. Track all non-critical issues in JIRA
+# Use JIRA MCP to create tickets for non-critical issues:
+> Create issue in DA1: "Technical debt: Add detailed docstring examples to Web Search Tool"
+# Type: Technical Debt, Priority: Low, Labels: code-quality
+
+# 6. NOW commit (only after approval)
+git add tests/integration/test_tools/test_web_search.py
+git commit -m "test(phase-0): add Web Search Tool tests (12 tests, TDD)"
+
+git add backend/deep_agent/tools/web_search.py
+git commit -m "feat(phase-0): implement Web Search Tool using Perplexity MCP client"
+
+# 7. Continue with next task
+```
+
+**Key Differences from Post-Commit:**
+- ❌ NO fixup commits needed (code already reviewed)
+- ✅ Git history contains ONLY approved code
+- ✅ Faster progression (no going back after commit)
+- ✅ Automated security scanning on every commit
+- ✅ No security vulnerabilities slip through
+- ⚠️ Slightly slower initial workflow (10-15 min wait before commit)
+
+**Time Investment:** 10-15 minutes per feature for review + issue tracking + security scanning
+**Return:**
+- Clean git history with zero unreviewed code
+- Comprehensive issue tracking (functional + security)
+- No vulnerabilities in committed code
+- Automated + manual security analysis
 **Benefits:** Clean git history, no fixup commits, automated security scanning, comprehensive issue tracking. ~10-15 min per feature.
 
 ---

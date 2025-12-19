@@ -68,11 +68,11 @@ afterEach(() => {
 })
 
 // Store original console.error
-const originalConsoleError = console.error
+const _originalConsoleError = console.error
 
 describe('ChatPage', () => {
   afterEach(() => {
-    console.error = originalConsoleError
+    console.error = _originalConsoleError
     // Reset CopilotChat mock to default implementation after each test
     const { CopilotChat } = require('@copilotkit/react-ui')
     if (CopilotChat.mockReset) {

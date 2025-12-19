@@ -17,8 +17,8 @@ describe('Logger', () => {
   let consoleWarnSpy: jest.SpyInstance;
 
   // Store original environment
-  const originalEnv = process.env.NODE_ENV;
-  const originalPublicEnv = process.env.NEXT_PUBLIC_ENV;
+  const _originalEnv = process.env.NODE_ENV;
+  const _originalPublicEnv = process.env.NEXT_PUBLIC_ENV;
 
   beforeEach(() => {
     // Mock console methods
@@ -43,8 +43,8 @@ describe('Logger', () => {
     jest.useRealTimers();
 
     // Restore environment
-    process.env.NODE_ENV = originalEnv;
-    process.env.NEXT_PUBLIC_ENV = originalPublicEnv;
+    process.env.NODE_ENV = _originalEnv;
+    process.env.NEXT_PUBLIC_ENV = _originalPublicEnv;
   });
 
   describe('info()', () => {

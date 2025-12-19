@@ -29,6 +29,7 @@ import React, {
 } from 'react';
 import type { AGUIEvent, ConnectionStatus } from '@/types/ag-ui';
 import { validateAGUIEvent, shouldFilterEvent, getEventCategory } from '@/lib/eventValidator';
+import { getConfig, fetchConfig } from '@/lib/config';
 
 // Development logging (disabled in production)
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -116,8 +117,14 @@ export function WebSocketProvider({
   const CONNECTION_TIMEOUT = 30000; // 30s (allows for cold start)
 
   /**
-   * Get WebSocket URL from props or environment
-   * Handles Replit proxy environment where localhost:8000 isn't accessible from browser
+   * Get WebSocket URL from props or config
+   *
+   * Simplified: Uses centralized config from /api/v1/config/public endpoint.
+   * Config is fetched on mount and cached for subsequent calls.
+   *
+   * Priority:
+   * 1. Explicit URL prop (with security validation)
+   * 2. Config from backend (handles Replit, env vars, etc.)
    */
   const getWebSocketUrl = useCallback((): string => {
     // Priority 1: Use explicit URL prop if provided
@@ -141,49 +148,38 @@ export function WebSocketProvider({
       }
     }
 
-    // Priority 2: Use explicit WebSocket URL environment variable
-    if (process.env.NEXT_PUBLIC_WS_URL) {
-      return `${process.env.NEXT_PUBLIC_WS_URL}/api/v1/ws`;
+    // Priority 2: Use config from backend (fetched on mount via fetchConfig)
+    const config = getConfig();
+
+    // SSR guard
+    if (typeof window === 'undefined') {
+      return `ws://localhost:8000${config.websocket_path}`;
     }
 
-    // Priority 3: For browser environments, derive from current location
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const hostname = window.location.hostname;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const hostname = window.location.hostname;
 
-      // For Replit: Connect DIRECTLY to backend WebSocket endpoint on port 8000
-      // IMPORTANT: Next.js rewrites() only work for HTTP requests, NOT WebSocket upgrades
-      // Attempting to proxy WebSocket through Next.js causes "Cannot read properties of undefined (reading 'bind')" error
-      if (hostname.includes('.replit.dev') || hostname.includes('.repl.co')) {
-        // Priority 1: Use explicit API URL from environment
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (apiUrl && !apiUrl.includes('localhost')) {
-          const wsUrl = apiUrl.replace(/^http/, 'ws');
-          if (DEBUG) {
-            console.log('[WebSocketProvider] Replit: using NEXT_PUBLIC_API_URL', wsUrl);
-          }
-          return `${wsUrl}/api/v1/ws`;
-        }
-
-        // Priority 2: Construct WebSocket URL from current hostname + backend port 8000
-        // Replit exposes backend on port 8000 with exposeLocalhost=true
-        // Frontend runs on port 80 (external) / 5000 (internal), backend on 8000
-        const wsUrl = `${protocol}//${hostname}:8000`;
+    // Replit: Connect directly to backend on port 8000
+    if (config.is_replit) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (apiUrl && !apiUrl.includes('localhost')) {
+        const wsUrl = apiUrl.replace(/^http/, 'ws');
+        const fullWsUrl = `${wsUrl}${config.websocket_path}`;
+        console.log('[WebSocketProvider] Replit detected - connecting to:', fullWsUrl);
         if (DEBUG) {
-          console.log('[WebSocketProvider] Replit: connecting to backend on port 8000', wsUrl);
+          console.log('[WebSocketProvider] Replit: using config', wsUrl);
         }
-        return `${wsUrl}/api/v1/ws`;
+        return fullWsUrl;
       }
-
-      // For local development: use same origin (Next.js may proxy, or direct)
-      // If running on port 5000, try same origin first
-      return `${protocol}//${window.location.host}/api/v1/ws`;
+      const portUrl = `${protocol}//${hostname}:8000${config.websocket_path}`;
+      console.log('[WebSocketProvider] Replit detected - connecting to port 8000:', portUrl);
+      return portUrl;
     }
 
-    // Priority 4: Fallback for SSR - use API URL
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const wsUrl = apiUrl.replace(/^http/, 'ws'); // Convert http(s):// to ws(s)://
-    return `${wsUrl}/api/v1/ws`;
+    // Standard: Use same origin
+    const standardUrl = `${protocol}//${window.location.host}${config.websocket_path}`;
+    console.log('[WebSocketProvider] Standard mode - same origin connection:', standardUrl);
+    return standardUrl;
   }, [url]);
 
   /**
@@ -360,6 +356,62 @@ export function WebSocketProvider({
     }
   }, [getWebSocketUrl, getReconnectDelay, broadcastEvent]);
 
+  // Fetch config and initialize WebSocket connection sequentially
+  useEffect(() => {
+    let mounted = true;
+    let reconnectTimeoutId: NodeJS.Timeout | null = null;
+
+    const initializeWebSocket = async () => {
+      try {
+        // STEP 1: Wait for config to load
+        await fetchConfig();
+
+        if (!mounted) return;
+
+        // STEP 2: Only connect after config is ready
+        if (autoConnect) {
+          if (DEBUG) {
+            console.log('[WebSocketProvider] Config loaded, connecting...');
+          }
+          connect();
+        }
+      } catch (err) {
+        if (DEBUG) {
+          console.warn('[WebSocketProvider] Failed to fetch config:', err);
+        }
+
+        // Fallback: Still attempt connection with defaults
+        if (mounted && autoConnect) {
+          if (DEBUG) {
+            console.log('[WebSocketProvider] Connecting with default config...');
+          }
+          connect();
+        }
+      }
+    };
+
+    initializeWebSocket();
+
+    return () => {
+      mounted = false;
+      if (reconnectTimeoutId) {
+        clearTimeout(reconnectTimeoutId);
+      }
+      // Preserve existing cleanup logic from the original auto-connect useEffect
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close(1000, 'Component unmount');
+        wsRef.current = null;
+      }
+      // Clear all event handlers
+      eventHandlersRef.current.clear();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoConnect]); // Only depend on autoConnect, connect is stable via useCallback
+
   /**
    * Disconnect from WebSocket
    */
@@ -391,18 +443,23 @@ export function WebSocketProvider({
     }
 
     try {
-      // DEBUG: Enhanced logging to understand what's being sent
-      console.log('[DEBUG WebSocketProvider] sendMessage called with:');
-      console.log('[DEBUG WebSocketProvider]   message type:', typeof message);
-      console.log('[DEBUG WebSocketProvider]   message value:', message);
-      console.log('[DEBUG WebSocketProvider]   arguments.length:', arguments.length);
-      if (arguments.length > 1) {
-        console.log('[DEBUG WebSocketProvider]   EXTRA ARGUMENTS:', Array.from(arguments).slice(1));
+      if (DEBUG) {
+        // DEBUG: Enhanced logging to understand what's being sent
+        console.log('[DEBUG WebSocketProvider] sendMessage called with:');
+        console.log('[DEBUG WebSocketProvider]   message type:', typeof message);
+        console.log('[DEBUG WebSocketProvider]   message value:', message);
+        console.log('[DEBUG WebSocketProvider]   arguments.length:', arguments.length);
+        if (arguments.length > 1) {
+          console.log('[DEBUG WebSocketProvider]   EXTRA ARGUMENTS:', Array.from(arguments).slice(1));
+        }
       }
 
       const jsonString = JSON.stringify(message);
-      console.log('[DEBUG WebSocketProvider]   JSON string to send:', jsonString);
-      console.log('[DEBUG WebSocketProvider]   WebSocket readyState:', wsRef.current.readyState);
+
+      if (DEBUG) {
+        console.log('[DEBUG WebSocketProvider]   JSON string to send:', jsonString);
+        console.log('[DEBUG WebSocketProvider]   WebSocket readyState:', wsRef.current.readyState);
+      }
 
       wsRef.current.send(jsonString);
 
@@ -427,34 +484,6 @@ export function WebSocketProvider({
       eventHandlersRef.current.delete(handler);
     };
   }, []);
-
-  /**
-   * Auto-connect on mount
-   */
-  useEffect(() => {
-    if (autoConnect) {
-      connect();
-    }
-
-    // Cleanup on unmount
-    return () => {
-      // Clear reconnect timeout
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-
-      // Close connection
-      if (wsRef.current) {
-        wsRef.current.close(1000, 'Component unmount');
-        wsRef.current = null;
-      }
-
-      // Clear all event handlers
-      eventHandlersRef.current.clear();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoConnect]); // Only depend on autoConnect, not connect function
 
   // Context value
   const value: WebSocketContextValue = {

@@ -7,8 +7,8 @@ plugins:
   - pr-review-toolkit  # For comprehensive PR reviews
   - security-guidance  # For security pattern monitoring
   - context7           # For documentation retrieval (use instead of perplexity)
-mcp_servers:
-  - atlassian          # For JIRA ticket tracking during reviews
+mcpServers:
+  - jira               # For JIRA ticket tracking during reviews
 ---
 
 # Code Review Expert Agent
@@ -85,7 +85,7 @@ For each file, use Read tool to examine:
 **Check for:**
 ```python
 # BAD: Hardcoded secret
-API_KEY = "sk-abc123..."
+API_KEY = "sk-abc123..."  # pragma: allowlist secret
 
 # GOOD: Environment variable
 API_KEY = os.getenv("API_KEY")
@@ -342,7 +342,7 @@ async def process_order(order_id: str, options: ProcessOptions) -> OrderResult:
 
 **Before (config.py:42):**
 ```python
-API_KEY = "sk-abc123..."
+API_KEY = "sk-abc123..."  # pragma: allowlist secret
 ```
 
 **After:**

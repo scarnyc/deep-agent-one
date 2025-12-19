@@ -16,6 +16,7 @@
   "compilerOptions": {
     "target": "ES2020", // Target modern JavaScript
     "lib": ["dom", "dom.iterable", "esnext"], // Include DOM and ES Next types
+    "types": ["jest", "node", "@testing-library/jest-dom"], // Test type definitions
     "allowJs": true, // Allow JavaScript files
     "skipLibCheck": true, // Skip type checking of declaration files
     "strict": true, // Enable all strict type-checking options
@@ -51,5 +52,15 @@
     "noUncheckedIndexedAccess": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "e2e/**",
+    "jest.setup.js",
+    "jest.config.js"
+  ]
 }

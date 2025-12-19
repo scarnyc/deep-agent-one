@@ -89,9 +89,9 @@ function getLatestMockWS(): MockWebSocket | null {
 process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8000';
 
 // Mock console methods to reduce test noise
-const originalConsoleLog = console.log;
-const originalConsoleWarn = console.warn;
-const originalConsoleError = console.error;
+const _originalConsoleLog = console.log;
+const _originalConsoleWarn = console.warn;
+const _originalConsoleError = console.error;
 
 beforeAll(() => {
   console.log = jest.fn();
@@ -100,9 +100,9 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  console.log = originalConsoleLog;
-  console.warn = originalConsoleWarn;
-  console.error = originalConsoleError;
+  console.log = _originalConsoleLog;
+  console.warn = _originalConsoleWarn;
+  console.error = _originalConsoleError;
 });
 
 describe('useWebSocket Hook', () => {

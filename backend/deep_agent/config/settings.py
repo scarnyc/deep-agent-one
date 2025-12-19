@@ -48,6 +48,7 @@ Related:
     - deep_agent.api: API configuration consumers
 """
 
+import os
 from functools import lru_cache
 from typing import Literal
 
@@ -367,9 +368,36 @@ class Settings(BaseSettings):
     REPLIT_DEV_DOMAIN: str | None = None  # Auto-set by Replit (e.g., "abc123.replit.dev")
     REPLIT_DOMAINS: str | None = None  # Comma-separated Replit domains
 
+    @field_validator("REPLIT_DEV_DOMAIN", mode="before")
+    @classmethod
+    def load_replit_dev_domain(cls, v: str | None) -> str | None:
+        """Load REPLIT_DEV_DOMAIN from system environment if not in .env."""
+        if v:
+            return v
+        return os.environ.get("REPLIT_DEV_DOMAIN")
+
+    @field_validator("REPL_SLUG", mode="before")
+    @classmethod
+    def load_repl_slug(cls, v: str | None) -> str | None:
+        """Load REPL_SLUG from system environment if not in .env."""
+        if v:
+            return v
+        return os.environ.get("REPL_SLUG")
+
+    @field_validator("REPL_OWNER", mode="before")
+    @classmethod
+    def load_repl_owner(cls, v: str | None) -> str | None:
+        """Load REPL_OWNER from system environment if not in .env."""
+        if v:
+            return v
+        return os.environ.get("REPL_OWNER")
+
     @property
     def is_replit(self) -> bool:
         """Check if running in Replit environment.
+
+        Checks both Pydantic settings (from .env) and system environment
+        variables (auto-set by Replit).
 
         Returns:
             True if Replit environment variables are detected.
@@ -379,7 +407,15 @@ class Settings(BaseSettings):
             >>> settings.is_replit
             True
         """
-        return self.REPLIT_DEV_DOMAIN is not None or self.REPL_SLUG is not None
+        # Check Pydantic settings first
+        if self.REPLIT_DEV_DOMAIN or self.REPL_SLUG:
+            return True
+
+        # Fallback: Check system environment (Replit auto-sets these)
+        return (
+            os.environ.get("REPLIT_DEV_DOMAIN") is not None
+            or os.environ.get("REPL_SLUG") is not None
+        )
 
     @property
     def replit_cors_origins(self) -> list[str]:

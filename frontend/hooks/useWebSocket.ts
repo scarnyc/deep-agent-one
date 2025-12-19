@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AGUIEvent, ConnectionStatus, WebSocketMessage } from '@/types/ag-ui';
+import { getConfig, fetchConfig } from '@/lib/config';
 
 // Issue 51 fix: Conditional logging for production
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -75,16 +76,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   }, [onEvent, onError]);
 
   /**
-   * Get WebSocket URL from env or parameter
+   * Get WebSocket URL from config or parameter
+   *
+   * Simplified: Uses centralized config from /api/v1/config/public endpoint.
    */
   const getWebSocketUrl = useCallback((): string => {
-    // Issue 50 fix: Validate URL origin if provided
+    // Priority 1: Validate explicit URL if provided
     if (url) {
       try {
         const wsUrl = new URL(url);
         const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
 
-        // Ensure same origin (security: prevent connection to malicious servers)
+        // Security: Ensure same origin
         if (wsUrl.hostname !== apiUrl.hostname) {
           throw new Error(
             `WebSocket URL origin (${wsUrl.hostname}) doesn't match API URL (${apiUrl.hostname})`
@@ -98,11 +101,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       }
     }
 
+    // Priority 2: Use config from backend
+    const config = getConfig();
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    // Convert http(s):// to ws(s)://
     const wsUrl = apiUrl.replace(/^http/, 'ws');
-    return `${wsUrl}/api/v1/ws`;
+    return `${wsUrl}${config.websocket_path}`;
   }, [url]);
+
+  // Fetch config on mount to populate cache
+  useEffect(() => {
+    fetchConfig().catch(() => {
+      // Silently handle - will use defaults
+    });
+  }, []);
 
   /**
    * Calculate reconnect delay with exponential backoff

@@ -280,7 +280,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Add rate limiting
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     logger.debug(
         "Rate limiting enabled",
@@ -771,10 +771,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 pass  # Connection may already be closed
 
     # Include API routers
-    from deep_agent.api.v1 import agents, chat
+    from deep_agent.api.v1 import agents, chat, config
 
     app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
     app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
+    app.include_router(config.router, prefix="/api/v1", tags=["config"])
 
     logger.info("FastAPI app created successfully")
 
