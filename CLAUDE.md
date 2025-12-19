@@ -314,10 +314,13 @@ export JIRA_API_TOKEN="your-api-token-here"
 > Add comment to DA1-45: Implemented caching, PR ready for review
 
 # Reference tickets in commits (using JIRA Smart Commits)
-git commit -m "feat(phase-1): DA1-45 implement Redis caching
+git commit -m "$(cat <<'EOF'
+feat(phase-1): DA1-45 implement Redis caching
 
 #comment Implemented caching as requested
-#resolve"
+#resolve
+EOF
+)"
 ```
 
 **Troubleshooting:**
@@ -843,6 +846,7 @@ git config user.email
 **Limitations:**
 - Smart Commits only process the first 100 lines of a commit message
 - Each command must be on its own line (cannot combine on same line)
+- Blank lines between commands are allowed and recommended for readability
 - Commands are processed once when pushed to remote (not on local commit)
 - Time format: `#time 1w 2d 4h 30m` (weeks, days, hours, minutes)
 
@@ -1030,7 +1034,7 @@ git worktree remove ../deep-agent-feature-b
    - **CRITICAL/HIGH issues:** MUST fix before commit (blocking)
    - **MEDIUM issues:** Fix before commit OR open up a JIRA ticket if deferring
    - **LOW/non-critical issues:** Log ALL in JIRA ticket for future work
-   - **Agent MUST log non-critical issues** in JIRA ticket per line 930
+   - **Agent MUST log non-critical issues** in JIRA ticket (see Pre-Commit Review Workflow)
 
 5. **Fix issues or document deferral:**
    - **If APPROVED:** Proceed to step 6 (commit)
