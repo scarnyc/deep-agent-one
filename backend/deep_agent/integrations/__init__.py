@@ -32,6 +32,8 @@ Lazy Loading Pattern:
         - get_opik_client (Phase 1 optional)
 """
 
+from typing import Any
+
 from deep_agent.integrations.langsmith import setup_langsmith
 
 __all__ = [
@@ -43,7 +45,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> Any:
     """
     Lazy import for optional Phase 1 dependencies.
 

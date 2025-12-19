@@ -77,7 +77,7 @@ async def web_search(
         )
 
         # Format results for agent consumption
-        formatted_results = client.format_results_for_agent(results)
+        formatted_results: str = client.format_results_for_agent(results)
 
         logger.debug(
             "Returning formatted results to agent",

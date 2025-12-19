@@ -44,7 +44,7 @@ _openai_class_cache: tuple[Any, Any] | None = None
 _prewarm_started = False
 
 
-def _lazy_import_openai():
+def _lazy_import_openai() -> tuple[Any, Any]:
     """
     Lazy import of langchain_openai and openai to avoid blocking at module load time.
 
@@ -68,7 +68,7 @@ def _lazy_import_openai():
         raise
 
 
-def _lazy_import_google_genai():
+def _lazy_import_google_genai() -> Any:
     """
     Lazy import of langchain_google_genai to avoid blocking at module load time.
 
