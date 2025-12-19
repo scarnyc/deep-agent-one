@@ -297,24 +297,30 @@ export JIRA_API_TOKEN="your-api-token-here"
 
 | Operation | Example |
 |-----------|---------|
-| Read ticket | "What's the status of DEEP-123?" |
+| Read ticket | "What's the status of DA1-123?" |
 | Create issue | "Create a bug: Login timeout on slow connections" |
-| Update status | "Move DEEP-123 to In Progress" |
-| Add comment | "Add comment to DEEP-123: Started implementation" |
-| Search issues | "Show all unresolved bugs in DEEP project" |
+| Update status | "Move DA1-123 to In Progress" |
+| Add comment | "Add comment to DA1-123: Started implementation" |
+| Search issues | "Show all unresolved bugs in DA1 project" |
 | List sprint | "What's in the current sprint?" |
 | List todo | "What's in todo on my jira board?" |
 
 **Development Workflow:**
 ```bash
 # Start working on a ticket
-> Read DEEP-45 and summarize what needs to be done
+> Read DA1-45 and summarize what needs to be done
 
 # Update after implementation
-> Add comment to DEEP-45: Implemented caching, PR ready for review
+> Add comment to DA1-45: Implemented caching, PR ready for review
 
-# Reference tickets in commits
-git commit -m "feat(phase-1): implement Redis caching [DEEP-45]"
+# Reference tickets in commits (using JIRA Smart Commits)
+git commit -m "$(cat <<'EOF'
+feat(phase-1): DA1-45 implement Redis caching
+
+#comment Implemented caching as requested
+#resolve
+EOF
+)"
 ```
 
 **Troubleshooting:**
@@ -798,23 +804,27 @@ Use semantic commit messages:
 
 **Example:** `feat(phase-0): implement DeepAgents file system tools with HITL`
 
-**JIRA-Commit Linking (MANDATORY for ticket-linked work):**
-- Include `Resolves: DA1-XXX` in commit body for automatic JIRA linking
-- After commit, add comment to JIRA ticket with commit hash
-- This enables bidirectional traceability between commits and tickets
+**JIRA Smart Commits (MANDATORY for ticket-linked work):**
 
-**Commit Template for JIRA-linked work:**
-```
-fix(scope): brief description
+Use Smart Commits to trigger JIRA automation. Smart Commits coexist with repository-level conventions (`Resolves: DA1-XXX` still works for GitHub/GitLab linking but doesn't trigger JIRA automation).
 
-Detailed explanation of the change.
+**Quick Reference:**
+- Place issue key in subject line: `fix(api): DA1-123 description`
+- Commands: `#comment <text>`, `#resolve`, `#time 2h 30m`
+- Git email must match JIRA email exactly
 
-Resolves: DA1-XXX
+**Commit Template:**
+```bash
+fix(scope): DA1-XXX brief description
+
+#comment Implemented the fix.
+#resolve
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 ```
+
+**See [JIRA_SMART_COMMITS.md](./JIRA_SMART_COMMITS.md) for full documentation** (troubleshooting, examples, limitations).
 
 ### Branching Strategy
 
@@ -948,7 +958,7 @@ git worktree remove ../deep-agent-feature-b
    - **CRITICAL/HIGH issues:** MUST fix before commit (blocking)
    - **MEDIUM issues:** Fix before commit OR open up a JIRA ticket if deferring
    - **LOW/non-critical issues:** Log ALL in JIRA ticket for future work
-   - **Agent MUST log non-critical issues** in JIRA ticket per line 930
+   - **Agent MUST log non-critical issues** in JIRA ticket (see Pre-Commit Review Workflow)
 
 5. **Fix issues or document deferral:**
    - **If APPROVED:** Proceed to step 6 (commit)
@@ -957,63 +967,7 @@ git worktree remove ../deep-agent-feature-b
 
 6. **Only after approval: Make commit** following semantic commit convention
 
-**Example Pre-Commit Review Session:**
-
-```bash
-# 1. Write tests for new feature (Web Search Tool)
-# [Implement tests/integration/test_tools/test_web_search.py]
-
-# 2. Run testing-expert BEFORE committing tests
-# [Use Task tool with testing-expert subagent]
-# Result: CHANGES REQUESTED - Missing edge case tests for empty query
-# Action: Add missing tests, re-run testing-expert
-# Result: APPROVED (9/10) - Optional: Add performance test (logged to JIRA)
-
-# 3. Write implementation (Web Search Tool)
-# [Implement backend/deep_agent/tools/web_search.py]
-
-# 4. Run code-review-expert BEFORE committing implementation
-# [Use Task tool with code-review-expert subagent]
-# [Agent automatically runs: ./scripts/security_scan.sh]
-# [Agent reads reports from .pf/readthis/]
-# Result: APPROVED WITH MINOR RECOMMENDATIONS (8.5/10)
-# TheAuditor Scan: PASS (0 critical issues)
-# - ✓ No hardcoded secrets
-# - ✓ No SQL injection vulnerabilities
-# - ✓ Dependencies up to date
-# Manual Security Review:
-# - HIGH: None
-# - MEDIUM: None
-# - LOW: Could add more detailed docstring examples (logged to JIRA)
-
-# 5. Track all non-critical issues in JIRA
-# PLACEHOLDER for JIRA MCP command
-# (Document LOW priority items from both reviews)
-
-# 6. NOW commit (only after approval)
-git add tests/integration/test_tools/test_web_search.py
-git commit -m "test(phase-0): add Web Search Tool tests (12 tests, TDD)"
-
-git add backend/deep_agent/tools/web_search.py
-git commit -m "feat(phase-0): implement Web Search Tool using Perplexity MCP client"
-
-# 7. Continue with next task
-```
-
-**Key Differences from Post-Commit:**
-- ❌ NO fixup commits needed (code already reviewed)
-- ✅ Git history contains ONLY approved code
-- ✅ Faster progression (no going back after commit)
-- ✅ Automated security scanning on every commit
-- ✅ No security vulnerabilities slip through
-- ⚠️ Slightly slower initial workflow (10-15 min wait before commit)
-
-**Time Investment:** 10-15 minutes per feature for review + issue tracking + security scanning
-**Return:**
-- Clean git history with zero unreviewed code
-- Comprehensive issue tracking (functional + security)
-- No vulnerabilities in committed code
-- Automated + manual security analysis
+**Benefits:** Clean git history, no fixup commits, automated security scanning, comprehensive issue tracking. ~10-15 min per feature.
 
 ---
 
@@ -1168,101 +1122,13 @@ git commit -m "security(phase-X): address TheAuditor findings"
 
 ### Startup Scripts
 
-**ALWAYS: Use `start-all.sh` for development**
-
 ```bash
-# Start both backend and frontend with automatic logging
-./scripts/start-all.sh
-
-# Servers will start on:
-# - Backend:  http://127.0.0.1:8000
-# - Frontend: http://localhost:3000
-#
-# Ctrl+C stops both servers cleanly
+./scripts/start-all.sh     # Start both (Backend: :8000, Frontend: :3000)
+./scripts/start-backend.sh # Backend only
+./scripts/start-frontend.sh # Frontend only
 ```
 
-**Features:**
-- **Synchronized startup** - Backend starts first, frontend waits 3 seconds
-- **Automatic logging** - Console output + timestamped log files
-- **Clean shutdown** - Ctrl+C stops both servers gracefully
-- **Environment loading** - Automatically sources `.env` file
-- **Virtual environment** - Activates venv for Python dependencies
-
-**Logging Configuration:**
-
-All scripts use `2>&1 | tee` to simultaneously:
-- Display output to console (interactive development)
-- Save output to timestamped log files (debugging, auditing)
-
-Log files are organized by component:
-```
-logs/
-├── backend/
-│   ├── 2025-11-16-10-30-45.log
-│   └── 2025-11-16-14-22-18.log
-└── frontend/
-    ├── 2025-11-16-10-30-48.log
-    └── 2025-11-16-14-22-21.log
-```
-
-**Viewing Logs:**
-
-```bash
-# Watch live logs
-tail -f logs/backend/2025-11-16-*.log
-tail -f logs/frontend/2025-11-16-*.log
-
-# Search logs for errors
-grep -i error logs/backend/*.log
-grep -i "websocket" logs/backend/*.log
-
-# View most recent backend log
-tail -100 $(ls -t logs/backend/*.log | head -1)
-
-# Follow both logs simultaneously
-tail -f logs/backend/2025-11-16-*.log logs/frontend/2025-11-16-*.log
-```
-
-**Individual Scripts:**
-
-Use these when you need to start services separately:
-
-```bash
-# Backend only (when testing API directly)
-./scripts/start-backend.sh
-
-# Frontend only (when backend already running)
-./scripts/start-frontend.sh
-```
-
-**Common Scenarios:**
-
-```bash
-# Full development with logging
-./scripts/start-all.sh
-
-# Debug backend issues (backend only + follow logs)
-./scripts/start-backend.sh &
-tail -f logs/backend/$(ls -t logs/backend/*.log | head -1)
-
-# Test frontend changes (backend running separately)
-# Terminal 1:
-./scripts/start-backend.sh
-
-# Terminal 2:
-./scripts/start-frontend.sh
-
-# Review historical logs after crash
-ls -lt logs/backend/*.log | head -5  # Find recent logs
-cat logs/backend/2025-11-16-10-30-45.log | grep -i error
-```
-
-**Why `2>&1 | tee`?**
-
-This pattern redirects stderr to stdout (`2>&1`) then duplicates output to both console and file (`tee`):
-- **Console output** - See real-time feedback during development
-- **Log file** - Permanent record for debugging, auditing, security analysis
-- **No lost output** - Both streams (stdout/stderr) captured
+Logs saved to `logs/backend/` and `logs/frontend/` with timestamps.
 
 ---
 
