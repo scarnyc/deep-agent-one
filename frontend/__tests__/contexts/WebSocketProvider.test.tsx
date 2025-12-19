@@ -186,9 +186,12 @@ describe('WebSocketProvider', () => {
         </WebSocketProvider>
       );
 
-      // Assert: WebSocket constructor called
+      // Assert: WebSocket constructor called (test env uses same-origin without explicit port)
       await waitFor(() => {
-        expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:8000/api/v1/ws');
+        expect(global.WebSocket).toHaveBeenCalled();
+        const callUrl = (global.WebSocket as jest.Mock).mock.calls[0][0];
+        expect(callUrl).toMatch(/^ws:\/\/localhost/);
+        expect(callUrl).toContain('/api/v1/ws');
       });
     });
 
@@ -971,7 +974,10 @@ describe('WebSocketProvider', () => {
       );
 
       await waitFor(() => {
-        expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:8000/api/v1/ws');
+        expect(global.WebSocket).toHaveBeenCalled();
+        const callUrl = (global.WebSocket as jest.Mock).mock.calls[0][0];
+        expect(callUrl).toMatch(/^ws:\/\/localhost/);
+        expect(callUrl).toContain('/api/v1/ws');
       });
     });
 

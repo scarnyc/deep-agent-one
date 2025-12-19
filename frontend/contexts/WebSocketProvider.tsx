@@ -182,15 +182,6 @@ export function WebSocketProvider({
     return standardUrl;
   }, [url]);
 
-  // Fetch config on mount to populate cache for getWebSocketUrl
-  useEffect(() => {
-    fetchConfig().catch((err) => {
-      if (DEBUG) {
-        console.warn('[WebSocketProvider] Failed to fetch config:', err);
-      }
-    });
-  }, []);
-
   /**
    * Calculate reconnect delay with exponential backoff
    */
@@ -365,6 +356,62 @@ export function WebSocketProvider({
     }
   }, [getWebSocketUrl, getReconnectDelay, broadcastEvent]);
 
+  // Fetch config and initialize WebSocket connection sequentially
+  useEffect(() => {
+    let mounted = true;
+    let reconnectTimeoutId: NodeJS.Timeout | null = null;
+
+    const initializeWebSocket = async () => {
+      try {
+        // STEP 1: Wait for config to load
+        await fetchConfig();
+
+        if (!mounted) return;
+
+        // STEP 2: Only connect after config is ready
+        if (autoConnect) {
+          if (DEBUG) {
+            console.log('[WebSocketProvider] Config loaded, connecting...');
+          }
+          connect();
+        }
+      } catch (err) {
+        if (DEBUG) {
+          console.warn('[WebSocketProvider] Failed to fetch config:', err);
+        }
+
+        // Fallback: Still attempt connection with defaults
+        if (mounted && autoConnect) {
+          if (DEBUG) {
+            console.log('[WebSocketProvider] Connecting with default config...');
+          }
+          connect();
+        }
+      }
+    };
+
+    initializeWebSocket();
+
+    return () => {
+      mounted = false;
+      if (reconnectTimeoutId) {
+        clearTimeout(reconnectTimeoutId);
+      }
+      // Preserve existing cleanup logic from the original auto-connect useEffect
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close(1000, 'Component unmount');
+        wsRef.current = null;
+      }
+      // Clear all event handlers
+      eventHandlersRef.current.clear();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoConnect]); // Only depend on autoConnect, connect is stable via useCallback
+
   /**
    * Disconnect from WebSocket
    */
@@ -437,34 +484,6 @@ export function WebSocketProvider({
       eventHandlersRef.current.delete(handler);
     };
   }, []);
-
-  /**
-   * Auto-connect on mount
-   */
-  useEffect(() => {
-    if (autoConnect) {
-      connect();
-    }
-
-    // Cleanup on unmount
-    return () => {
-      // Clear reconnect timeout
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-
-      // Close connection
-      if (wsRef.current) {
-        wsRef.current.close(1000, 'Component unmount');
-        wsRef.current = null;
-      }
-
-      // Clear all event handlers
-      eventHandlersRef.current.clear();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoConnect]); // Only depend on autoConnect, not connect function
 
   // Context value
   const value: WebSocketContextValue = {
