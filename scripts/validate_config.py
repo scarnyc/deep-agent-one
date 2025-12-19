@@ -290,6 +290,36 @@ def validate_config() -> bool:
         )
 
     # =========================================================================
+    # CHECK 11: Config endpoint readiness (DA1-22)
+    # =========================================================================
+    print("✓ Checking config endpoint readiness...")
+
+    # Verify API version is set for config endpoint
+    if not settings.API_VERSION:
+        errors.append("API_VERSION not set (required for /api/v1/config/public endpoint)")
+
+    # Verify Replit detection properties work
+    try:
+        _ = settings.is_replit
+        _ = settings.replit_cors_origins
+    except Exception as e:
+        errors.append(f"Replit detection properties failed: {e}")
+
+    # Verify stream timeout is reasonable for frontend
+    if settings.STREAM_TIMEOUT_SECONDS > 600:
+        warnings.append(
+            f"STREAM_TIMEOUT_SECONDS ({settings.STREAM_TIMEOUT_SECONDS}s) > 10 minutes - "
+            "frontend may appear unresponsive"
+        )
+
+    # Verify heartbeat interval is set
+    if settings.HEARTBEAT_INTERVAL_SECONDS < 1:
+        warnings.append(
+            f"HEARTBEAT_INTERVAL_SECONDS ({settings.HEARTBEAT_INTERVAL_SECONDS}s) < 1 - "
+            "may cause excessive heartbeat traffic"
+        )
+
+    # =========================================================================
     # REPORT RESULTS
     # =========================================================================
     print("\n" + "=" * 70)
