@@ -297,24 +297,24 @@ export JIRA_API_TOKEN="your-api-token-here"
 
 | Operation | Example |
 |-----------|---------|
-| Read ticket | "What's the status of DEEP-123?" |
+| Read ticket | "What's the status of DA1-123?" |
 | Create issue | "Create a bug: Login timeout on slow connections" |
-| Update status | "Move DEEP-123 to In Progress" |
-| Add comment | "Add comment to DEEP-123: Started implementation" |
-| Search issues | "Show all unresolved bugs in DEEP project" |
+| Update status | "Move DA1-123 to In Progress" |
+| Add comment | "Add comment to DA1-123: Started implementation" |
+| Search issues | "Show all unresolved bugs in DA1 project" |
 | List sprint | "What's in the current sprint?" |
 | List todo | "What's in todo on my jira board?" |
 
 **Development Workflow:**
 ```bash
 # Start working on a ticket
-> Read DEEP-45 and summarize what needs to be done
+> Read DA1-45 and summarize what needs to be done
 
 # Update after implementation
-> Add comment to DEEP-45: Implemented caching, PR ready for review
+> Add comment to DA1-45: Implemented caching, PR ready for review
 
 # Reference tickets in commits (using JIRA Smart Commits)
-git commit -m "feat(phase-1): DEEP-45 implement Redis caching
+git commit -m "feat(phase-1): DA1-45 implement Redis caching
 
 #comment Implemented caching as requested
 #resolve"
@@ -815,9 +815,17 @@ JIRA Smart Commits automatically link commits to issues and can trigger workflow
 - `#time <duration>` - Log work time (e.g., `#time 2h 30m`)
 - `#<transition>` - Trigger specific workflow transition (e.g., `#in-progress`, `#done`)
 
+**Note:** Transition names are case-sensitive and must match your JIRA workflow exactly. Query your project's workflow for valid transition names.
+
 **Requirements:**
 - Smart Commits must be enabled in JIRA (Admin → DVCS accounts)
 - Repository must be connected via DVCS or GitHub/Bitbucket app link
+
+**Limitations:**
+- Smart Commits only process the first 100 lines of a commit message
+- Each command must be on its own line (cannot combine on same line)
+- Commands are processed once when pushed to remote (not on local commit)
+- Time format: `#time 1w 2d 4h 30m` (weeks, days, hours, minutes)
 
 **Commit Template for JIRA-linked work:**
 ```
@@ -838,20 +846,28 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 # Simple issue reference (auto-links to JIRA)
 git commit -m "feat(api): DA1-123 add user authentication endpoint"
 
-# With comment and resolve
-git commit -m "fix(parser): DA1-456 handle null values
+# With comment and resolve (using heredoc for multi-line - recommended)
+git commit -m "$(cat <<'EOF'
+fix(parser): DA1-456 handle null values
 
 Fixed null pointer exception in JSON parser.
 
 #comment Fixed null pointer in parser module
-#resolve"
+#resolve
+EOF
+)"
 
 # With time logging
-git commit -m "refactor(db): DA1-789 optimize query performance
+git commit -m "$(cat <<'EOF'
+refactor(db): DA1-789 optimize query performance
 
 #time 2h 30m
-#comment Refactored slow queries"
+#comment Refactored slow queries
+EOF
+)"
 ```
+
+**Note:** The heredoc format `$(cat <<'EOF' ... EOF)` is more portable and clearer for multi-line commit messages than embedding literal newlines in `-m` strings.
 
 ### Branching Strategy
 
