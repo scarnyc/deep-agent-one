@@ -96,7 +96,7 @@ This is a working prototype demonstrating core framework capabilities. Future ph
 
 **Monitoring & Observability**
 - LangSmith tracing for all agent operations
-- Structured logging (JSON in production, human-readable locally)
+- Structured logging (JSON in production, human-readable in development)
 - Error tracking with trace IDs
 - Cost tracking per request
 
@@ -186,7 +186,7 @@ Human-in-the-loop approvals with three options:
 
 #### 5. **Checkpointer Strategy**
 State persistence across agent interactions:
-- Phase 0: SQLite for local development
+- Phase 0: SQLite for development
 - Enables conversation continuity and HITL workflows
 
 ### Technology Stack
@@ -219,77 +219,54 @@ State persistence across agent interactions:
 
 ### Prerequisites
 
-- **Python 3.10+**
-- **Node.js 18+**
-- **Git**
+- **Replit account** (primary development environment)
 - **API Keys:** Google (Gemini), OpenAI (fallback), Perplexity, LangSmith (optional)
 
-### Local Setup
+### Replit Setup (Recommended)
 
-```bash
-# 1. Clone repository
-git clone https://github.com/yourusername/deep-agent-one.git
-cd deep-agent-one
+This project is optimized for **Replit as the primary development environment**.
 
-# 2. Install Poetry (Python dependency manager)
-curl -sSL https://install.python-poetry.org | python3 -
-
-# 3. Install Python dependencies
-poetry install
-
-# 4. Install Node.js dependencies
-npm install
-
-# 5. Set up environment variables
-cp .env.example .env
-# Edit .env with your API keys:
-#   - GOOGLE_API_KEY (required - Gemini 3 Pro, primary model)
-#   - OPENAI_API_KEY (required - GPT-5.1 fallback)
-#   - PERPLEXITY_API_KEY (required for web search)
-#   - LANGSMITH_API_KEY (optional, for tracing)
-
-# 6. Start the servers
-./scripts/start-all.sh
-```
-
-**Access Points:**
-- Backend API: http://127.0.0.1:8000
-- Frontend UI: http://localhost:3000
-- API Docs: http://127.0.0.1:8000/docs
-
-### Replit Deployment
-
-This prototype is optimized for deployment on Replit:
-
-**One-Click Deploy:**
+**Quick Start:**
 1. Fork this repository on Replit
-2. Configure Secrets in Replit dashboard:
-   - `GOOGLE_API_KEY` (Gemini 3 Pro - primary)
-   - `OPENAI_API_KEY` (GPT-5.1 - fallback)
-   - `PERPLEXITY_API_KEY`
-   - `LANGSMITH_API_KEY` (optional)
+2. Configure Secrets (Tools → Secrets):
+   ```
+   GOOGLE_API_KEY=...          # Gemini 3 Pro (primary model)
+   OPENAI_API_KEY=sk-...       # GPT-5.1 (fallback model)
+   PERPLEXITY_API_KEY=pplx-... # Web search
+   LANGSMITH_API_KEY=ls__...   # Tracing (optional)
+   ```
 3. Click "Run" - Replit automatically:
    - Installs Python/Node dependencies
    - Starts backend (FastAPI) on port 8000
    - Starts frontend (Next.js) on port 3000
 
-**Environment Configuration:**
+**Verify deployment:**
 ```bash
-# Replit automatically loads secrets from the Secrets tab
-# No .env file needed on Replit
-
-# Verify deployment:
 curl https://your-repl-name.replit.app/health
 ```
 
+**Access Points:**
+- Frontend UI: Your Replit URL (port 3000)
+- Backend API: Your Replit URL/api (port 8000)
+- API Docs: Your Replit URL:8000/docs
+
 ### Environment Variables
 
+Configure in **Replit Secrets** (Tools → Secrets):
+
 **Required:**
-```bash
-GOOGLE_API_KEY=...                       # Google API key for Gemini 3 Pro (primary)
-OPENAI_API_KEY=sk-...                    # OpenAI API key for GPT-5.1 (fallback)
-PERPLEXITY_API_KEY=pplx-...             # Perplexity API key for web search
-LANGSMITH_API_KEY=ls__...               # LangSmith tracing (recommended)
+```
+GOOGLE_API_KEY=...           # Google API key for Gemini 3 Pro (primary)
+OPENAI_API_KEY=sk-...        # OpenAI API key for GPT-5.1 (fallback)
+PERPLEXITY_API_KEY=pplx-...  # Perplexity API key for web search
+```
+
+**Optional:**
+```
+LANGSMITH_API_KEY=ls__...    # LangSmith tracing (recommended)
+JIRA_URL=https://...         # JIRA integration
+JIRA_USERNAME=...            # JIRA email
+JIRA_API_TOKEN=...           # JIRA API token
 ```
 
 See `.env.example` for complete configuration template.
@@ -301,7 +278,7 @@ See `.env.example` for complete configuration template.
 ### Using the Chat Interface
 
 **Starting a Conversation:**
-1. Navigate to http://localhost:3000 (or your Replit URL)
+1. Navigate to your Replit URL
 2. Type your message in the chat input
 3. Press Enter or click Send
 4. Watch the agent respond in real-time (token-by-token streaming)
@@ -487,7 +464,7 @@ X-RateLimit-Reset: 1634567890
 
 **Phase 0 Prototype:**
 - No persistent user data storage
-- Conversation state in SQLite (local only)
+- Conversation state in SQLite (ephemeral on Replit)
 - LangSmith traces (optional, can be disabled)
 
 **Data Handling:**
@@ -531,20 +508,15 @@ See [CLAUDE.md](./CLAUDE.md) for complete development guide, including:
 - Security scanning (TheAuditor)
 
 **Quick Start for Contributors:**
-```bash
-# Fork and clone
-git clone https://github.com/yourusername/deep-agent-one.git
 
-# Install development dependencies
-poetry install
-npm install
-
-# Run tests
-pytest --cov
-
-# Make changes, write tests, commit
-git commit -m "feat(phase-0): add feature X"
-```
+1. Fork this Repl on Replit
+2. Configure Secrets (see "Getting Started" above)
+3. Click "Run" to start the development environment
+4. Make changes, write tests, commit:
+   ```bash
+   pytest --cov  # Run tests
+   git commit -m "feat(phase-0): add feature X"
+   ```
 
 ---
 

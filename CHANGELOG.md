@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FastAPI backend with WebSocket support
 - Next.js frontend with AG-UI Protocol integration
 - SQLite checkpointer for agent state persistence
-- Structured logging (JSON in production, human-readable locally)
+- Structured logging (JSON in production, human-readable in development)
 - Error tracking with trace IDs
 - Cost tracking per request and model attribution
 

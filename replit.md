@@ -116,7 +116,7 @@ The `.env` file contains non-sensitive configuration like model names, timeouts,
 ## Architecture Notes
 
 ### Frontend-Backend Communication
-- WebSocket endpoint: `ws://localhost:8000/api/v1/ws`
+- WebSocket endpoint: `ws://<replit-host>:8000/api/v1/ws`
 - AG-UI Protocol for streaming events
 - Real-time tool call transparency
 - Token-by-token response streaming

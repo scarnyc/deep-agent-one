@@ -12,42 +12,31 @@
 
 ## 🔴 NON-NEGOTIABLE Development Principles
 
-### 1. Environment Setup (ALWAYS FIRST)
+### 1. Environment Setup (Replit - Primary Environment)
 
+**Replit handles most setup automatically.** On first run, Replit:
+- Installs Python dependencies via Poetry (from `pyproject.toml`)
+- Installs Node.js dependencies via pnpm (from `package.json`)
+- Configures the runtime environment
+
+**Manual Steps (if needed):**
 ```bash
-# Set up virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install --upgrade pip
-
-# Initialize repository
-git init deep-agent-one
-cd deep-agent-one
-
-# Install Poetry for dependency management
-curl -sSL https://install.python-poetry.org | python3 -
+# Verify dependencies are installed
 poetry install
+pnpm install
 
-# Initialize git
-git add .
-git commit -m "Initial commit: Deep Agent One"
-git checkout -b phase-0-mvp
-```
-
-**CRITICAL: Install Node.js/pnpm and Playwright MCP**
-```bash
-# Verify Node.js installation (required for Playwright MCP)
+# Verify Node.js version (required for Playwright MCP)
 node --version  # Must be 18+
-pnpm --version  # If not installed: npm install -g pnpm
 
-# If not installed, install Node.js 18+ from https://nodejs.org/
-
-# Playwright plugin provides browser automation (install browsers only)
-# Plugin installed via: /plugin install playwright
-
-# Install Playwright browsers and system dependencies
+# Install Playwright browsers (required for UI testing)
 npx playwright install
 npx playwright install-deps
+```
+
+**Playwright Plugin:**
+```bash
+# Plugin installed via Claude Code:
+/plugin install playwright
 
 # Verify Playwright installation
 npx playwright --version
@@ -55,17 +44,17 @@ npx playwright --version
 
 ### 2. Configuration Management
 
-**Single Source of Truth:** Root `.env` file
+**Single Source of Truth:** Replit Secrets (Tools → Secrets)
+
+On Replit, environment variables are managed via **Replit Secrets**, not `.env` files. Replit automatically injects secrets as environment variables at runtime.
 
 #### File Structure
 
 ```
 deep-agent-one/
-├── .env                      # Active configuration (gitignored, NOT committed)
-├── .env.example              # Template with comprehensive documentation (committed)
+├── .env.example              # Template documenting all required variables (committed)
 ├── frontend/
-│   ├── .env.test             # Frontend test fixtures (committed)
-│   └── .env.local.example    # Documentation only (frontend reads from root .env)
+│   └── .env.test             # Frontend test fixtures (committed)
 └── backend/deep_agent/config/
     └── settings.py           # Pydantic Settings loader
 ```
@@ -73,74 +62,69 @@ deep-agent-one/
 #### How It Works
 
 **Backend (Python/FastAPI):**
-- **Reads:** Root `.env` file
+- **Reads:** Environment variables (injected by Replit from Secrets)
 - **Loader:** `backend/deep_agent/config/settings.py` (Pydantic BaseSettings)
 - **Cache:** `@lru_cache` singleton pattern (loaded once on startup)
 - **Consumers:** 11 backend modules import `get_settings()`
 
 **Frontend (Next.js/React):**
-- **Reads:** Root `.env` file (Next.js default behavior)
+- **Reads:** Environment variables (injected by Replit from Secrets)
 - **Exposed:** Only `NEXT_PUBLIC_*` variables (embedded in browser bundle at build time)
 - **Consumers:** 18 TypeScript files access `process.env.NEXT_PUBLIC_*`
 
 **Key Points:**
-- **ONE active config file** - Root `.env` serves both backend and frontend
-- **NO separate frontend/.env.local** - Consolidated to root for simplicity
-- **Frontend reads from root** - Next.js automatically finds root `.env`
+- **Replit Secrets** - Configure in Tools → Secrets panel
+- **No `.env` file needed** - Replit injects secrets as environment variables
 - **NEXT_PUBLIC_* variables** - Only these are exposed to the browser
 
-#### Setup for New Developers
+#### Setup for New Developers (Replit)
 
-```bash
-# 1. Copy template to active config
-cp .env.example .env
+1. **Fork the Repl** or create a new Repl from this repository
 
-# 2. Fill in your API keys
-nano .env  # Edit: OPENAI_API_KEY, PERPLEXITY_API_KEY, LANGSMITH_API_KEY
+2. **Configure Secrets** (Tools → Secrets):
+   ```
+   GOOGLE_API_KEY=...          # Gemini 3 Pro (primary model)
+   OPENAI_API_KEY=sk-...       # GPT-5.1 (fallback model)
+   PERPLEXITY_API_KEY=pplx-... # Web search
+   LANGSMITH_API_KEY=ls__...   # Tracing (optional)
+   JIRA_URL=https://...        # JIRA integration (optional)
+   JIRA_USERNAME=...           # JIRA email
+   JIRA_API_TOKEN=...          # JIRA API token
+   ```
 
-# 3. Validate configuration
-python scripts/validate_config.py
+3. **Verify configuration:**
+   ```bash
+   printenv | grep -E 'GOOGLE|OPENAI|PERPLEXITY'
+   python scripts/validate_config.py
+   ```
 
-# 4. Start services (validation runs automatically)
-./scripts/start-all.sh
-```
+4. **Click "Run"** - Replit starts both backend and frontend automatically
 
 #### Environment-Specific Configuration
 
-Configure environment-specific settings directly in `.env`:
+Configure via Replit Secrets:
 
 ```bash
-# Local Development
-# Edit .env and set:
-ENV=local
+# Development (Replit default)
+ENV=dev
 DEBUG=true
-API_RELOAD=true
 STREAM_TIMEOUT_SECONDS=300  # 5 min for debugging
-GPT_MODEL_NAME=gpt-5.1-2025-11-13
 
 # Testing (CI/CD)
-# Edit .env and set:
 ENV=test
 MOCK_EXTERNAL_APIS=true
 STREAM_TIMEOUT_SECONDS=60  # 1 min for speed
-GPT_MODEL_NAME=gpt-5.1-2025-11-13
 
 # Production
-# Edit .env and set:
 ENV=prod
 DEBUG=false  # NEVER true in production
-# Fill in ALL secrets (no placeholders)
-GPT_MODEL_NAME=gpt-5.1-2025-11-13
-# Run: python scripts/validate_config.py
 ```
 
 
 #### Configuration Validation
 
 **Automatic validation on startup:**
-```bash
-./scripts/start-backend.sh  # Runs validation before starting server
-```
+Replit runs validation automatically when starting the servers.
 
 **Manual validation:**
 ```bash
@@ -158,49 +142,47 @@ python scripts/validate_config.py
 #### Best Practices
 
 - **Use pydantic-settings** for type-safe configuration
-- **NEVER commit `.env`** - keep it gitignored
-- **Maintain `.env.example`** - comprehensive documentation for all settings
-- **Use separate API keys per environment**
+- **Use Replit Secrets** for all sensitive configuration
+- **Maintain `.env.example`** as comprehensive documentation template
+- **Use separate API keys per environment** (dev vs prod Repls)
 - **Run validation** before deploying (`python scripts/validate_config.py`)
 - **Review templates** when adding new settings
 
 #### Dependency Management
 
-**Python:** Poetry with pyproject.toml
-**Node.js:** pnpm with package.json (for frontend and Playwright MCP)
+**Python:** Poetry with pyproject.toml (Replit auto-installs)
+**Node.js:** pnpm with package.json (Replit auto-installs)
 
-**Execution:**
+**Manual execution (if needed):**
 ```bash
-# Backend with specific environment
-ENV=prod poetry run python -m deep_agent
+# Install dependencies
+poetry install
+pnpm install
 
-# Or set in .env file (recommended)
-echo "ENV=prod" >> .env
-./scripts/start-backend.sh
+# Start services (Replit handles this automatically via Run button)
+./scripts/start-all.sh
 ```
 
 ### 3. Security Auditing Setup (TheAuditor)
 
-**Install TheAuditor for AI-assisted security analysis:**
+**TheAuditor is pre-installed on Replit.** Run security scans via:
 
 ```bash
-# Clone and install TheAuditor
-git clone github.com/TheAuditorTool/Auditor
-cd TheAuditor && pip install -e .
+# Initialize (first time only)
+aud init
 
-# Return to your project
-cd ~/deep-agent-one
+# Run full security audit
+aud full
 
-# Initialize and run first audit
-# old: aud init && aud full
-# new (project-local): python -m venv .pf/venv && source .pf/venv/bin/activate && .pf/venv/bin/pip install -e /path/to/Auditor && .pf/venv/bin/aud init && .pf/venv/bin/aud full
+# View results
+cat .pf/readthis/*
 ```
 
 **Why TheAuditor Matters:**
-- Works with ANY AI assistant (Claude, Cursor, Copilot)
+- Works with ANY AI assistant (Claude, Claude Code, etc.)
 - AI assistants are blind to security - they optimize for "make it work"
 - TheAuditor gives them eyes to see security issues
-- Results in `.pf/readthis/` (was previously `.auditor/reports/readthis/`) that any LLM can read
+- Results in `.pf/readthis/` that any LLM can read
 - Free, open source (AGPL-3.0)
 
 **Usage:**
@@ -270,28 +252,26 @@ npx playwright install-deps
 JIRA integration for seamless ticket management during development.
 
 **Prerequisites:**
-- Python 3.10+ with pip
 - Atlassian Cloud account with JIRA access
+- API token from https://id.atlassian.com/manage-profile/security/api-tokens
 
-**Setup:**
+**Setup (Replit):**
 
-1. Install the mcp-atlassian package:
-```bash
-pip install mcp-atlassian
-```
+1. **Configure Replit Secrets** (Tools → Secrets):
+   ```
+   JIRA_URL=https://YOUR-SITE.atlassian.net
+   JIRA_USERNAME=your-email@example.com
+   JIRA_API_TOKEN=your-api-token-here
+   ```
 
-2. Generate an API token at https://id.atlassian.com/manage-profile/security/api-tokens
+2. **Verify secrets are set:**
+   ```bash
+   printenv | grep -i jira
+   ```
 
-3. Set environment variables (add to `.env` or `~/.bashrc`):
-```bash
-export JIRA_URL="https://YOUR-SITE.atlassian.net"
-export JIRA_USERNAME="your-email@example.com"
-export JIRA_API_TOKEN="your-api-token-here"
-```
+3. The MCP server is configured in `.mcp.json` and will auto-start with Claude Code.
 
-4. The MCP server is configured in `.mcp.json` and will auto-start with Claude Code.
-
-5. Restart Claude Code to pick up the new MCP server, then verify with `/mcp`.
+4. Restart Claude Code to pick up the new MCP server, then verify with `/mcp`.
 
 **Available Operations:**
 
@@ -324,20 +304,9 @@ EOF
 ```
 
 **Troubleshooting:**
-- "mcp-atlassian not found": Run `pip install mcp-atlassian`
 - "Auth failed": Verify API token at https://id.atlassian.com/manage-profile/security/api-tokens
 - "MCP not showing": Restart Claude Code and run `/mcp` to check status
-
-**Replit Secrets (Required for Replit environments):**
-
-Before using JIRA MCP on Replit, verify these secrets are configured in Replit Secrets (Tools → Secrets):
-- `JIRA_URL` - e.g., `https://your-site.atlassian.net`
-- `JIRA_USERNAME` - Your Atlassian email address
-- `JIRA_API_TOKEN` - Generate at https://id.atlassian.com/manage-profile/security/api-tokens
-
-Verify with: `printenv | grep -i jira`
-
-If the curl to JIRA fails with "URL rejected: No host part", check that the secrets are properly set.
+- "URL rejected: No host part": Verify secrets are set (`printenv | grep -i jira`)
 
 #### Markitdown MCP (Document Conversion)
 
@@ -345,14 +314,7 @@ Microsoft's tool for converting documents to Markdown format, available as both 
 
 **Repository:** https://github.com/microsoft/markitdown
 
-**Installation (already installed):**
-```bash
-# CLI tool
-pip install -e 'markitdown/packages/markitdown[all]'
-
-# MCP server (for Claude Code integration)
-pip install -e 'markitdown/packages/markitdown-mcp'
-```
+**Pre-installed on Replit.** No additional setup required.
 
 **Supported Formats:**
 - PDF, DOCX, PPTX, XLSX
@@ -855,7 +817,7 @@ main (integration branch - remote HEAD)
 **Parallel Development Rules:**
 - Maximum 3 active feature branches per developer
 - Sync with main branch at least daily
-- Resolve conflicts locally before pushing
+- Resolve conflicts before pushing
 - Use descriptive branch names for easy identification
 
 **Quick Commands (after running `./scripts/setup-git-aliases.sh`):**
@@ -1040,23 +1002,22 @@ Available tools for prompt engineering (invoke directly via main agent):
 
 ## Quick Reference: Essential Commands
 
-### Environment Setup
+### Environment Setup (Replit)
 ```bash
-# Python virtual environment with Poetry
+# Replit auto-installs dependencies, but manual if needed:
 poetry install
-poetry shell
+pnpm install
 
 # Verify Node.js
 node --version  # Must be 18+
 
-# Install Playwright MCP
-npm install -g @modelcontextprotocol/server-playwright
+# Install Playwright browsers
 npx playwright install
 ```
 
 ### TheAuditor Security Scanning
 ```bash
-# Initialize
+# Initialize (first time)
 aud init
 
 # Run full security audit
@@ -1120,8 +1081,11 @@ git commit -m "feat(phase-X): <description>"
 git commit -m "security(phase-X): address TheAuditor findings"
 ```
 
-### Startup Scripts
+### Startup (Replit)
 
+**Primary:** Click the "Run" button - Replit starts both services automatically.
+
+**Manual (if needed):**
 ```bash
 ./scripts/start-all.sh     # Start both (Backend: :8000, Frontend: :3000)
 ./scripts/start-backend.sh # Backend only
