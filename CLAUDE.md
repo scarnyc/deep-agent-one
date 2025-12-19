@@ -313,8 +313,11 @@ export JIRA_API_TOKEN="your-api-token-here"
 # Update after implementation
 > Add comment to DEEP-45: Implemented caching, PR ready for review
 
-# Reference tickets in commits
-git commit -m "feat(phase-1): implement Redis caching [DEEP-45]"
+# Reference tickets in commits (using JIRA Smart Commits)
+git commit -m "feat(phase-1): DEEP-45 implement Redis caching
+
+#comment Implemented caching as requested
+#resolve"
 ```
 
 **Troubleshooting:**
@@ -798,22 +801,56 @@ Use semantic commit messages:
 
 **Example:** `feat(phase-0): implement DeepAgents file system tools with HITL`
 
-**JIRA-Commit Linking (MANDATORY for ticket-linked work):**
-- Include `Resolves: DA1-XXX` in commit body for automatic JIRA linking
-- After commit, add comment to JIRA ticket with commit hash
-- This enables bidirectional traceability between commits and tickets
+**JIRA Smart Commits (MANDATORY for ticket-linked work):**
+
+JIRA Smart Commits automatically link commits to issues and can trigger workflow transitions when issue keys are detected in commit messages.
+
+**Key Placement:**
+- Issue key (e.g., `DA1-123`) should appear in subject line for visibility
+- JIRA auto-links commits when issue key is detected anywhere in message
+
+**Smart Commits Commands (each on its own line):**
+- `#comment <text>` - Add a comment to the JIRA issue
+- `#resolve` - Transition issue to resolved/done status
+- `#time <duration>` - Log work time (e.g., `#time 2h 30m`)
+- `#<transition>` - Trigger specific workflow transition (e.g., `#in-progress`, `#done`)
+
+**Requirements:**
+- Smart Commits must be enabled in JIRA (Admin → DVCS accounts)
+- Repository must be connected via DVCS or GitHub/Bitbucket app link
 
 **Commit Template for JIRA-linked work:**
 ```
-fix(scope): brief description
+fix(scope): DA1-XXX brief description
 
 Detailed explanation of the change.
 
-Resolves: DA1-XXX
+#comment Implemented the fix as described in the ticket.
+#resolve
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+```
+
+**Example Smart Commits:**
+```bash
+# Simple issue reference (auto-links to JIRA)
+git commit -m "feat(api): DA1-123 add user authentication endpoint"
+
+# With comment and resolve
+git commit -m "fix(parser): DA1-456 handle null values
+
+Fixed null pointer exception in JSON parser.
+
+#comment Fixed null pointer in parser module
+#resolve"
+
+# With time logging
+git commit -m "refactor(db): DA1-789 optimize query performance
+
+#time 2h 30m
+#comment Refactored slow queries"
 ```
 
 ### Branching Strategy
