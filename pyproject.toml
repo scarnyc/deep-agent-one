@@ -18,7 +18,7 @@ python-dotenv = "^1.0.0"
 
 # LangChain & DeepAgents (Stable 1.0 versions - Oct 2025)
 langchain = "^1.0.0"           # Stable 1.0.2 (Oct 21, 2025)
-langchain-core = "^1.0.0"      # Required by DeepAgents 0.2.0
+langchain-core = "^1.2.5"      # Required by DeepAgents 0.2.0
 langchain-openai = "^0.3.0"    # Compatible with langchain-core 1.0
 langchain-google-genai = "^3.1.0"  # Gemini 3 Pro integration (thought signatures)
 grpcio = ">=1.60.0"        # gRPC for Google AI services
